@@ -1,30 +1,35 @@
 import React, { useState } from 'react'
 import { QueryProvider } from '@/providers/QueryProvider'
 import { Toaster } from '@/components/ui/toaster'
+import { AuthProvider, useAuth } from '@/providers/AuthProvider'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { AuthPage } from '@/components/auth/AuthPage'
 import Sidebar from '@/components/layout/Sidebar'
 import Header from '@/components/layout/Header'
 import CoachDashboard from '@/components/dashboard/CoachDashboard'
 import ClientDashboard from '@/components/dashboard/ClientDashboard'
-import { useAuthStore } from '@/store/authStore'
+import ClientsPage from '@/components/dashboard/ClientsPage'
 
 function AppContent() {
-  const { user } = useAuthStore()
+  const { user, profile, loading } = useAuth()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState('dashboard')
 
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>
+  }
+
+  if (!user || !profile) {
+    return <AuthPage />
+  }
+
   const renderContent = () => {
-    if (user?.role === 'coach') {
+    if (profile.role === 'coach') {
       switch (activeTab) {
         case 'dashboard':
           return <CoachDashboard />
         case 'clients':
-          return <div className="p-8">Clients Management - Coming Soon</div>
-        case 'workouts':
-          return <div className="p-8">Workout Library - Coming Soon</div>
-        case 'messages':
-          return <div className="p-8">Messages - Coming Soon</div>
-        case 'settings':
-          return <div className="p-8">Settings - Coming Soon</div>
+          return <ClientsPage />
         default:
           return <CoachDashboard />
       }
@@ -32,14 +37,6 @@ function AppContent() {
       switch (activeTab) {
         case 'dashboard':
           return <ClientDashboard />
-        case 'workouts':
-          return <div className="p-8">My Workouts - Coming Soon</div>
-        case 'progress':
-          return <div className="p-8">Progress Tracking - Coming Soon</div>
-        case 'messages':
-          return <div className="p-8">Messages - Coming Soon</div>
-        case 'profile':
-          return <div className="p-8">Profile Settings - Coming Soon</div>
         default:
           return <ClientDashboard />
       }
@@ -47,31 +44,32 @@ function AppContent() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar
-        isCollapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
+    <ProtectedRoute>
+      <div className="flex h-screen bg-background">
+        <Sidebar
+          isCollapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
         
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-8">
-            {renderContent()}
-          </div>
-        </main>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto">
+            <div className="p-8">{renderContent()}</div>
+          </main>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   )
 }
 
 function App() {
   return (
     <QueryProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
       <Toaster />
     </QueryProvider>
   )

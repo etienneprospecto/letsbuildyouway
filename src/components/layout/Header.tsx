@@ -11,37 +11,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Settings, LogOut, User, Palette } from 'lucide-react'
-import { useAuthStore } from '@/store/authStore'
+import { useAuth } from '@/providers/AuthProvider'
 import { getInitials } from '@/lib/utils'
 
 const Header: React.FC = () => {
-  const { user, switchRole, logout } = useAuthStore()
+  const { user, profile, signOut } = useAuth()
 
   return (
     <header className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
       <div className="flex h-full items-center justify-between px-6">
-        {/* Role Switcher */}
+        {/* Role Display */}
         <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-1 bg-muted rounded-lg p-1">
-            <Button
-              variant={user?.role === 'coach' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => switchRole('coach')}
-              className="h-8 px-3"
-            >
-              <span className="w-2 h-2 bg-blue-500 rounded-full mr-2" />
-              Coach
-            </Button>
-            <Button
-              variant={user?.role === 'client' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => switchRole('client')}
-              className="h-8 px-3"
-            >
-              <span className="w-2 h-2 bg-green-500 rounded-full mr-2" />
-              Client
-            </Button>
-          </div>
+          <Badge variant="secondary" className="capitalize">
+            {profile?.role === 'coach' ? 'Coach' : 'Client'}
+          </Badge>
         </div>
 
         {/* User Menu */}
@@ -49,25 +32,25 @@ const Header: React.FC = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={user?.avatarUrl} alt={user?.firstName} />
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {user ? getInitials(`${user.firstName} ${user.lastName}`) : 'U'}
-                  </AvatarFallback>
-                </Avatar>
+                              <Avatar className="h-10 w-10">
+                <AvatarImage src={profile?.avatar_url} alt={profile?.first_name} />
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {profile ? getInitials(`${profile.first_name} ${profile.last_name}`) : 'U'}
+                </AvatarFallback>
+              </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    {user?.firstName} {user?.lastName}
+                    {profile?.first_name} {profile?.last_name}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {user?.email}
+                    {profile?.email}
                   </p>
                   <Badge variant="secondary" className="w-fit mt-1 capitalize">
-                    {user?.role}
+                    {profile?.role}
                   </Badge>
                 </div>
               </DropdownMenuLabel>
@@ -85,9 +68,9 @@ const Header: React.FC = () => {
                 <span>Appearance</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout}>
+              <DropdownMenuItem onClick={signOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+                <span>Se déconnecter</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

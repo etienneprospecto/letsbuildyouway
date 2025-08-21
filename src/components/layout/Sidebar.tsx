@@ -13,7 +13,7 @@ import {
   ChevronRight
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/store/authStore'
+import { useAuth } from '@/providers/AuthProvider'
 import { Button } from '@/components/ui/button'
 
 interface SidebarProps {
@@ -29,7 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   activeTab, 
   onTabChange 
 }) => {
-  const { user } = useAuthStore()
+  const { user, profile } = useAuth()
 
   const coachNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
@@ -47,7 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'profile', label: 'Profile', icon: User }
   ]
 
-  const navItems = user?.role === 'coach' ? coachNavItems : clientNavItems
+  const navItems = profile?.role === 'coach' ? coachNavItems : clientNavItems
 
   return (
     <motion.aside
@@ -140,9 +140,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}>
           <div className={cn(
             "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-            user?.role === 'coach' ? "bg-blue-500 text-white" : "bg-green-500 text-white"
+            profile?.role === 'coach' ? "bg-blue-500 text-white" : "bg-green-500 text-white"
           )}>
-            {user?.role === 'coach' ? '👨‍💼' : '🏃‍♂️'}
+            {profile?.role === 'coach' ? '👨‍💼' : '🏃‍♂️'}
           </div>
           <AnimatePresence mode="wait">
             {!isCollapsed && (
@@ -152,9 +152,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <p className="text-sm font-medium capitalize">{user?.role} Mode</p>
+                <p className="text-sm font-medium capitalize">{profile?.role} Mode</p>
                 <p className="text-xs text-muted-foreground">
-                  {user?.firstName} {user?.lastName}
+                  {profile?.first_name} {profile?.last_name}
                 </p>
               </motion.div>
             )}

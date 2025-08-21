@@ -19,6 +19,33 @@ export const authService = {
     });
 
     if (error) throw error;
+    
+    // Créer manuellement le profil si l'inscription réussit
+    if (data.user) {
+      try {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert(
+            {
+              id: data.user.id,
+              email: data.user.email!,
+              first_name: userData.firstName,
+              last_name: userData.lastName,
+              role: userData.role
+            },
+            { onConflict: 'id' }
+          );
+        
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+          // On continue même si le profil n'est pas créé
+        }
+      } catch (profileError) {
+        console.error('Error creating profile:', profileError);
+        // On continue même si le profil n'est pas créé
+      }
+    }
+    
     return data;
   },
 

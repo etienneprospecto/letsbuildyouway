@@ -6,16 +6,16 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
-import { useClientStore } from '@/store/clientStore'
-import { getInitials, formatDate } from '@/lib/utils'
+import { useAuth } from '@/providers/AuthProvider'
+import { getInitials } from '@/lib/utils'
 
 const CoachDashboard: React.FC = () => {
-  const { clients, getClientsNeedingAttention } = useClientStore()
+  const { profile } = useAuth()
   
-  const clientsNeedingAttention = getClientsNeedingAttention()
-  const averageProgress = clients.length > 0 
-    ? Math.round(clients.reduce((sum, client) => sum + client.progressPercentage, 0) / clients.length)
-    : 0
+  // Données temporaires en attendant la vraie API
+  const clients: any[] = []
+  const clientsNeedingAttention: any[] = []
+  const averageProgress = 0
 
   const metrics = [
     {
