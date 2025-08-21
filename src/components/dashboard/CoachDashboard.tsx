@@ -1,6 +1,16 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Users, TrendingUp, AlertTriangle, Calendar, Plus } from 'lucide-react'
+import { 
+  Users, 
+  TrendingUp, 
+  AlertTriangle, 
+  Calendar, 
+  Plus, 
+  MoreHorizontal, 
+  Eye, 
+  Edit, 
+  Trash2 
+} from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,36 +18,123 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/providers/AuthProvider'
 import { getInitials } from '@/lib/utils'
+import { ClientService, Client } from '@/services/clientService'
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { ClientProfileModal } from './ClientProfileModal'
+import { EditClientModal } from './EditClientModal'
 
 const CoachDashboard: React.FC = () => {
   const { profile } = useAuth()
+  const [clients, setClients] = useState<Client[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   
-  // Données temporaires en attendant la vraie API
-  const clients: any[] = []
-  const clientsNeedingAttention: any[] = []
-  const averageProgress = 0
+  // Calculer les métriques basées sur les vrais clients
+  const clientsNeedingAttention = clients.filter(client => 
+    client.progress_percentage < 30 || client.status === 'at_risk'
+  )
+  const averageProgress = clients.length > 0 
+    ? Math.round(clients.reduce((sum, client) => sum + client.progress_percentage, 0) / clients.length)
+    : 0
+
+  // Charger les clients au montage du composant
+  useEffect(() => {
+    const fetchClients = async () => {
+      if (!profile?.id) return
+      
+      try {
+        setLoading(true)
+        setError(null)
+        const clientsData = await ClientService.getClientsByCoach(profile.id)
+        setClients(clientsData)
+        console.log('Clients loaded:', clientsData)
+      } catch (err) {
+        console.error('Error fetching clients:', err)
+        setError('Failed to load clients')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchClients()
+  }, [profile?.id])
+
+  // Fonctions pour gérer les actions sur les clients
+  const handleViewProfile = (client: Client) => {
+    setSelectedClient(client)
+    setIsProfileModalOpen(true)
+  }
+
+  const handleEditClient = (client: Client) => {
+    console.log('handleEditClient called with client:', client)
+    setSelectedClient(client)
+    setIsEditModalOpen(true)
+    console.log('States updated - selectedClient:', client, 'isEditModalOpen: true')
+  }
+
+  const handleScheduleSession = (client: Client) => {
+    console.log('Scheduling session for client:', client)
+    // TODO: Ouvrir modal de planification de session
+  }
+
+  const handleDeleteClient = async (client: Client) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${client.first_name} ${client.last_name} ?`)) {
+      return
+    }
+    
+    try {
+      await ClientService.deleteClient(client.id)
+      // Recharger la liste des clients
+      const updatedClients = await ClientService.getClientsByCoach(profile!.id)
+      setClients(updatedClients)
+      console.log('Client deleted successfully')
+    } catch (err) {
+      console.error('Error deleting client:', err)
+      alert('Erreur lors de la suppression du client')
+    }
+  }
+
+  const handleClientUpdated = (updatedClient: Client) => {
+    // Mettre à jour la liste des clients avec le client modifié
+    setClients(prevClients => 
+      prevClients.map(client => 
+        client.id === updatedClient.id ? updatedClient : client
+      )
+    )
+    console.log('Client updated successfully:', updatedClient)
+  }
 
   const metrics = [
     {
-      title: 'Active Clients',
+      title: 'Clients Actifs',
       value: clients.length,
-      change: clients.length > 0 ? `${clients.length} active` : 'No clients yet',
+      change: clients.length > 0 ? `${clients.length} actifs` : 'Aucun client',
       icon: Users,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100'
     },
     {
-      title: 'Clients at Risk',
+      title: 'Clients à Risque',
       value: clientsNeedingAttention.length,
-      change: clientsNeedingAttention.length > 0 ? 'Need attention' : 'All on track',
+      change: clientsNeedingAttention.length > 0 ? 'Nécessitent attention' : 'Tous en bonne voie',
       icon: AlertTriangle,
       color: 'text-red-600',
       bgColor: 'bg-red-100'
     },
     {
-      title: 'Average Progress',
+      title: 'Progression Moyenne',
       value: `${averageProgress}%`,
-      change: clients.length > 0 ? 'Based on active clients' : 'No data yet',
+      change: clients.length > 0 ? 'Basé sur les clients actifs' : 'Aucune donnée',
       icon: TrendingUp,
       color: 'text-green-600',
       bgColor: 'bg-green-100'
@@ -49,14 +146,14 @@ const CoachDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Coach Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord Coach</h1>
           <p className="text-muted-foreground">
-            Manage your clients and track their progress
+            Gérez vos clients et suivez leur progression
           </p>
         </div>
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
-          Add Client
+          Ajouter un Client
         </Button>
       </div>
 
@@ -97,18 +194,28 @@ const CoachDashboard: React.FC = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Client Overview</CardTitle>
+              <CardTitle>Aperçu des Clients</CardTitle>
               <CardDescription>
-                Manage your active clients and their progress
+                Gérez vos clients actifs et leur progression
               </CardDescription>
             </div>
             <Button variant="outline" size="sm">
-              View All
+              Voir Tout
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {clients.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Chargement des clients...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <p className="text-red-500">Échec du chargement des clients</p>
+            </div>
+          ) : clients.length > 0 ? (
             <div className="space-y-4">
               {clients.slice(0, 5).map((client, index) => (
                 <motion.div
@@ -120,17 +227,16 @@ const CoachDashboard: React.FC = () => {
                 >
                   <div className="flex items-center space-x-4">
                     <Avatar>
-                      <AvatarImage src={client.photoUrl} alt={client.firstName} />
                       <AvatarFallback>
-                        {getInitials(`${client.firstName} ${client.lastName}`)}
+                        {getInitials(`${client.first_name} ${client.last_name}`)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium">
-                        {client.firstName} {client.lastName}
+                        {client.first_name} {client.last_name}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {client.objective}
+                        {client.primary_goal} • {client.fitness_level}
                       </p>
                     </div>
                   </div>
@@ -138,31 +244,71 @@ const CoachDashboard: React.FC = () => {
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
                       <div className="flex items-center space-x-2">
-                        <Progress value={client.progressPercentage} className="w-20" />
+                        <Progress value={client.progress_percentage} className="w-20" />
                         <span className="text-sm font-medium">
-                          {client.progressPercentage}%
+                          {client.progress_percentage}%
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Started {formatDate(client.startDate)}
+                        {client.sessions_completed} sessions terminées
                       </p>
                     </div>
                     
                     <Badge 
-                      variant={client.needsAttention ? "destructive" : "secondary"}
+                      variant={clientsNeedingAttention.includes(client) ? "destructive" : "secondary"}
                     >
-                      {client.needsAttention ? 'Needs Attention' : 'On Track'}
+                      {clientsNeedingAttention.includes(client) ? 'Nécessite Attention' : 'En Bonne Voie'}
                     </Badge>
+
+                    {/* Menu d'actions */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleViewProfile(client)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Voir le profil
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditClient(client)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Modifier
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleScheduleSession(client)}>
+                          <Calendar className="mr-2 h-4 w-4" />
+                          Planifier une session
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteClient(client)}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </motion.div>
               ))}
+              
+              {clients.length > 5 && (
+                <div className="text-center pt-4">
+                  <Button variant="outline" size="sm">
+                    Voir Tous les {clients.length} Clients
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No clients yet</p>
+              <p className="text-muted-foreground">Aucun client pour le moment</p>
               <p className="text-sm text-muted-foreground mt-2">
-                Add your first client to get started
+                Ajoutez votre premier client pour commencer
               </p>
             </div>
           )}
@@ -175,35 +321,57 @@ const CoachDashboard: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Today's Sessions
+              Sessions d'Aujourd'hui
             </CardTitle>
             <CardDescription>
-              Upcoming and completed sessions for today
+              Sessions à venir et terminées pour aujourd'hui
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-8">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No sessions scheduled for today</p>
+              <p className="text-muted-foreground">Aucune session programmée pour aujourd'hui</p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Activité Récente</CardTitle>
             <CardDescription>
-              Latest updates from your clients
+              Dernières mises à jour de vos clients
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-8">
               <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No recent activity</p>
+              <p className="text-muted-foreground">Aucune activité récente</p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de profil client */}
+      <ClientProfileModal
+        client={selectedClient}
+        isOpen={isProfileModalOpen}
+        onClose={() => {
+          setIsProfileModalOpen(false)
+          setSelectedClient(null)
+        }}
+        onEdit={handleEditClient}
+      />
+
+      {/* Modal d'édition client */}
+      <EditClientModal
+        client={selectedClient}
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setSelectedClient(null)
+        }}
+        onClientUpdated={handleClientUpdated}
+      />
     </div>
   )
 }
