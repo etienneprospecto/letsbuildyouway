@@ -65,7 +65,7 @@ export const SignUp: React.FC<SignUpProps> = ({ onSwitchToSignIn }) => {
       // Attendre que le profil soit créé puis se connecter automatiquement
       setTimeout(async () => {
         try {
-          await authService.signIn(formData.email, formData.password);
+          const { data, accessValidation } = await authService.signIn(formData.email, formData.password);
           if (onSignUpSuccess) {
             onSignUpSuccess();
           }

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Database } from '../lib/database.types';
+import { AccessValidationService } from '../services/accessValidationService';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -111,6 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const getInitialSession = async () => {
       try {
         console.log('Getting initial session...');
+        
         const { data: { session } } = await supabase.auth.getSession();
         console.log('Initial session:', session);
         
@@ -118,12 +120,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Ne pas bloquer l'UI sur le chargement du profil
-          fetchProfile(session.user.id).catch((e) => console.error('Deferred profile fetch error:', e));
+          // OPTIMISATION: Validation rapide par email (whitelist)
+          try {
+            const accessValidation = await AccessValidationService.validateUserAccess(session.user.email!);
+            
+            if (!accessValidation.hasAccess) {
+              console.log('Access denied on initial session, signing out user:', session.user.email);
+              await supabase.auth.signOut();
+              setUser(null);
+              setProfile(null);
+              setSession(null);
+              setLoading(false);
+              return;
+            }
+            
+            // Accès autorisé, charger le profil immédiatement
+            setLoading(false); // Libérer l'UI avant le profil
+            fetchProfile(session.user.id).catch((e) => console.error('Deferred profile fetch error:', e));
+          } catch (error) {
+            console.error('Error validating access on initial session:', error);
+            await supabase.auth.signOut();
+            setUser(null);
+            setProfile(null);
+            setSession(null);
+            setLoading(false);
+          }
+        } else {
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
-      } finally {
         setLoading(false);
       }
     };
@@ -139,13 +165,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Ne pas bloquer l'UI sur le chargement du profil
-          fetchProfile(session.user.id).catch((e) => console.error('Deferred profile fetch error:', e));
+          // Valider l'accès avant de charger le profil
+          try {
+            const accessValidation = await AccessValidationService.canUserConnect(session.user.id);
+            
+            if (!accessValidation.hasAccess) {
+              // Accès refusé, déconnecter automatiquement
+              console.log('Access denied, signing out user:', session.user.email);
+              await supabase.auth.signOut();
+              setUser(null);
+              setProfile(null);
+              setSession(null);
+              setLoading(false);
+              return;
+            }
+            
+            // Accès autorisé, charger le profil
+            fetchProfile(session.user.id).catch((e) => console.error('Deferred profile fetch error:', e));
+          } catch (error) {
+            console.error('Error validating access:', error);
+            // En cas d'erreur de validation, déconnecter par sécurité
+            await supabase.auth.signOut();
+            setUser(null);
+            setProfile(null);
+            setSession(null);
+            setLoading(false);
+          }
         } else {
           setProfile(null);
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 

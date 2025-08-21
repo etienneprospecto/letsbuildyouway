@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { AccessValidationService, AccessValidationResult } from './accessValidationService';
 
 export const authService = {
   async signUp(email: string, password: string, userData: {
@@ -49,14 +50,25 @@ export const authService = {
     return data;
   },
 
-  async signIn(email: string, password: string) {
+  async signIn(email: string, password: string): Promise<{ data: any; accessValidation: AccessValidationResult }> {
+    // 1. Authentification Supabase
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
     if (error) throw error;
-    return data;
+
+    // 2. Validation de l'accès - seuls les emails autorisés par un coach peuvent se connecter
+    const accessValidation = await AccessValidationService.validateUserAccess(email);
+    
+    if (!accessValidation.hasAccess) {
+      // Déconnecter l'utilisateur si pas d'accès
+      await supabase.auth.signOut();
+      throw new Error(accessValidation.error || 'Accès non autorisé');
+    }
+
+    return { data, accessValidation };
   },
 
   async signOut() {

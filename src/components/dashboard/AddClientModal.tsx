@@ -100,6 +100,23 @@ const AddClientModal: React.FC<AddClientModalProps> = ({
 
     setIsLoading(true)
     try {
+      // Vérifier que l'email n'est pas déjà utilisé par un autre coach
+      const { data: existingClient } = await supabase
+        .from('clients')
+        .select('id, coach_id')
+        .eq('email', formData.email)
+        .maybeSingle()
+
+      if (existingClient) {
+        toast({
+          title: "Email déjà utilisé",
+          description: "Cet email est déjà utilisé par un autre client",
+          variant: "destructive"
+        })
+        setIsLoading(false)
+        return
+      }
+
       // Étape 1: Générer les identifiants
       const credentials = generateClientCredentials()
       setGeneratedCredentials(credentials)

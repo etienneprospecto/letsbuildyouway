@@ -4,6 +4,7 @@ import { Input } from '../ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { useToast } from '../../hooks/use-toast';
 import { authService } from '../../services/authService';
+import { AccessValidationResult } from '../../services/accessValidationService';
 
 interface SignInProps {
   onSwitchToSignUp: () => void;
@@ -28,18 +29,26 @@ export const SignIn: React.FC<SignInProps> = ({ onSwitchToSignUp, onSignInSucces
     setIsLoading(true);
     
     try {
-      await authService.signIn(formData.email, formData.password);
+      const { data, accessValidation } = await authService.signIn(formData.email, formData.password);
       
-      toast({
-        title: "Connexion réussie !",
-        description: "Bienvenue sur BYW",
-      });
+      // Afficher un message personnalisé selon le type d'accès
+      if (accessValidation.role === 'coach') {
+        toast({
+          title: "Connexion réussie !",
+          description: "Bienvenue Coach !",
+        });
+      } else if (accessValidation.role === 'client') {
+        toast({
+          title: "Connexion réussie !",
+          description: "Bienvenue sur votre espace client !",
+        });
+      }
       
       onSignInSuccess();
     } catch (error: any) {
       toast({
-        title: "Erreur de connexion",
-        description: error.message || "Email ou mot de passe incorrect",
+        title: "Accès refusé",
+        description: error.message || "Vous n'avez pas l'autorisation d'accéder à cette application",
         variant: "destructive"
       });
     } finally {
