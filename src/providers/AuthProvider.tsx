@@ -49,36 +49,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('Error fetching profile:', error);
       }
 
-      // Si pas encore de profil, on le crée avec le rôle coach (déjà validé)
+      // Si pas encore de profil, on le crée avec le bon rôle
       if (!data) {
-        console.log('No profile found, creating coach profile...');
+        console.log('No profile found, creating profile...');
         const { data: userRes } = await supabase.auth.getUser();
         const currentUser = userRes.user;
         console.log('Current user from auth:', currentUser);
         
         if (currentUser) {
-          // On sait déjà que c'est un coach (validation faite avant)
-          const profileData = {
-            id: currentUser.id,
-            email: currentUser.email ?? '',
-            first_name: (currentUser.user_metadata?.first_name as string) ?? 'Etienne',
-            last_name: (currentUser.user_metadata?.last_name as string) ?? 'Guimbard',
-            role: 'coach', // Rôle fixe pour ce coach
-          };
-          console.log('Creating coach profile with data:', profileData);
-          
-          const { data: createdProfile, error: createError } = await supabase
-            .from('profiles')
-            .upsert(profileData, { onConflict: 'id' })
-            .select()
-            .single();
+          // Déterminer le rôle en fonction de la validation d'accès
+          try {
+            const accessValidation = await AccessValidationService.validateUserAccess(currentUser.email!);
+            console.log('Access validation for profile creation:', accessValidation);
+            
+            const profileData = {
+              id: currentUser.id,
+              email: currentUser.email ?? '',
+              first_name: (currentUser.user_metadata?.first_name as string) ?? 'User',
+              last_name: (currentUser.user_metadata?.last_name as string) ?? 'Name',
+              role: accessValidation.role || 'client', // Utiliser le rôle de la validation
+            };
+            console.log('Creating profile with data:', profileData);
+            
+            const { data: createdProfile, error: createError } = await supabase
+              .from('profiles')
+              .upsert(profileData, { onConflict: 'id' })
+              .select()
+              .single();
               
-          if (createError) {
-            console.error('Error creating coach profile:', createError);
-          } else {
-            console.log('Coach profile created successfully:', createdProfile);
-            setProfile(createdProfile);
-            return;
+            if (createError) {
+              console.error('Error creating profile:', createError);
+            } else {
+              console.log('Profile created successfully:', createdProfile);
+              setProfile(createdProfile);
+              return;
+            }
+          } catch (error) {
+            console.error('Error validating access during profile creation:', error);
+            // En cas d'erreur, créer un profil client par défaut
+            const profileData = {
+              id: currentUser.id,
+              email: currentUser.email ?? '',
+              first_name: (currentUser.user_metadata?.first_name as string) ?? 'User',
+              last_name: (currentUser.user_metadata?.last_name as string) ?? 'Name',
+              role: 'client',
+            };
+            console.log('Creating default client profile due to validation error');
+            
+            const { data: createdProfile, error: createError } = await supabase
+              .from('profiles')
+              .upsert(profileData, { onConflict: 'id' })
+              .select()
+              .single();
+              
+            if (createError) {
+              console.error('Error creating default profile:', createError);
+            } else {
+              console.log('Default profile created successfully:', createdProfile);
+              setProfile(createdProfile);
+              return;
+            }
           }
         }
       }
@@ -101,12 +131,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log('Signing out user:', user?.email);
+      
+      // Nettoyer d'abord l'état local pour éviter les conflits
       setUser(null);
       setProfile(null);
       setSession(null);
+      setLoading(false);
+      
+      // Puis déconnecter de Supabase
+      await supabase.auth.signOut();
+      console.log('Supabase signOut completed');
+      
+      console.log('User signed out successfully, should be redirected to AuthPage');
     } catch (error) {
       console.error('Error signing out:', error);
+      // L'état est déjà nettoyé, pas besoin de le refaire
     }
   };
 
@@ -116,7 +156,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         console.log('Getting initial session...');
         
-        // Protection contre les blocages
+        // Protection contre les blocages (seulement si on n'est pas en train de se déconnecter)
         const timeoutId = setTimeout(() => {
           console.warn('Initial session timeout - forcing loading to false');
           setLoading(false);
@@ -181,9 +221,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log('User found in auth state change, validating access...');
           // OPTIMISATION: Validation rapide par email (whitelist)
           try {
             const accessValidation = await AccessValidationService.validateUserAccess(session.user.email!);
+            console.log('Access validation result in auth state change:', accessValidation);
             
             if (!accessValidation.hasAccess) {
               console.log('Access denied, signing out user:', session.user.email);
@@ -196,6 +238,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
             
             // Accès autorisé, charger le profil immédiatement
+            console.log('Access granted in auth state change, fetching profile for user:', session.user.id);
             setLoading(false); // Libérer l'UI avant le profil
             fetchProfile(session.user.id).catch((e) => console.error('Deferred profile fetch error:', e));
           } catch (error) {
@@ -207,6 +250,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setLoading(false);
           }
         } else {
+          console.log('No user in auth state change, clearing profile');
           setProfile(null);
           setLoading(false);
         }

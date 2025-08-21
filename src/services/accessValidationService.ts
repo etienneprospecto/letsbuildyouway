@@ -29,13 +29,18 @@ export class AccessValidationService {
         };
       }
 
+      console.log('Not in whitelist, checking user metadata...');
       // OPTIMISATION: Récupérer l'utilisateur courant une seule fois
       const { data: userRes } = await supabase.auth.getUser();
       const currentUser = userRes?.user || null;
+      console.log('Current user retrieved:', currentUser?.email);
 
       // Vérifier les métadonnées auth
+      console.log('Checking auth metadata...');
       const isSameUser = currentUser?.email?.toLowerCase() === normalizedEmail;
       const metaRole = (currentUser?.user_metadata as any)?.role as string | undefined;
+      console.log('Auth metadata check:', { isSameUser, metaRole, normalizedEmail });
+      
       if (isSameUser && metaRole === 'coach') {
         console.log('Coach access granted (by auth metadata) for:', email);
         return {
@@ -45,6 +50,7 @@ export class AccessValidationService {
         };
       }
 
+      console.log('Not a coach by metadata, checking profiles table...');
       // 1.ter Fallback: vérifier la table profiles par email (désynchronisation possible avec auth)
       const { data: coachProfile, error: coachError } = await supabase
         .from('profiles')
@@ -52,6 +58,8 @@ export class AccessValidationService {
         .eq('email', normalizedEmail)
         .eq('role', 'coach')
         .maybeSingle();
+      
+      console.log('Profiles table check result:', { coachProfile, coachError });
 
       if (!coachError && coachProfile) {
         console.log('Coach access granted (by profiles) for:', email);
