@@ -63,12 +63,15 @@ export class AccessValidationService {
       }
 
       // 2. Vérifier si c'est un client autorisé (dans clients)
+      console.log('Checking client access for email:', normalizedEmail);
       const { data: clientRecord, error: clientError } = await supabase
         .from('clients')
         .select('id, coach_id, first_name, last_name, status')
         .eq('email', normalizedEmail)
         .eq('status', 'active')
         .maybeSingle();
+
+      console.log('Client query result:', { clientRecord, clientError });
 
       if (clientError) {
         console.error('Error checking client record:', clientError);
@@ -85,6 +88,8 @@ export class AccessValidationService {
           coachId: clientRecord.coach_id
         };
       }
+
+      console.log('No client record found for email:', normalizedEmail);
 
       // 3. Aucun accès trouvé - l'email n'a pas été autorisé par un coach
       console.log('Access denied for email:', email, '- Not authorized by any coach');

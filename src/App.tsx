@@ -17,11 +17,14 @@ function AppContent() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState('dashboard')
 
+  console.log('AppContent render - user:', user?.email, 'profile:', profile?.role, 'loading:', loading)
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Chargement...</div>
   }
 
   if (!user || !profile) {
+    console.log('No user or profile, showing AuthPage')
     return <AuthPage />
   }
 
