@@ -39,84 +39,120 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log('Fetching profile for user:', userId);
       
-      const { data, error } = await supabase
+      // D'abord, essayer de récupérer le profil depuis la table profiles
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
       }
 
-      // Si pas encore de profil, on le crée avec le bon rôle
-      if (!data) {
-        console.log('No profile found, creating profile...');
-        const { data: userRes } = await supabase.auth.getUser();
-        const currentUser = userRes.user;
-        console.log('Current user from auth:', currentUser);
-        
-        if (currentUser) {
-          // Déterminer le rôle en fonction de la validation d'accès
-          try {
-            const accessValidation = await AccessValidationService.validateUserAccess(currentUser.email!);
-            console.log('Access validation for profile creation:', accessValidation);
+      // Si on a un profil, l'utiliser
+      if (profileData) {
+        console.log('Profile found in profiles table:', profileData);
+        console.log('Setting profile in state:', profileData);
+        setProfile(profileData);
+        return;
+      }
+      
+      console.log('No profile found in profiles table for user:', userId);
+
+      // Si pas de profil, vérifier si c'est un client
+      console.log('No profile found, checking if user is a client...');
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (clientError) {
+        console.error('Error fetching client data:', clientError);
+      }
+
+      if (clientData) {
+        console.log('Client found in clients table:', clientData);
+        // Créer un profil virtuel pour le client
+        const virtualProfile = {
+          id: clientData.id,
+          email: clientData.email,
+          first_name: clientData.first_name,
+          last_name: clientData.last_name,
+          role: 'client' as const,
+          // Ajouter les champs manquants avec des valeurs par défaut
+          created_at: clientData.created_at,
+          updated_at: clientData.updated_at
+        };
+        console.log('Created virtual profile for client:', virtualProfile);
+        setProfile(virtualProfile);
+        return;
+      }
+
+      // Si ni profil ni client, créer un profil par défaut
+      console.log('No profile or client found, creating default profile...');
+      const { data: userRes } = await supabase.auth.getUser();
+      const currentUser = userRes.user;
+      
+      if (currentUser) {
+        try {
+          const accessValidation = await AccessValidationService.validateUserAccess(currentUser.email!);
+          console.log('Access validation for profile creation:', accessValidation);
+          
+          const profileData = {
+            id: currentUser.id,
+            email: currentUser.email ?? '',
+            first_name: (currentUser.user_metadata?.first_name as string) ?? 'User',
+            last_name: (currentUser.user_metadata?.last_name as string) ?? 'Name',
+            role: accessValidation.role || 'client',
+          };
+          console.log('Creating profile with data:', profileData);
+          
+                     const { data: createdProfile, error: createError } = await supabase
+             .from('profiles')
+             .upsert(profileData, { onConflict: 'id' })
+             .select()
+             .single();
+             
+           if (createError) {
+             console.error('Error creating profile:', createError);
+             console.error('Profile creation failed with data:', profileData);
+           } else {
+             console.log('Profile created successfully:', createdProfile);
+             console.log('Setting newly created profile in state');
+             setProfile(createdProfile);
+             return;
+           }
+        } catch (error) {
+          console.error('Error during profile creation:', error);
+          // Créer un profil client par défaut
+          const profileData = {
+            id: currentUser.id,
+            email: currentUser.email ?? '',
+            first_name: (currentUser.user_metadata?.first_name as string) ?? 'User',
+            last_name: (currentUser.user_metadata?.last_name as string) ?? 'Name',
+            role: 'client',
+          };
+          
+          const { data: createdProfile, error: createError } = await supabase
+            .from('profiles')
+            .upsert(profileData, { onConflict: 'id' })
+            .select()
+            .single();
             
-            const profileData = {
-              id: currentUser.id,
-              email: currentUser.email ?? '',
-              first_name: (currentUser.user_metadata?.first_name as string) ?? 'User',
-              last_name: (currentUser.user_metadata?.last_name as string) ?? 'Name',
-              role: accessValidation.role || 'client', // Utiliser le rôle de la validation
-            };
-            console.log('Creating profile with data:', profileData);
-            
-            const { data: createdProfile, error: createError } = await supabase
-              .from('profiles')
-              .upsert(profileData, { onConflict: 'id' })
-              .select()
-              .single();
-              
-            if (createError) {
-              console.error('Error creating profile:', createError);
-            } else {
-              console.log('Profile created successfully:', createdProfile);
-              setProfile(createdProfile);
-              return;
-            }
-          } catch (error) {
-            console.error('Error validating access during profile creation:', error);
-            // En cas d'erreur, créer un profil client par défaut
-            const profileData = {
-              id: currentUser.id,
-              email: currentUser.email ?? '',
-              first_name: (currentUser.user_metadata?.first_name as string) ?? 'User',
-              last_name: (currentUser.user_metadata?.last_name as string) ?? 'Name',
-              role: 'client',
-            };
-            console.log('Creating default client profile due to validation error');
-            
-            const { data: createdProfile, error: createError } = await supabase
-              .from('profiles')
-              .upsert(profileData, { onConflict: 'id' })
-              .select()
-              .single();
-              
-            if (createError) {
-              console.error('Error creating default profile:', createError);
-            } else {
-              console.log('Default profile created successfully:', createdProfile);
-              setProfile(createdProfile);
-              return;
-            }
+          if (createError) {
+            console.error('Error creating default profile:', createError);
+          } else {
+            console.log('Default profile created successfully:', createdProfile);
+            setProfile(createdProfile);
+            return;
           }
         }
       }
 
-      console.log('Profile fetched successfully:', data);
-      console.log('Profile role:', data?.role);
-      console.log('Setting profile in state:', data);
-      setProfile(data ?? null);
+      console.log('No profile could be created, setting profile to null');
+      setProfile(null);
     } catch (error) {
       console.error('Error fetching profile:', error);
       setProfile(null);

@@ -72,6 +72,28 @@ export class ClientService {
     }
   }
 
+  // Récupérer un client par email
+  static async getClientByEmail(email: string): Promise<Client | null> {
+    try {
+      const normalizedEmail = email.trim().toLowerCase()
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('email', normalizedEmail)
+        .maybeSingle()
+
+      if (error) {
+        console.error('Error fetching client by email:', error)
+        throw error
+      }
+
+      return data ?? null
+    } catch (error) {
+      console.error('Error in getClientByEmail:', error)
+      throw error
+    }
+  }
+
   // Récupérer un client par ID
   static async getClientById(clientId: string): Promise<Client | null> {
     try {
