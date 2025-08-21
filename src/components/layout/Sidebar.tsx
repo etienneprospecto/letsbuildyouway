@@ -35,6 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'clients', label: 'Clients', icon: Users },
     { id: 'workouts', label: 'Workouts', icon: Dumbbell },
+    { id: 'exercices', label: 'Exercices', icon: Target },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings }
   ]

@@ -9,6 +9,8 @@ import Header from '@/components/layout/Header'
 import CoachDashboard from '@/components/dashboard/CoachDashboard'
 import ClientDashboard from '@/components/dashboard/ClientDashboard'
 import ClientsPage from '@/components/dashboard/ClientsPage'
+import WorkoutsPage from '@/components/dashboard/WorkoutsPage'
+import ExercicesPage from '@/components/dashboard/ExercicesPage'
 
 function AppContent() {
   const { user, profile, loading } = useAuth()
@@ -30,6 +32,10 @@ function AppContent() {
           return <CoachDashboard />
         case 'clients':
           return <ClientsPage />
+        case 'workouts':
+          return <WorkoutsPage />
+        case 'exercices':
+          return <ExercicesPage />
         default:
           return <CoachDashboard />
       }
