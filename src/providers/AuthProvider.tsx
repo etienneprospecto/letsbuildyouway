@@ -60,34 +60,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       console.log('No profile found in profiles table for user:', userId);
 
-      // Si pas de profil, vérifier si c'est un client
-      console.log('No profile found, checking if user is a client...');
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+      // Si pas de profil, vérifier si c'est un client (par email)
+      console.log('No profile found, checking if user is a client (by email)...');
+      const { data: authUserRes } = await supabase.auth.getUser();
+      const authUser = authUserRes?.user || null;
+      const userEmail = authUser?.email?.toLowerCase() || null;
 
-      if (clientError) {
-        console.error('Error fetching client data:', clientError);
-      }
+      if (userEmail) {
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('email', userEmail)
+          .maybeSingle();
 
-      if (clientData) {
-        console.log('Client found in clients table:', clientData);
-        // Créer un profil virtuel pour le client
-        const virtualProfile = {
-          id: clientData.id,
-          email: clientData.email,
-          first_name: clientData.first_name,
-          last_name: clientData.last_name,
-          role: 'client' as const,
-          // Ajouter les champs manquants avec des valeurs par défaut
-          created_at: clientData.created_at,
-          updated_at: clientData.updated_at
-        };
-        console.log('Created virtual profile for client:', virtualProfile);
-        setProfile(virtualProfile);
-        return;
+        if (clientError) {
+          console.error('Error fetching client data by email:', clientError);
+        }
+
+        if (clientData) {
+          console.log('Client found in clients table by email:', clientData);
+          // Créer un profil virtuel pour le client
+          const virtualProfile = {
+            id: clientData.id,
+            email: clientData.email,
+            first_name: clientData.first_name,
+            last_name: clientData.last_name,
+            role: 'client' as const,
+            created_at: clientData.created_at,
+            updated_at: clientData.updated_at
+          } as Profile;
+          console.log('Created virtual profile for client:', virtualProfile);
+          setProfile(virtualProfile);
+          return;
+        }
       }
 
       // Si ni profil ni client, créer un profil par défaut
