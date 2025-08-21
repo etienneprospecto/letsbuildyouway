@@ -199,8 +199,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         // Protection contre les blocages (seulement si on n'est pas en train de se déconnecter)
         const timeoutId = setTimeout(() => {
-          console.warn('Initial session timeout - forcing loading to false');
-          setLoading(false);
+          console.warn('Initial session timeout - keeping loading true while waiting for profile');
         }, 5000);
         
         const { data: { session } } = await supabase.auth.getSession();
@@ -229,10 +228,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               return;
             }
             
-            // Accès autorisé, charger le profil immédiatement
-            console.log('Access granted, setting loading to false and fetching profile...');
-            setLoading(false); // Libérer l'UI avant le profil
-            fetchProfile(session.user.id).catch((e) => console.error('Deferred profile fetch error:', e));
+            // Accès autorisé, charger le profil puis libérer l'UI
+            console.log('Access granted, fetching profile...');
+            await fetchProfile(session.user.id);
+            setLoading(false);
           } catch (error) {
             console.error('Error validating access on initial session:', error);
             await supabase.auth.signOut();
@@ -278,10 +277,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               return;
             }
             
-            // Accès autorisé, charger le profil immédiatement
+            // Accès autorisé, charger le profil puis libérer l'UI
             console.log('Access granted in auth state change, fetching profile for user:', session.user.id);
-            setLoading(false); // Libérer l'UI avant le profil
-            fetchProfile(session.user.id).catch((e) => console.error('Deferred profile fetch error:', e));
+            await fetchProfile(session.user.id);
+            setLoading(false);
           } catch (error) {
             console.error('Error validating access:', error);
             await supabase.auth.signOut();
