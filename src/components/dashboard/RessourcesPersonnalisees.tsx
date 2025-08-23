@@ -43,6 +43,8 @@ const RessourcesPersonnalisees: React.FC<RessourcesPersonnaliseesProps> = ({ cli
     resourcesByTheme: {} as Record<string, number>,
     resourcesByType: {} as Record<string, number>
   })
+  const [uploadResourceType, setUploadResourceType] = useState<string>('Entraînement')
+  const [uploadResourceDescription, setUploadResourceDescription] = useState<string>('')
   const { toast } = useToast()
 
   useEffect(() => {
@@ -123,8 +125,8 @@ const RessourcesPersonnalisees: React.FC<RessourcesPersonnaliseesProps> = ({ cli
         const uploadData = {
           file,
           nom_ressource: file.name,
-          theme: selectedTheme === 'Toutes' ? 'Entraînement' : selectedTheme as any,
-          description: ''
+          theme: uploadResourceType as any,
+          description: uploadResourceDescription || null
         }
 
         await ResourceService.uploadResource(clientId, uploadData)
@@ -137,6 +139,9 @@ const RessourcesPersonnalisees: React.FC<RessourcesPersonnaliseesProps> = ({ cli
 
       await loadResources()
       setShowUploadZone(false)
+      // Réinitialiser les champs après upload réussi
+      setUploadResourceType('Entraînement')
+      setUploadResourceDescription('')
     } catch (error) {
       console.error('Error uploading files:', error)
       toast({
@@ -367,11 +372,65 @@ const RessourcesPersonnalisees: React.FC<RessourcesPersonnaliseesProps> = ({ cli
                     Ajoutez des vidéos, PDFs ou liens personnalisés pour ce client
                   </p>
                   
-                  <div className="space-y-2">
+                  <div className="space-y-4">
+                    {/* Sélecteur de type de ressource */}
+                    <div className="flex items-center justify-center space-x-2">
+                      <Label htmlFor="upload-resource-type" className="text-orange-800 font-medium">
+                        Type de ressource:
+                      </Label>
+                      <Select value={uploadResourceType} onValueChange={setUploadResourceType}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Alimentation">Alimentation</SelectItem>
+                          <SelectItem value="Style de vie">Style de vie</SelectItem>
+                          <SelectItem value="Ressentis">Ressentis</SelectItem>
+                          <SelectItem value="Entraînement">Entraînement</SelectItem>
+                          <SelectItem value="Autre">Autre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {/* Champ de saisie libre pour le type personnalisé */}
+                    {uploadResourceType === 'Autre' && (
+                      <div className="flex items-center justify-center space-x-2">
+                        <Label htmlFor="custom-resource-type" className="text-orange-800 font-medium">
+                          Type personnalisé:
+                        </Label>
+                        <Input
+                          id="custom-resource-type"
+                          placeholder="Ex: Nutrition, Méditation, Motivation..."
+                          value={uploadResourceType === 'Autre' ? '' : uploadResourceType}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            if (uploadResourceType === 'Autre') {
+                              setUploadResourceType(e.target.value)
+                            }
+                          }}
+                          className="w-48"
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Champ de description */}
+                    <div className="flex items-center justify-center space-x-2">
+                      <Label htmlFor="upload-resource-description" className="text-orange-800 font-medium">
+                        Description:
+                      </Label>
+                      <Input
+                        id="upload-resource-description"
+                        placeholder="Description de la ressource (optionnel)"
+                        value={uploadResourceDescription}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUploadResourceDescription(e.target.value)}
+                        className="w-64"
+                      />
+                    </div>
+                    
+                    {/* Sélection de fichier */}
                     <Input
                       type="file"
                       multiple
-                      onChange={(e) => handleFileUpload(e.target.files)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileUpload(e.target.files)}
                       disabled={uploading}
                       className="max-w-xs mx-auto"
                     />
