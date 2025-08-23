@@ -98,6 +98,60 @@ export class SeanceService {
     }
   }
 
+  // Créer une séance avec ses exercices à partir d'un workout
+  static async createSeanceWithExercises(
+    seanceData: Omit<SeanceInsert, 'id' | 'created_at' | 'updated_at'>,
+    workoutExercises: Array<{
+      exercise_id: string
+      sets: number
+      reps: string
+      rest: string
+      order_index: number
+    }>
+  ): Promise<SeanceWithExercices> {
+    try {
+      // 1. Créer la séance
+      const { data: seance, error: seanceError } = await supabase
+        .from('seances')
+        .insert({
+          ...seanceData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (seanceError) throw seanceError
+
+      // 2. Créer les exercices de la séance
+      const exercicesData = workoutExercises.map((exercise, index) => ({
+        seance_id: seance.id,
+        nom_exercice: `Exercice ${index + 1}`, // On pourrait récupérer le nom depuis la table exercises
+        series: exercise.sets || 3,
+        repetitions: exercise.reps || '10-12',
+        temps_repos: exercise.rest || '60s',
+        ordre: exercise.order_index || index + 1,
+        completed: false,
+        created_at: new Date().toISOString()
+      }))
+
+      const { error: exercicesError } = await supabase
+        .from('exercices_seance')
+        .insert(exercicesData)
+
+      if (exercicesError) throw exercicesError
+
+      // 3. Retourner la séance avec ses exercices
+      return {
+        ...seance,
+        exercices: exercicesData
+      }
+    } catch (error) {
+      console.error('Error creating seance with exercises:', error)
+      throw error
+    }
+  }
+
   // Ajouter des exercices à une séance
   static async addExercicesToSeance(seanceId: string, exercices: ExerciceSeanceInsert[]): Promise<ExerciceSeance[]> {
     try {

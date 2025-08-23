@@ -1,11 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { TrendingUp, Target, Scale, Trophy, Plus, Minus } from 'lucide-react'
+import { TrendingUp, Target, Scale, Trophy, Plus, Minus, Image, Upload, X, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import ProgressPhotoService, { ProgressPhotoWithUrl } from '@/services/progressPhotoService'
+import { useToast } from '@/hooks/use-toast'
 
 interface ProgressionData {
   poids_depart: number | null
@@ -18,6 +20,7 @@ interface ProgressionChartProps {
     first_name: string
     last_name: string
   } & ProgressionData
+  clientId: string
   progressHistory?: Array<{
     date: string
     weight: number | null
@@ -30,6 +33,7 @@ interface ProgressionChartProps {
 
 const ProgressionChart: React.FC<ProgressionChartProps> = ({ 
   client, 
+  clientId,
   progressHistory = [],
   onSave,
   isLoading
@@ -40,6 +44,35 @@ const ProgressionChart: React.FC<ProgressionChartProps> = ({
     poids_objectif: client.poids_objectif,
     poids_actuel: client.poids_actuel
   })
+  const [photos, setPhotos] = useState<ProgressPhotoWithUrl[]>([])
+  const [isAddingPhoto, setIsAddingPhoto] = useState(false)
+  const [newPhotoDescription, setNewPhotoDescription] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [loadingPhotos, setLoadingPhotos] = useState(true)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const { toast } = useToast()
+
+  // Charger les photos au montage du composant
+  useEffect(() => {
+    loadPhotos()
+  }, [clientId])
+
+  const loadPhotos = async () => {
+    try {
+      setLoadingPhotos(true)
+      const photosData = await ProgressPhotoService.getClientProgressPhotos(clientId)
+      setPhotos(photosData)
+    } catch (error) {
+      console.error('Error loading photos:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les photos de progression.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingPhotos(false)
+    }
+  }
 
   const { poids_depart, poids_objectif, poids_actuel } = editData
 
@@ -102,32 +135,97 @@ const ProgressionChart: React.FC<ProgressionChartProps> = ({
     }))
   }
 
-  // Générer des étapes de progression pour le graphique
-  const generateProgressSteps = () => {
-    if (!hasValidData) return []
-    
-    const steps = []
-    const totalSteps = 10
-    const weightDiff = poids_objectif! - poids_depart!
-    const stepSize = weightDiff / totalSteps
-    
-    for (let i = 0; i <= totalSteps; i++) {
-      const stepWeight = poids_depart! + (stepSize * i)
-      const stepDate = new Date()
-      stepDate.setDate(stepDate.getDate() + (i * 7)) // +1 semaine par étape
-      
-      steps.push({
-        step: i + 1,
-        weight: stepWeight,
-        date: stepDate,
-        completed: stepWeight <= poids_actuel!
-      })
-    }
-    
-    return steps
+  // Fonctions pour gérer les photos de progression
+  const handleAddPhoto = () => {
+    setIsAddingPhoto(true)
+    setSelectedFile(null)
+    setNewPhotoDescription('')
   }
 
-  const progressSteps = generateProgressSteps()
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+    }
+  }
+
+  const handlePhotoUpload = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un fichier.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!newPhotoDescription.trim()) {
+      toast({
+        title: "Erreur",
+        description: "La description de la photo est obligatoire.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setUploading(true)
+      
+      const uploadData = {
+        file: selectedFile,
+        nom_photo: selectedFile.name,
+        description: newPhotoDescription.trim(),
+        date_prise: new Date().toISOString()
+      }
+
+      await ProgressPhotoService.uploadProgressPhoto(clientId, uploadData)
+      
+      toast({
+        title: "Succès",
+        description: "Photo ajoutée avec succès !",
+      })
+      
+      setNewPhotoDescription('')
+      setSelectedFile(null)
+      setIsAddingPhoto(false)
+      loadPhotos() // Recharger les photos après l'ajout
+    } catch (error) {
+      console.error('Error uploading photo:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter la photo de progression.",
+        variant: "destructive",
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDeletePhoto = async (photoId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette photo ?')) {
+      try {
+        await ProgressPhotoService.deleteProgressPhoto(photoId)
+        toast({
+          title: "Succès",
+          description: "Photo supprimée avec succès !",
+        })
+        loadPhotos() // Recharger les photos après la suppression
+      } catch (error) {
+        console.error('Error deleting photo:', error)
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer la photo de progression.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  const handleCancelPhoto = () => {
+    setIsAddingPhoto(false)
+    setNewPhotoDescription('')
+    setSelectedFile(null)
+  }
 
   return (
     <div className="space-y-6">
@@ -280,50 +378,145 @@ const ProgressionChart: React.FC<ProgressionChartProps> = ({
                   </p>
                 </div>
 
-                {/* Graphique linéaire avec étapes */}
+                {/* Section Photos de progression */}
                 <div className="space-y-4">
-                  <h4 className="font-medium">Étapes de progression</h4>
-                  <div className="relative">
-                    {/* Ligne de progression */}
-                    <div className="absolute left-0 right-0 top-6 h-0.5 bg-gray-200" />
-                    
-                    {/* Étapes */}
-                    <div className="relative flex justify-between">
-                      {progressSteps.map((step, index) => (
-                        <div
-                          key={step.step}
-                          className="flex flex-col items-center relative z-10"
-                        >
-                          {/* Point d'étape */}
-                          <div
-                            className={`w-4 h-4 rounded-full border-2 ${
-                              step.completed 
-                                ? 'bg-green-500 border-green-500' 
-                                : 'bg-white border-gray-300'
-                            }`}
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium flex items-center space-x-2">
+                      <Image className="h-5 w-5 text-blue-500" />
+                      <span>Photos de progression</span>
+                    </h4>
+                    <Button
+                      onClick={handleAddPhoto}
+                      size="sm"
+                      className="bg-blue-500 hover:bg-blue-600"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Ajouter une photo
+                    </Button>
+                  </div>
+
+                  {/* Zone d'ajout de photo */}
+                  {isAddingPhoto && (
+                    <div className="p-4 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50">
+                      <div className="text-center space-y-3">
+                        <Upload className="h-8 w-8 text-blue-500 mx-auto" />
+                        <div>
+                          <p className="font-medium text-blue-800">Ajouter une photo de progression</p>
+                          <p className="text-sm text-blue-600">Documentez votre évolution physique</p>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {/* Sélection de fichier */}
+                          <div>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFileSelect}
+                              className="max-w-xs mx-auto"
+                            />
+                            {selectedFile && (
+                              <p className="text-xs text-blue-600 mt-1">
+                                Fichier sélectionné : {selectedFile.name}
+                              </p>
+                            )}
+                          </div>
+                          
+                          {/* Description */}
+                          <Input
+                            placeholder="Description de la photo (obligatoire)"
+                            value={newPhotoDescription}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPhotoDescription(e.target.value)}
+                            className="max-w-xs mx-auto"
                           />
+                        </div>
+
+                        <div className="flex justify-center space-x-2">
+                          <Button
+                            onClick={handlePhotoUpload}
+                            size="sm"
+                            className="bg-blue-500 hover:bg-blue-600"
+                            disabled={uploading || !selectedFile || !newPhotoDescription.trim()}
+                          >
+                            {uploading ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Upload en cours...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Ajouter la photo
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            onClick={handleCancelPhoto}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Annuler
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Grille des photos existantes */}
+                  {loadingPhotos ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-500">Chargement des photos...</p>
+                    </div>
+                  ) : photos.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {photos.map((photo) => (
+                        <div key={photo.id} className="relative group">
+                          <div className="aspect-[3/4] rounded-lg overflow-hidden border border-gray-200">
+                            <img
+                              src={photo.previewUrl || photo.url_fichier}
+                              alt={photo.description || photo.nom_photo}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Fallback si l'image ne charge pas
+                                const target = e.target as HTMLImageElement
+                                target.src = 'https://via.placeholder.com/300x400/4F46E5/FFFFFF?text=Photo+Progression'
+                              }}
+                            />
+                          </div>
                           
-                          {/* Numéro d'étape */}
-                          <span className="text-xs font-medium mt-1">
-                            {step.step}
-                          </span>
+                          {/* Bouton supprimer */}
+                          <Button
+                            onClick={() => handleDeletePhoto(photo.id)}
+                            size="sm"
+                            variant="destructive"
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                           
-                          {/* Poids */}
-                          <span className="text-xs text-gray-500 mt-1">
-                            {step.weight.toFixed(1)}kg
-                          </span>
-                          
-                          {/* Date */}
-                          <span className="text-xs text-gray-400 mt-1 transform -rotate-45">
-                            {step.date.toLocaleDateString('fr-FR', { 
-                              day: '2-digit', 
-                              month: '2-digit' 
-                            })}
-                          </span>
+                          {/* Info de la photo */}
+                          <div className="mt-2 text-center">
+                            <p className="text-xs text-gray-600">
+                              {new Date(photo.date_prise).toLocaleDateString('fr-FR')}
+                            </p>
+                            {photo.description && (
+                              <p className="text-xs text-gray-500 truncate">
+                                {photo.description}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Image className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                      <p className="text-sm">Aucune photo de progression</p>
+                      <p className="text-xs text-gray-400">
+                        Ajoutez des photos pour documenter votre évolution
+                      </p>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (

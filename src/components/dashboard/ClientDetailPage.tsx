@@ -322,6 +322,7 @@ const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, onClose, 
             progression: (
               <ProgressionChart
                 client={client}
+                clientId={clientId}
                 progressHistory={progressData}
                 onSave={handleSaveProgression}
                 isLoading={loading}
@@ -331,15 +332,18 @@ const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, onClose, 
               <div>
                 <SeancesTimeline
                   seances={seances}
-                  onAddSeance={() => {
-                    // TODO: Implémenter l'ajout de séance
-                    toast({
-                      title: "Ajout de séance",
-                      description: "Fonctionnalité à implémenter.",
-                    })
+                  onAddSeance={async () => {
+                    // Recharger les séances après ajout
+                    try {
+                      const seancesData = await SeanceService.getSeancesByClient(clientId)
+                      setSeances(seancesData)
+                    } catch (error) {
+                      console.error('Error reloading seances:', error)
+                    }
                   }}
                   onSeanceClick={handleSeanceClick}
                   isLoading={loading}
+                  clientId={clientId}
                 />
               </div>
             ),

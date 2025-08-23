@@ -1,12 +1,18 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Calendar, Clock, MessageCircle, Zap, Smile, CheckCircle, X, Edit, Lightbulb, TrendingUp } from 'lucide-react'
+import { Plus, Calendar, Clock, MessageCircle, Zap, Smile, CheckCircle, X, Edit, Lightbulb, TrendingUp, Dumbbell, Target, Users, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useAuth } from '@/providers/AuthProvider'
+import { WorkoutService, WorkoutWithExercises, Exercise } from '@/services/workoutService'
+import { SeanceService } from '@/services/seanceService'
+import { useToast } from '@/hooks/use-toast'
 
 interface ExerciceSeance {
   id: string
@@ -39,17 +45,41 @@ interface SeancesTimelineProps {
   onAddSeance: () => void
   onSeanceClick: (seance: Seance) => void
   isLoading?: boolean
+  clientId: string
 }
 
 const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
   seances,
   onAddSeance,
   onSeanceClick,
-  isLoading = false
+  isLoading = false,
+  clientId
 }) => {
+  const { profile } = useAuth()
+  const { toast } = useToast()
+  
   const [selectedSeance, setSelectedSeance] = useState<Seance | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [coachResponse, setCoachResponse] = useState('')
+  
+  // États pour l'assignation de séance
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
+  const [availableWorkouts, setAvailableWorkouts] = useState<WorkoutWithExercises[]>([])
+  const [availableExercises, setAvailableExercises] = useState<Exercise[]>([])
+  const [selectedWorkout, setSelectedWorkout] = useState<string>('')
+  const [selectedExercises, setSelectedExercises] = useState<string[]>([])
+  const [seanceDate, setSeanceDate] = useState('')
+  const [seanceName, setSeanceName] = useState('')
+  const [assignLoading, setAssignLoading] = useState(false)
+  const [assignMode, setAssignMode] = useState<'workout' | 'exercices'>('workout')
+  
+  // États pour la modification/suppression
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [seanceToEdit, setSeanceToEdit] = useState<Seance | null>(null)
+  const [seanceToDelete, setSeanceToDelete] = useState<Seance | null>(null)
+  const [editLoading, setEditLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const getStatusColor = (statut: string) => {
     switch (statut) {
@@ -94,6 +124,237 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
     return humeurMap[humeur.toLowerCase()] || humeur
   }
 
+  // Charger les workouts disponibles
+  const loadAvailableWorkouts = async () => {
+    if (!profile?.id) return
+    
+    try {
+      const [workouts, exercises] = await Promise.all([
+        WorkoutService.getWorkoutsByCoach(profile.id),
+        WorkoutService.getExercises(profile.id)
+      ])
+      setAvailableWorkouts(workouts)
+      setAvailableExercises(exercises)
+    } catch (error) {
+      console.error('Error loading workouts:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les workouts et exercices disponibles",
+        variant: "destructive"
+      })
+    }
+  }
+
+  // Ouvrir le modal d'assignation
+  const openAssignModal = () => {
+    setIsAssignModalOpen(true)
+    loadAvailableWorkouts()
+    // Initialiser la date à aujourd'hui
+    setSeanceDate(new Date().toISOString().split('T')[0])
+  }
+
+  // Ouvrir le modal de modification
+  const openEditModal = (seance: Seance) => {
+    setSeanceToEdit(seance)
+    setSeanceName(seance.nom_seance)
+    setSeanceDate(seance.date_seance)
+    setIsEditModalOpen(true)
+  }
+
+  // Ouvrir le modal de suppression
+  const openDeleteModal = (seance: Seance) => {
+    setSeanceToDelete(seance)
+    setIsDeleteModalOpen(true)
+  }
+
+  // Modifier une séance
+  const editSeance = async () => {
+    if (!seanceToEdit || !seanceName.trim() || !seanceDate) return
+
+    try {
+      setEditLoading(true)
+      
+      await SeanceService.updateSeance(seanceToEdit.id, {
+        nom_seance: seanceName,
+        date_seance: seanceDate
+      })
+      
+      toast({
+        title: "Séance modifiée",
+        description: "La séance a été mise à jour avec succès",
+      })
+      
+      setIsEditModalOpen(false)
+      setSeanceToEdit(null)
+      // Recharger les séances
+      if (onAddSeance) onAddSeance()
+      
+    } catch (error) {
+      console.error('Error editing seance:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier la séance",
+        variant: "destructive"
+      })
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
+  // Supprimer une séance
+  const deleteSeance = async () => {
+    if (!seanceToDelete) return
+
+    try {
+      setDeleteLoading(true)
+      
+      await SeanceService.deleteSeance(seanceToDelete.id)
+      
+      toast({
+        title: "Séance supprimée",
+        description: "La séance a été supprimée avec succès",
+      })
+      
+      setIsDeleteModalOpen(false)
+      setSeanceToDelete(null)
+      // Recharger les séances
+      if (onAddSeance) onAddSeance()
+      
+    } catch (error) {
+      console.error('Error deleting seance:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer la séance",
+        variant: "destructive"
+      })
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
+  // Assigner une séance au client
+  const assignSeance = async () => {
+    if (!seanceDate || !seanceName.trim()) {
+      toast({
+        title: "Données manquantes",
+        description: "Veuillez remplir tous les champs",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (assignMode === 'workout' && !selectedWorkout) {
+      toast({
+        title: "Workout manquant",
+        description: "Veuillez sélectionner un workout",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (assignMode === 'exercises' && selectedExercises.length === 0) {
+      toast({
+        title: "Exercices manquants",
+        description: "Veuillez sélectionner au moins un exercice",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      setAssignLoading(true)
+      
+      if (assignMode === 'workout') {
+        // Mode Workout : assigner un workout complet
+        const workout = availableWorkouts.find(w => w.id === selectedWorkout)
+        if (!workout) throw new Error('Workout non trouvé')
+
+        console.log('Workout sélectionné:', workout)
+        console.log('Workout exercices:', workout.workout_exercises)
+
+        // Créer la séance avec les exercices du workout
+        const seanceData = {
+          client_id: clientId, // Utiliser le clientId passé en prop
+          nom_seance: seanceName,
+          date_seance: seanceDate,
+          statut: 'programmée' as const,
+          workout_id: selectedWorkout
+        }
+
+        console.log('Données de séance:', seanceData)
+
+        // Créer la séance et ses exercices
+        const result = await SeanceService.createSeanceWithExercises(seanceData, workout.workout_exercises || [])
+        
+        console.log('Séance créée avec succès:', result)
+        
+        toast({
+          title: "Workout assigné",
+          description: "Le workout a été programmé avec succès",
+        })
+        
+        setIsAssignModalOpen(false)
+        // Recharger les séances
+        if (onAddSeance) onAddSeance()
+        
+      } else {
+        // Mode Exercices : créer une séance personnalisée
+        const seanceData = {
+          client_id: clientId, // Utiliser le clientId passé en prop
+          nom_seance: seanceName,
+          date_seance: seanceDate,
+          statut: 'programmée' as const
+        }
+
+        // Créer la séance avec les exercices sélectionnés
+        const customExercises = selectedExercises.map((exerciseId, index) => {
+          const exercise = availableExercises.find(e => e.id === exerciseId)
+          return {
+            exercise_id: exerciseId,
+            sets: 3, // Valeurs par défaut
+            reps: '10-12',
+            rest: '60s',
+            order_index: index + 1
+          }
+        })
+
+        await SeanceService.createSeanceWithExercises(seanceData, customExercises)
+        
+        console.log('Séance personnalisée créée avec succès')
+        
+        toast({
+          title: "Séance personnalisée créée",
+          description: "La séance personnalisée a été programmée avec succès",
+        })
+      }
+      
+      setIsAssignModalOpen(false)
+      // Recharger les séances
+      if (onAddSeance) onAddSeance()
+      
+    } catch (error) {
+      console.error('Error assigning seance:', error)
+      
+      // Vérifier si c'est vraiment une erreur ou si la séance a été créée
+      if (error.message && error.message.includes('duplicate key')) {
+        toast({
+          title: "Séance créée",
+          description: "La séance a été créée avec succès (doublon détecté)",
+        })
+        setIsAssignModalOpen(false)
+        if (onAddSeance) onAddSeance()
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible d'assigner la séance. Vérifiez la console pour plus de détails.",
+          variant: "destructive"
+        })
+      }
+    } finally {
+      setAssignLoading(false)
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: 'numeric',
@@ -133,36 +394,31 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Section Programmer une séance */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <Card className="border-orange-200 bg-orange-50">
-          <CardHeader>
-            <CardTitle className="text-orange-800">Programmer une séance</CardTitle>
-            <CardDescription className="text-orange-600">
-              Créez une nouvelle séance, réutilisez une séance précédente ou piochez dans votre bibliothèque
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={onAddSeance}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={isLoading}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter une séance
-            </Button>
-          </CardContent>
-        </Card>
-      </motion.div>
+      {/* Section "Programmer une séance" */}
+      <Card className="border-2 border-dashed border-orange-200 bg-orange-50">
+        <CardContent className="p-6 text-center">
+          <Dumbbell className="h-12 w-12 text-orange-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-orange-800 mb-2">
+            Programmer une séance
+          </h3>
+          <p className="text-orange-600 mb-4">
+            Créez une nouvelle séance, réutilisez une séance précédente ou piochez dans votre bibliothèque
+          </p>
+          <Button
+            onClick={openAssignModal}
+            className="bg-orange-500 hover:bg-orange-600"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter une séance
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Timeline des séances */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        transition={{ delay: 0.2 }}
       >
         <Card>
           <CardHeader>
@@ -171,111 +427,131 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
               <span>Timeline des séances</span>
             </CardTitle>
             <CardDescription>
-              Historique et programmation des séances d'entraînement
+              Cliquez sur une séance pour voir les détails
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {sortedSeances.length > 0 ? (
+            {seances.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 mb-2">Aucune séance programmée</p>
+                <p className="text-sm text-gray-400">
+                  Les séances apparaîtront ici une fois programmées
+                </p>
+              </div>
+            ) : (
               <div className="space-y-4">
-                {sortedSeances.map((seance, index) => (
+                {seances
+                  .sort((a, b) => new Date(b.date_seance).getTime() - new Date(a.date_seance).getTime())
+                  .map((seance, index) => (
                   <motion.div
                     key={seance.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="relative"
+                    transition={{ delay: index * 0.1 }}
                   >
-                    {/* Ligne de timeline */}
-                    {index < sortedSeances.length - 1 && (
-                      <div className="absolute left-6 top-16 w-0.5 h-8 bg-gray-200" />
-                    )}
-                    
-                    <div
-                      className="flex items-start space-x-4 p-4 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => handleSeanceClick(seance)}
-                    >
-                      {/* Indicateur de statut */}
-                      <div className="flex-shrink-0 w-12 h-12 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center">
-                        {getStatusIcon(seance.statut)}
-                      </div>
-
-                      {/* Contenu de la séance */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-semibold text-gray-900 truncate">
-                            {seance.nom_seance}
-                          </h4>
-                          <Badge 
-                            variant="outline" 
-                            className={`${getStatusColor(seance.statut)} font-medium`}
-                          >
-                            {seance.statut}
-                          </Badge>
+                    <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="text-center">
+                              <p className="text-sm font-medium text-gray-600">Séance</p>
+                              <p className="text-lg font-semibold">
+                                {seance.nom_seance}
+                              </p>
+                            </div>
+                            
+                            <div className="text-center">
+                              <p className="text-sm font-medium text-gray-600">Date</p>
+                              <div className="text-lg font-semibold">
+                                {formatDate(seance.date_seance)}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Badge 
+                              variant="outline" 
+                              className={`${
+                                seance.statut === 'terminée'
+                                  ? 'bg-green-100 text-green-800 border-green-200' 
+                                  : seance.statut === 'manquée'
+                                  ? 'bg-red-100 text-red-800 border-red-200'
+                                  : 'bg-orange-100 text-orange-800 border-orange-200'
+                              }`}
+                            >
+                              {seance.statut === 'terminée' ? (
+                                <div className="flex items-center space-x-1">
+                                  <CheckCircle className="h-3 w-3" />
+                                  <span>Terminée</span>
+                                </div>
+                              ) : seance.statut === 'manquée' ? (
+                                <div className="flex items-center space-x-1">
+                                  <X className="h-3 w-3" />
+                                  <span>Manquée</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>Programmée</span>
+                                </div>
+                              )}
+                            </Badge>
+                            
+                            {/* Boutons d'action */}
+                            <div className="flex space-x-2 ml-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  openEditModal(seance)
+                                }}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Modifier
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  openDeleteModal(seance)
+                                }}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                Supprimer
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-
-                        <p className="text-sm text-gray-600 mb-3">
-                          {formatDate(seance.date_seance)}
-                        </p>
-
-                        {/* Métriques de la séance */}
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          {seance.intensite_ressentie && (
-                            <div className="flex items-center space-x-1">
-                              <Zap className="h-4 w-4" />
-                              <span>{seance.intensite_ressentie}/10</span>
+                        
+                        {/* Informations supplémentaires */}
+                        {seance.exercices && seance.exercices.length > 0 && (
+                          <div className="mt-3 pt-3 border-t">
+                            <p className="text-sm text-gray-600 mb-2">
+                              {seance.exercices.length} exercice(s) programmé(s)
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {seance.exercices.slice(0, 3).map((exercice, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs">
+                                  {exercice.nom_exercice} ({exercice.series} séries)
+                                </Badge>
+                              ))}
+                              {seance.exercices.length > 3 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{seance.exercices.length - 3} autres
+                                </Badge>
+                              )}
                             </div>
-                          )}
-                          
-                          {seance.humeur && (
-                            <div className="flex items-center space-x-1">
-                              <Smile className="h-4 w-4" />
-                              <span>{getHumeurEmoji(seance.humeur)}</span>
-                            </div>
-                          )}
-                          
-                          {seance.commentaire_client && (
-                            <div className="flex items-center space-x-1">
-                              <MessageCircle className="h-4 w-4" />
-                              <span>Commentaire</span>
-                            </div>
-                          )}
-                          
-                          {seance.statut === 'terminée' && (
-                            <div className="flex items-center space-x-1">
-                              <Clock className="h-4 w-4" />
-                              <span>{seance.taux_reussite}% réussite</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Aperçu du commentaire */}
-                        {seance.commentaire_client && (
-                          <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-600 italic">
-                            "{seance.commentaire_client.length > 100 
-                              ? seance.commentaire_client.substring(0, 100) + '...'
-                              : seance.commentaire_client}"
                           </div>
                         )}
-                      </div>
-                    </div>
+                      </CardContent>
+                    </Card>
                   </motion.div>
                 ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 mb-2">Aucune séance programmée</p>
-                <p className="text-sm text-gray-400 mb-4">
-                  Commencez par programmer la première séance de votre client
-                </p>
-                <Button
-                  onClick={onAddSeance}
-                  variant="outline"
-                  className="border-orange-200 text-orange-600 hover:bg-orange-50"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Programmer une séance
-                </Button>
               </div>
             )}
           </CardContent>
@@ -484,6 +760,384 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
                     Utilisez des réponses personnalisées pour créer une relation de confiance.
                   </p>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal d'assignation de séance */}
+      {isAssignModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold">Assigner une séance</h2>
+                <p className="text-gray-600">
+                  Sélectionnez un workout et programmez-le pour votre client
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAssignModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Onglets de mode d'assignation */}
+              <div className="border-b">
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => setAssignMode('workout')}
+                    className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                      assignMode === 'workout'
+                        ? 'bg-orange-500 text-white'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <Dumbbell className="h-4 w-4 inline mr-2" />
+                    Assigner un Workout
+                  </button>
+                  <button
+                    onClick={() => setAssignMode('exercises')}
+                    className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                      assignMode === 'exercises'
+                        ? 'bg-orange-500 text-white'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <Target className="h-4 w-4 inline mr-2" />
+                    Créer une Séance Personnalisée
+                  </button>
+                </div>
+              </div>
+
+              {/* Nom de la séance */}
+              <div>
+                <Label htmlFor="seanceName">Nom de la séance</Label>
+                <Input
+                  id="seanceName"
+                  value={seanceName}
+                  onChange={(e) => setSeanceName(e.target.value)}
+                  placeholder="Ex: Full Body, Cardio, Upper Body..."
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Date de la séance */}
+              <div>
+                <Label htmlFor="seanceDate">Date de la séance</Label>
+                <Input
+                  id="seanceDate"
+                  type="date"
+                  value={seanceDate}
+                  onChange={(e) => setSeanceDate(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Mode Workout */}
+              {assignMode === 'workout' && (
+                <div>
+                  <Label htmlFor="workoutSelect">Workout à assigner</Label>
+                  <Select value={selectedWorkout} onValueChange={setSelectedWorkout}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Choisissez un workout" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableWorkouts.map((workout) => (
+                        <SelectItem key={workout.id} value={workout.id}>
+                          <div className="flex items-center space-x-2">
+                            <Dumbbell className="h-4 w-4" />
+                            <span>{workout.name}</span>
+                            <Badge variant="outline" className="ml-2">
+                              {workout.difficulty_level}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Mode Exercices */}
+              {assignMode === 'exercises' && (
+                <div>
+                  <Label htmlFor="exercisesSelect">Exercices à inclure</Label>
+                  <Select 
+                    value="" 
+                    onValueChange={(exerciseId) => {
+                      if (exerciseId && !selectedExercises.includes(exerciseId)) {
+                        setSelectedExercises([...selectedExercises, exerciseId])
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Ajouter un exercice" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableExercises
+                        .filter(exercise => !selectedExercises.includes(exercise.id))
+                        .map((exercise) => (
+                        <SelectItem key={exercise.id} value={exercise.id}>
+                          <div className="flex items-center space-x-2">
+                            <Target className="h-4 w-4" />
+                            <span>{exercise.name}</span>
+                            <Badge variant="outline" className="ml-2">
+                              {exercise.category}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Liste des exercices sélectionnés */}
+                  {selectedExercises.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <Label className="text-sm font-medium">Exercices sélectionnés :</Label>
+                      <div className="space-y-2">
+                        {selectedExercises.map((exerciseId, index) => {
+                          const exercise = availableExercises.find(e => e.id === exerciseId)
+                          if (!exercise) return null
+                          
+                          return (
+                            <div key={exerciseId} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                              <div className="flex items-center space-x-3">
+                                <span className="text-sm font-medium text-gray-600">#{index + 1}</span>
+                                <div>
+                                  <div className="font-medium">{exercise.name}</div>
+                                  <div className="text-sm text-gray-500">{exercise.category}</div>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedExercises(selectedExercises.filter(id => id !== exerciseId))}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Aperçu du workout sélectionné */}
+              {assignMode === 'workout' && selectedWorkout && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">Aperçu du workout :</h4>
+                  {(() => {
+                    const workout = availableWorkouts.find(w => w.id === selectedWorkout)
+                    if (!workout) return null
+                    
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Target className="h-4 w-4 text-orange-500" />
+                          <span className="text-sm font-medium">{workout.name}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Users className="h-4 w-4 text-blue-500" />
+                          <span className="text-sm text-gray-600">
+                            {workout.workout_exercises?.length || 0} exercices
+                          </span>
+                        </div>
+                        {workout.workout_exercises && workout.workout_exercises.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs font-medium text-gray-600 mb-1">Exercices :</p>
+                            <div className="space-y-1">
+                              {workout.workout_exercises.slice(0, 3).map((workoutExercise, index) => (
+                                <div key={index} className="text-xs text-gray-500 flex items-center space-x-2">
+                                  <span>•</span>
+                                  <span>{workoutExercise.exercise?.name || `Exercice ${index + 1}`}</span>
+                                  <Badge variant="outline" size="sm">
+                                    {workoutExercise.sets} séries
+                                  </Badge>
+                                </div>
+                              ))}
+                              {workout.workout_exercises.length > 3 && (
+                                <div className="text-xs text-gray-400">
+                                  +{workout.workout_exercises.length - 3} autres exercices
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {/* Aperçu des exercices sélectionnés */}
+              {assignMode === 'exercises' && selectedExercises.length > 0 && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">Aperçu de la séance personnalisée :</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                          <Target className="h-4 w-4 text-orange-500" />
+                          <span className="text-sm font-medium">{seanceName || 'Séance personnalisée'}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Users className="h-4 w-4 text-blue-500" />
+                          <span className="text-sm text-gray-600">
+                            {selectedExercises.length} exercices sélectionnés
+                          </span>
+                        </div>
+                        <div className="mt-2">
+                          <p className="text-xs font-medium text-gray-600 mb-1">Exercices :</p>
+                          <div className="space-y-1">
+                            {selectedExercises.slice(0, 5).map((exerciseId, index) => {
+                              const exercise = availableExercises.find(e => e.id === exerciseId)
+                              if (!exercise) return null
+                              
+                              return (
+                                <div key={exerciseId} className="text-xs text-gray-500 flex items-center space-x-2">
+                                  <span>•</span>
+                                  <span>{exercise.name}</span>
+                                  <Badge variant="outline" size="sm">
+                                    {exercise.category}
+                                  </Badge>
+                                </div>
+                              )
+                            })}
+                            {selectedExercises.length > 5 && (
+                              <div className="text-xs text-gray-400">
+                                +{selectedExercises.length - 5} autres exercices
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                </div>
+              )}
+
+              {/* Boutons d'action */}
+              <div className="flex justify-end space-x-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAssignModalOpen(false)}
+                  disabled={assignLoading}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={assignSeance}
+                  disabled={
+                    assignLoading || 
+                    !seanceDate || 
+                    !seanceName.trim() || 
+                    (assignMode === 'workout' && !selectedWorkout) ||
+                    (assignMode === 'exercises' && selectedExercises.length === 0)
+                  }
+                  className="bg-orange-500 hover:bg-orange-600"
+                >
+                  {assignLoading ? 'Assignation...' : 'Assigner la séance'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de modification de séance */}
+      {isEditModalOpen && seanceToEdit && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 my-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold">Modifier la séance</h2>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="editSeanceName">Nom de la séance</Label>
+                <Input
+                  id="editSeanceName"
+                  value={seanceName}
+                  onChange={(e) => setSeanceName(e.target.value)}
+                  placeholder="Nom de la séance"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="editSeanceDate">Date de la séance</Label>
+                <Input
+                  id="editSeanceDate"
+                  type="date"
+                  value={seanceDate}
+                  onChange={(e) => setSeanceDate(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={editLoading}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={editSeance}
+                  disabled={!seanceName.trim() || !seanceDate || editLoading}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  {editLoading ? 'Modification...' : 'Modifier'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmation de suppression */}
+      {isDeleteModalOpen && seanceToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 my-8">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <Trash2 className="h-6 w-6 text-red-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Supprimer la séance
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Êtes-vous sûr de vouloir supprimer la séance "{seanceToDelete.nom_seance}" du {formatDate(seanceToDelete.date_seance)} ?
+                <br />
+                <span className="text-red-600 font-medium">Cette action est irréversible.</span>
+              </p>
+
+              <div className="flex justify-center space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={deleteLoading}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={deleteSeance}
+                  disabled={deleteLoading}
+                  className="bg-red-500 hover:bg-red-600"
+                >
+                  {deleteLoading ? 'Suppression...' : 'Supprimer'}
+                </Button>
               </div>
             </div>
           </div>
