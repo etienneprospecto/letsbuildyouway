@@ -14,7 +14,8 @@ import {
   Target,
   TrendingUp,
   User,
-  Users
+  Users,
+  X
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,7 @@ import {
 import { useAuth } from '@/providers/AuthProvider'
 import ClientService, { Client } from '@/services/clientService'
 import AddClientModal from './AddClientModal'
+import ClientDetailPage from './ClientDetailPage'
 
 
 
@@ -43,6 +45,9 @@ const ClientsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false)
+  const [editedClient, setEditedClient] = useState<Partial<Client>>({})
 
   // Charger les clients depuis le service
   const fetchClients = async () => {
@@ -76,6 +81,29 @@ const ClientsPage: React.FC = () => {
     
     return matchesSearch && matchesStatus
   })
+
+  // Fonction de sauvegarde du client
+  const handleSaveClient = async () => {
+    if (!selectedClient) return
+    
+    try {
+      await ClientService.updateClient(selectedClient.id, editedClient)
+      
+      // Mettre à jour la liste des clients
+      await fetchClients()
+      
+      // Fermer le modal
+      setIsClientModalOpen(false)
+      setSelectedClient(null)
+      setEditedClient({})
+      
+      // Afficher un message de succès
+      alert('Client mis à jour avec succès !')
+    } catch (error) {
+      console.error('Error updating client:', error)
+      alert('Erreur lors de la mise à jour du client')
+    }
+  }
 
   // Formater les données
   const formatGoal = (goal: string) => {
@@ -333,13 +361,19 @@ const ClientsPage: React.FC = () => {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setSelectedClient(client)
+                        setIsClientModalOpen(true)
+                      }}>
                         <Eye className="mr-2 h-4 w-4" />
                         Voir le profil
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setSelectedClient(client)
+                        setIsClientModalOpen(true)
+                      }}>
                         <Edit className="mr-2 h-4 w-4" />
-                        Modifier
+                        Modifier le profil
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Calendar className="mr-2 h-4 w-4" />
@@ -366,6 +400,17 @@ const ClientsPage: React.FC = () => {
         onClientAdded={fetchClients}
         coachId={profile?.id || ''}
       />
+
+      {/* Modal client détaillé (nouvelle page avec onglets fonctionnels) */}
+      {isClientModalOpen && selectedClient && (
+        <ClientDetailPage
+          clientId={selectedClient.id}
+          onClose={() => {
+            setIsClientModalOpen(false)
+            setSelectedClient(null)
+          }}
+        />
+      )}
     </div>
   )
 }

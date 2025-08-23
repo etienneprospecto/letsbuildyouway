@@ -24,6 +24,20 @@ export interface Client {
   notes: string | null
   medical_conditions: string | null
   dietary_restrictions: string | null
+  // Champs supplémentaires pour la fiche client complète
+  mentality?: string
+  coaching_type?: string
+  constraints?: string
+  allergies?: string
+  morphotype?: string
+  equipment?: string
+  lifestyle?: string
+  contact?: string
+  sports_history?: string
+  // Champs de progression
+  poids_depart?: number | null
+  poids_objectif?: number | null
+  poids_actuel?: number | null
   created_at: string
   updated_at: string
 }
@@ -48,6 +62,20 @@ export interface CreateClientData {
 
 export interface UpdateClientData extends Partial<CreateClientData> {
   id: string
+  // Champs supplémentaires pour la fiche client complète
+  mentality?: string
+  coaching_type?: string
+  start_date?: string
+  constraints?: string
+  allergies?: string
+  morphotype?: string
+  equipment?: string
+  lifestyle?: string
+  contact?: string
+  sports_history?: string
+  poids_depart?: number
+  poids_objectif?: number
+  poids_actuel?: number
 }
 
 export class ClientService {
@@ -68,28 +96,6 @@ export class ClientService {
       return data || []
     } catch (error) {
       console.error('Error in getClientsByCoach:', error)
-      throw error
-    }
-  }
-
-  // Récupérer un client par email
-  static async getClientByEmail(email: string): Promise<Client | null> {
-    try {
-      const normalizedEmail = email.trim().toLowerCase()
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('email', normalizedEmail)
-        .maybeSingle()
-
-      if (error) {
-        console.error('Error fetching client by email:', error)
-        throw error
-      }
-
-      return data ?? null
-    } catch (error) {
-      console.error('Error in getClientByEmail:', error)
       throw error
     }
   }

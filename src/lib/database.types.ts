@@ -62,6 +62,9 @@ export interface Database {
           contact: string
           sports_history: string
           needs_attention: boolean
+          poids_depart: number | null
+          poids_objectif: number | null
+          poids_actuel: number | null
           created_at: string
           updated_at: string
         }
@@ -86,6 +89,9 @@ export interface Database {
           contact: string
           sports_history: string
           needs_attention?: boolean
+          poids_depart?: number | null
+          poids_objectif?: number | null
+          poids_actuel?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -460,6 +466,121 @@ export interface Database {
           earned?: boolean
           earned_at?: string | null
           progress?: number | null
+        }
+      }
+      seances: {
+        Row: {
+          id: string
+          client_id: string
+          nom_seance: string
+          date_seance: string
+          statut: 'programmée' | 'terminée' | 'manquée'
+          intensite_ressentie: number | null
+          humeur: string | null
+          commentaire_client: string | null
+          date_fin: string | null
+          exercices_termines: number
+          taux_reussite: number
+          reponse_coach: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          nom_seance: string
+          date_seance: string
+          statut?: 'programmée' | 'terminée' | 'manquée'
+          intensite_ressentie?: number | null
+          humeur?: string | null
+          commentaire_client?: string | null
+          date_fin?: string | null
+          exercices_termines?: number
+          taux_reussite?: number
+          reponse_coach?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          nom_seance?: string
+          date_seance?: string
+          statut?: 'programmée' | 'terminée' | 'manquée'
+          intensite_ressentie?: number | null
+          humeur?: string | null
+          commentaire_client?: string | null
+          date_fin?: string | null
+          exercices_termines?: number
+          taux_reussite?: number
+          reponse_coach?: string | null
+          updated_at?: string
+        }
+      }
+      exercices_seance: {
+        Row: {
+          id: string
+          seance_id: string
+          nom_exercice: string
+          series: number
+          repetitions: string
+          temps_repos: string | null
+          ordre: number
+          completed: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          seance_id: string
+          nom_exercice: string
+          series: number
+          repetitions: string
+          temps_repos?: string | null
+          ordre: number
+          completed?: boolean
+          created_at?: string
+        }
+        Update: {
+          nom_exercice?: string
+          series?: number
+          repetitions?: string
+          temps_repos?: string | null
+          ordre?: number
+          completed?: boolean
+        }
+      }
+      
+      ressources_personnalisees: {
+        Row: {
+          id: string
+          client_id: string
+          nom_ressource: string
+          type_ressource: 'video' | 'pdf' | 'link' | 'image' | 'document'
+          theme: 'Alimentation' | 'Style de vie' | 'Ressentis' | 'Entraînement'
+          url_fichier: string | null
+          taille_fichier: number | null
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          nom_ressource: string
+          type_ressource: 'video' | 'pdf' | 'link' | 'image' | 'document'
+          theme: 'Alimentation' | 'Style de vie' | 'Ressentis' | 'Entraînement'
+          url_fichier?: string | null
+          taille_fichier?: number | null
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          nom_ressource?: string
+          type_ressource?: 'video' | 'pdf' | 'link' | 'image' | 'document'
+          theme?: 'Alimentation' | 'Style de vie' | 'Ressentis' | 'Entraînement'
+          url_fichier?: string | null
+          taille_fichier?: number | null
+          description?: string | null
+          updated_at?: string
         }
       }
     }

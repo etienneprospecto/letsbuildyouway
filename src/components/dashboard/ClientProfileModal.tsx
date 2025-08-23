@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Edit, Calendar, Phone, Mail, Target, TrendingUp, Award } from 'lucide-react'
+import { Calendar, Phone, Mail, Target, TrendingUp, Award } from 'lucide-react'
 import { Client } from '@/services/clientService'
 import { getInitials } from '@/lib/utils'
 
@@ -13,14 +13,12 @@ interface ClientProfileModalProps {
   client: Client | null
   isOpen: boolean
   onClose: () => void
-  onEdit: (client: Client) => void
 }
 
 export const ClientProfileModal: React.FC<ClientProfileModalProps> = ({
   client,
   isOpen,
-  onClose,
-  onEdit
+  onClose
 }) => {
   if (!client) return null
 
@@ -222,10 +220,6 @@ export const ClientProfileModal: React.FC<ClientProfileModalProps> = ({
         <div className="flex justify-end gap-3 pt-6 border-t">
           <Button variant="outline" onClick={onClose}>
             Fermer
-          </Button>
-          <Button onClick={() => onEdit(client)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Modifier le Client
           </Button>
         </div>
       </DialogContent>

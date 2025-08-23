@@ -8,7 +8,6 @@ import {
   Plus, 
   MoreHorizontal, 
   Eye, 
-  Edit, 
   Trash2 
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,7 +27,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ClientProfileModal } from './ClientProfileModal'
-import { EditClientModal } from './EditClientModal'
 
 const CoachDashboard: React.FC = () => {
   const { profile } = useAuth()
@@ -37,7 +35,6 @@ const CoachDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   
   // Calculer les métriques basées sur les vrais clients
   const clientsNeedingAttention = clients.filter(client => 
@@ -75,12 +72,7 @@ const CoachDashboard: React.FC = () => {
     setIsProfileModalOpen(true)
   }
 
-  const handleEditClient = (client: Client) => {
-    console.log('handleEditClient called with client:', client)
-    setSelectedClient(client)
-    setIsEditModalOpen(true)
-    console.log('States updated - selectedClient:', client, 'isEditModalOpen: true')
-  }
+
 
   const handleScheduleSession = (client: Client) => {
     console.log('Scheduling session for client:', client)
@@ -104,15 +96,7 @@ const CoachDashboard: React.FC = () => {
     }
   }
 
-  const handleClientUpdated = (updatedClient: Client) => {
-    // Mettre à jour la liste des clients avec le client modifié
-    setClients(prevClients => 
-      prevClients.map(client => 
-        client.id === updatedClient.id ? updatedClient : client
-      )
-    )
-    console.log('Client updated successfully:', updatedClient)
-  }
+
 
   const metrics = [
     {
@@ -273,10 +257,6 @@ const CoachDashboard: React.FC = () => {
                           <Eye className="mr-2 h-4 w-4" />
                           Voir le profil
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditClient(client)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Modifier
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleScheduleSession(client)}>
                           <Calendar className="mr-2 h-4 w-4" />
                           Planifier une session
@@ -359,18 +339,6 @@ const CoachDashboard: React.FC = () => {
           setIsProfileModalOpen(false)
           setSelectedClient(null)
         }}
-        onEdit={handleEditClient}
-      />
-
-      {/* Modal d'édition client */}
-      <EditClientModal
-        client={selectedClient}
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false)
-          setSelectedClient(null)
-        }}
-        onClientUpdated={handleClientUpdated}
       />
     </div>
   )
