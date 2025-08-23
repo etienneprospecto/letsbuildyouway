@@ -12,6 +12,11 @@ import ClientsPage from '@/components/dashboard/ClientsPage'
 import WorkoutsPage from '@/components/dashboard/WorkoutsPage'
 import ExercicesPage from '@/components/dashboard/ExercicesPage'
 import MessagesPage from '@/components/dashboard/MessagesPage'
+import EditableProfile from '@/components/client/EditableProfile'
+import ClientSeances from '@/components/client/ClientSeances'
+import ProgressionDashboard from '@/components/client/ProgressionDashboard'
+import ClientFeedbacks from '@/components/client/ClientFeedbacks'
+import ClientResources from '@/components/client/ClientResources'
 
 function AppContent() {
   const { user, profile, loading } = useAuth()
@@ -49,6 +54,18 @@ function AppContent() {
       switch (activeTab) {
         case 'dashboard':
           return <ClientDashboard />
+        case 'seances':
+          return <ClientSeances />
+        case 'progression':
+          return <ProgressionDashboard />
+        case 'feedbacks':
+          return <ClientFeedbacks />
+        case 'ressources':
+          return <ClientResources />
+        case 'profile':
+          return <EditableProfile />
+        case 'messages':
+          return <MessagesPage />
         default:
           return <ClientDashboard />
       }

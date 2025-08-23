@@ -12,19 +12,26 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Settings, LogOut, User, Palette } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
+import { useCoachConnection } from '@/hooks/useCoachConnection'
 import { getInitials } from '@/lib/utils'
 
 const Header: React.FC = () => {
   const { user, profile, signOut } = useAuth()
+  const { isCoachOnline, coachEmail } = useCoachConnection()
 
   return (
     <header className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
       <div className="flex h-full items-center justify-between px-6">
-        {/* Role Display */}
-        <div className="flex items-center space-x-2">
+        {/* Role + Coach info */}
+        <div className="flex items-center space-x-3">
           <Badge variant="secondary" className="capitalize">
             {profile?.role === 'coach' ? 'Coach' : 'Client'}
           </Badge>
+          {profile?.role === 'client' && (
+            <div className="text-xs text-muted-foreground">
+              Coaché par {coachEmail || '—'} · <span className={isCoachOnline ? 'text-green-600' : 'text-gray-500'}>{isCoachOnline ? 'en ligne' : 'hors ligne'}</span>
+            </div>
+          )}
         </div>
 
         {/* User Menu */}

@@ -42,10 +42,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const clientNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'workouts', label: 'My Workouts', icon: Calendar },
-    { id: 'progress', label: 'Progress', icon: Target },
-    { id: 'messages', label: 'Messages', icon: MessageSquare },
-    { id: 'profile', label: 'Profile', icon: User }
+    { id: 'seances', label: 'Mes séances', icon: Calendar },
+    { id: 'progression', label: 'Ma progression', icon: Target },
+    { id: 'feedbacks', label: 'Mes feedbacks', icon: MessageSquare },
+    { id: 'ressources', label: 'Mes ressources', icon: Dumbbell },
+    { id: 'profile', label: 'Mon profil', icon: User },
+    { id: 'messages', label: 'Messages', icon: MessageSquare }
   ]
 
   const navItems = profile?.role === 'coach' ? coachNavItems : clientNavItems
