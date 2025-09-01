@@ -168,11 +168,8 @@ export class MessageService {
   // Envoyer un nouveau message
   static async sendMessage(messageData: CreateMessageData): Promise<Message> {
     try {
-      // Créer le timestamp
-      const timestamp = new Date().toLocaleTimeString('fr-FR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      })
+      // Créer le timestamp ISO
+      const timestamp = new Date().toISOString()
 
       // Créer le message
       const { data: message, error: msgError } = await supabase
@@ -235,10 +232,7 @@ export class MessageService {
           coach_id: coachId,
           client_id: clientId,
           last_message: 'Conversation démarrée',
-          last_message_time: new Date().toLocaleTimeString('fr-FR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
+          last_message_time: new Date().toISOString(),
           unread_count: 0,
           is_online: false
         })

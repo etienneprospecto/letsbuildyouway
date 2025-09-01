@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/providers/AuthProvider'
 import { MessageService, Conversation, ConversationWithMessages } from '@/services/messageService'
+import { ClientService } from '@/services/clientService'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,34 +15,106 @@ interface ClientMessagesPageProps {
 }
 
 const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => {
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
+  const [clientRecord, setClientRecord] = useState<any>(null)
+
+  // Fonction pour formater la date/heure des messages
+  const formatMessageTime = (timestamp: string) => {
+    if (!timestamp) return ''
+    
+    try {
+      const messageDate = new Date(timestamp)
+      
+      // Vérifier si la date est valide
+      if (isNaN(messageDate.getTime())) {
+        console.warn('⚠️ Timestamp invalide:', timestamp)
+        return 'Date invalide'
+      }
+      
+      const now = new Date()
+      const diffInHours = (now.getTime() - messageDate.getTime()) / (1000 * 60 * 60)
+      
+      if (diffInHours < 24) {
+        // Aujourd'hui : afficher l'heure
+        return messageDate.toLocaleTimeString('fr-FR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })
+      } else if (diffInHours < 48) {
+        // Hier : afficher "Hier" + heure
+        return `Hier ${messageDate.toLocaleTimeString('fr-FR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })}`
+      } else {
+        // Plus ancien : afficher la date complète
+        return messageDate.toLocaleDateString('fr-FR', { 
+          day: '2-digit',
+          month: '2-digit',
+          year: '2-digit',
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })
+      }
+    } catch (error) {
+      console.error('❌ Erreur formatage timestamp:', error, 'Timestamp:', timestamp)
+      return 'Erreur date'
+    }
+  }
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<ConversationWithMessages | null>(null)
   const [newMessage, setNewMessage] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [sendingMessage, setSendingMessage] = useState(false)
   const { toast } = useToast()
 
-  // Charger les conversations du client depuis Supabase
+  // Charger l'ID du client et ses conversations depuis Supabase
   useEffect(() => {
-    if (profile?.id) {
-      loadConversations()
+    if (user?.email) {
+      loadClientAndConversations()
     }
-  }, [profile?.id])
+  }, [user?.email])
 
-  const loadConversations = async () => {
+  // Scroll automatique vers le bas quand de nouveaux messages arrivent
+  useEffect(() => {
+    if (selectedConversation?.messages.length) {
+      setTimeout(() => {
+        scrollToBottom()
+      }, 100)
+    }
+  }, [selectedConversation?.messages.length])
+
+  const loadClientAndConversations = async () => {
     try {
       setLoading(true)
-      const conversationsData = await MessageService.getClientConversations(profile!.id)
+      console.log('🔍 Recherche client avec email:', user!.email)
+      
+      // Récupérer l'ID du client depuis son email
+      const client = await ClientService.getClientByEmail(user!.email)
+      if (!client) {
+        console.error('❌ Client non trouvé pour email:', user!.email)
+        toast({
+          title: "Erreur",
+          description: "Client non trouvé",
+          variant: "destructive",
+        })
+        return
+      }
+      
+      console.log('✅ Client trouvé:', client)
+      setClientRecord(client)
+      
+      // Charger la conversation avec le coach
+      const conversationsData = await MessageService.getClientConversations(client.id)
+      console.log('📋 Conversations trouvées:', conversationsData)
       setConversations(conversationsData)
       
-      // Si aucune conversation n'est sélectionnée, sélectionner la première
-      if (conversationsData.length > 0 && !selectedConversation) {
+      // Charger automatiquement la première conversation (avec le coach)
+      if (conversationsData.length > 0) {
         await loadConversationWithMessages(conversationsData[0].id)
       }
     } catch (error) {
-      console.error('Error loading conversations:', error)
+      console.error('❌ Erreur chargement client/conversations:', error)
       toast({
         title: "Erreur",
         description: "Impossible de charger les conversations.",
@@ -52,10 +125,17 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
     }
   }
 
+
+
   const loadConversationWithMessages = async (conversationId: string) => {
     try {
       const conversationData = await MessageService.getConversationWithMessages(conversationId)
       setSelectedConversation(conversationData)
+      
+      // Scroll automatique vers le bas après un court délai pour laisser le DOM se mettre à jour
+      setTimeout(() => {
+        scrollToBottom()
+      }, 100)
     } catch (error) {
       console.error('Error loading conversation:', error)
       toast({
@@ -66,12 +146,20 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
     }
   }
 
+  // Fonction pour scroller vers le bas des messages
+  const scrollToBottom = () => {
+    const messagesContainer = document.querySelector('.messages-container')
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight
+    }
+  }
+
   const handleConversationSelect = async (conversation: Conversation) => {
     await loadConversationWithMessages(conversation.id)
   }
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation || !profile?.id) return
+    if (!newMessage.trim() || !selectedConversation || !clientRecord?.id) return
 
     try {
       setSendingMessage(true)
@@ -106,6 +194,11 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
 
       setNewMessage('')
       
+      // Scroll automatique vers le bas après envoi du message
+      setTimeout(() => {
+        scrollToBottom()
+      }, 100)
+      
       toast({
         title: "Message envoyé",
         description: "Votre message a été envoyé avec succès.",
@@ -129,9 +222,7 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
     }
   }
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.client_name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+
 
   if (loading) {
     return (
@@ -156,75 +247,9 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
-        {/* Liste des conversations */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
-              Conversations
-            </CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Rechercher..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="space-y-1 max-h-[500px] overflow-y-auto">
-              {filteredConversations.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                  Aucune conversation trouvée
-                </div>
-              ) : (
-                filteredConversations.map((conversation) => (
-                  <div
-                    key={conversation.id}
-                    onClick={() => handleConversationSelect(conversation)}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                      selectedConversation?.id === conversation.id ? 'bg-blue-50 border-r-2 border-blue-600' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-blue-100 text-blue-600">
-                          {conversation.client_name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 truncate">
-                          {conversation.client_name}
-                        </p>
-                        {conversation.last_message && (
-                          <p className="text-sm text-gray-500 truncate">
-                            {conversation.last_message}
-                          </p>
-                        )}
-                        {conversation.last_message_time && (
-                          <p className="text-xs text-gray-400">
-                            {new Date(conversation.last_message_time).toLocaleTimeString()}
-                          </p>
-                        )}
-                      </div>
-                      {conversation.unread_count > 0 && (
-                        <Badge variant="destructive" className="ml-auto">
-                          {conversation.unread_count}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Zone de chat */}
-        <Card className="lg:col-span-2">
+      <div className="h-[600px]">
+        {/* Zone de chat directe avec le coach */}
+        <Card className="h-full">
           <CardHeader>
             <CardTitle>
               {selectedConversation ? (
@@ -234,10 +259,13 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
                       {selectedConversation.client_name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
-                  <span>{selectedConversation.client_name}</span>
+                  <span>Conversation avec votre coach</span>
                 </div>
               ) : (
-                "Sélectionnez une conversation"
+                <div className="flex items-center gap-3">
+                  <MessageCircle className="h-6 w-6 text-blue-600" />
+                  <span>Chargement de la conversation...</span>
+                </div>
               )}
             </CardTitle>
           </CardHeader>
@@ -245,7 +273,7 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
             {selectedConversation ? (
               <div className="flex flex-col h-[500px]">
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="messages-container flex-1 overflow-y-auto p-4 space-y-4">
                   {selectedConversation.messages.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
                       Aucun message pour le moment. Commencez la conversation !
@@ -267,7 +295,7 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
                           <p className={`text-xs mt-1 ${
                             message.sender_type === 'client' ? 'text-blue-100' : 'text-gray-500'
                           }`}>
-                            {new Date(message.timestamp).toLocaleTimeString()}
+                            {formatMessageTime(message.timestamp)}
                           </p>
                         </div>
                       </div>

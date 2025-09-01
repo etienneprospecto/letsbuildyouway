@@ -36,6 +36,50 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
   const [sendingMessage, setSendingMessage] = useState(false)
   const { toast } = useToast()
 
+  // Fonction pour formater la date/heure des messages
+  const formatMessageTime = (timestamp: string) => {
+    if (!timestamp) return ''
+    
+    try {
+      const messageDate = new Date(timestamp)
+      
+      // Vérifier si la date est valide
+      if (isNaN(messageDate.getTime())) {
+        console.warn('⚠️ Timestamp invalide:', timestamp)
+        return 'Date invalide'
+      }
+      
+      const now = new Date()
+      const diffInHours = (now.getTime() - messageDate.getTime()) / (1000 * 60 * 60)
+      
+      if (diffInHours < 24) {
+        // Aujourd'hui : afficher l'heure
+        return messageDate.toLocaleTimeString('fr-FR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })
+      } else if (diffInHours < 48) {
+        // Hier : afficher "Hier" + heure
+        return `Hier ${messageDate.toLocaleTimeString('fr-FR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })}`
+      } else {
+        // Plus ancien : afficher la date complète
+        return messageDate.toLocaleDateString('fr-FR', { 
+          day: '2-digit',
+          month: '2-digit',
+          year: '2-digit',
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })
+      }
+    } catch (error) {
+      console.error('❌ Erreur formatage timestamp:', error, 'Timestamp:', timestamp)
+      return 'Erreur date'
+    }
+  }
+
   // Charger les vraies conversations depuis Supabase
   useEffect(() => {
     if (profile?.id) {
@@ -259,7 +303,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
                               {conversation.client_name}
                             </h4>
                             <span className="text-xs text-gray-500">
-                              {conversation.last_message_time}
+                              {conversation.last_message_time ? formatMessageTime(conversation.last_message_time) : ''}
                             </span>
                           </div>
                           
@@ -360,7 +404,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
                               <div className={`flex items-center space-x-1 mt-1 text-xs text-gray-500 ${
                                 message.sender_type === 'coach' ? 'justify-end' : 'justify-start'
                               }`}>
-                                <span>{message.timestamp}</span>
+                                <span>{formatMessageTime(message.timestamp)}</span>
                                 
                                 {message.sender_type === 'coach' && (
                                   <span className="ml-1">
