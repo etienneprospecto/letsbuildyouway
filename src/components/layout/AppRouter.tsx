@@ -10,7 +10,6 @@ import ClientMessagesPage from '@/components/client/ClientMessagesPage'
 import EditableProfile from '@/components/client/EditableProfile'
 import ClientSeances from '@/components/client/ClientSeances'
 import ProgressionDashboard from '@/components/client/ProgressionDashboard'
-import ClientFeedbacks from '@/components/client/ClientFeedbacks'
 import ClientFeedbacksPage from '@/components/client/ClientFeedbacksPage'
 import ClientResources from '@/components/client/ClientResources'
 
@@ -45,8 +44,6 @@ const AppRouter: React.FC<AppRouterProps> = ({ activeTab, userRole }) => {
         return <ClientSeances />
       case 'progression':
         return <ProgressionDashboard />
-      case 'feedbacks':
-        return <ClientFeedbacks />
       case 'feedbacks-hebdomadaires':
         return <ClientFeedbacksPage />
       case 'ressources':
