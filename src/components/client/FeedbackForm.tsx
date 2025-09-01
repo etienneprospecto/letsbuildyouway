@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { 
@@ -144,24 +144,42 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
               {question.required && <span className="text-destructive ml-1">*</span>}
             </Label>
             <div className="space-y-3">
-              <Select value={value?.toString() || ''} onValueChange={(val) => handleResponseChange(questionId, parseInt(val))}>
-                <SelectTrigger className={error ? 'border-destructive' : ''}>
-                  <SelectValue placeholder="Sélectionnez une note..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
-                    <SelectItem key={num} value={num.toString()}>
-                      {num}/10
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Jauge interactive 1-10 */}
+              <div className="flex items-center justify-between space-x-2">
+                {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => handleResponseChange(questionId, num)}
+                    className={`
+                      w-10 h-10 rounded-full border-2 transition-all duration-200 flex items-center justify-center text-sm font-medium
+                      ${value === num 
+                        ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-110' 
+                        : 'bg-background text-muted-foreground border-muted hover:border-primary hover:text-primary hover:scale-105'
+                      }
+                      ${error ? 'border-destructive' : ''}
+                    `}
+                    title={`Note ${num}/10`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+              
+              {/* Légende de la jauge */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                <span>1 = Très faible</span>
+                <span>10 = Excellent</span>
+              </div>
+              
+              {/* Affichage de la note sélectionnée */}
               {value && (
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-muted-foreground">Note sélectionnée:</span>
-                  <Badge variant="outline">{value}/10</Badge>
+                  <Badge variant="outline" className="text-lg px-3 py-1">{value}/10</Badge>
                 </div>
               )}
+              
               {error && (
                 <div className="flex items-center space-x-2 text-sm text-destructive">
                   <AlertCircle className="w-4 h-4" />
