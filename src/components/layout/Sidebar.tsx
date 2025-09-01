@@ -37,6 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'workouts', label: 'Workouts', icon: Dumbbell },
     { id: 'exercices', label: 'Exercices', icon: Target },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
+    { id: 'feedbacks-hebdomadaires', label: 'Feedbacks', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings }
   ]
 
@@ -45,6 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'seances', label: 'Mes séances', icon: Calendar },
     { id: 'progression', label: 'Ma progression', icon: Target },
     { id: 'feedbacks', label: 'Mes feedbacks', icon: MessageSquare },
+    { id: 'feedbacks-hebdomadaires', label: 'Feedbacks Hebdo', icon: MessageSquare },
     { id: 'ressources', label: 'Mes ressources', icon: Dumbbell },
     { id: 'profile', label: 'Mon profil', icon: User },
     { id: 'messages', label: 'Messages', icon: MessageSquare }

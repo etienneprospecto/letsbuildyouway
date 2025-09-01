@@ -6,18 +6,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { AuthPage } from '@/components/auth/AuthPage'
 import Sidebar from '@/components/layout/Sidebar'
 import Header from '@/components/layout/Header'
-import CoachDashboard from '@/components/dashboard/CoachDashboard'
-import ClientDashboard from '@/components/dashboard/ClientDashboard'
-import ClientsPage from '@/components/dashboard/ClientsPage'
-import WorkoutsPage from '@/components/dashboard/WorkoutsPage'
-import ExercicesPage from '@/components/dashboard/ExercicesPage'
-import MessagesPage from '@/components/dashboard/MessagesPage'
-import ClientMessagesPage from '@/components/client/ClientMessagesPage'
-import EditableProfile from '@/components/client/EditableProfile'
-import ClientSeances from '@/components/client/ClientSeances'
-import ProgressionDashboard from '@/components/client/ProgressionDashboard'
-import ClientFeedbacks from '@/components/client/ClientFeedbacks'
-import ClientResources from '@/components/client/ClientResources'
+import AppRouter from '@/components/layout/AppRouter'
 
 function AppContent() {
   const { user, profile, loading } = useAuth()
@@ -35,44 +24,6 @@ function AppContent() {
     return <AuthPage />
   }
 
-  const renderContent = () => {
-    if (profile.role === 'coach') {
-      switch (activeTab) {
-        case 'dashboard':
-          return <CoachDashboard />
-        case 'clients':
-          return <ClientsPage />
-        case 'workouts':
-          return <WorkoutsPage />
-        case 'exercices':
-          return <ExercicesPage />
-        case 'messages':
-          return <MessagesPage />
-        default:
-          return <CoachDashboard />
-      }
-    } else {
-      switch (activeTab) {
-        case 'dashboard':
-          return <ClientDashboard />
-        case 'seances':
-          return <ClientSeances />
-        case 'progression':
-          return <ProgressionDashboard />
-        case 'feedbacks':
-          return <ClientFeedbacks />
-        case 'ressources':
-          return <ClientResources />
-        case 'profile':
-          return <EditableProfile />
-        case 'messages':
-          return <ClientMessagesPage />
-        default:
-          return <ClientDashboard />
-      }
-    }
-  }
-
   return (
     <ProtectedRoute>
       <div className="flex h-screen bg-background">
@@ -86,7 +37,9 @@ function AppContent() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header />
           <main className="flex-1 overflow-y-auto">
-            <div className="p-8">{renderContent()}</div>
+            <div className="p-8">
+              <AppRouter activeTab={activeTab} userRole={profile.role} />
+            </div>
           </main>
         </div>
       </div>

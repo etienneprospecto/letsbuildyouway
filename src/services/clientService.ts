@@ -308,6 +308,29 @@ export class ClientService {
       throw error
     }
   }
+
+  // Récupérer un client par email (utilisé côté client pour mapper auth.uid -> clients.id)
+  static async getClientByEmail(email: string): Promise<Client | null> {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('email', email)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (error) {
+        console.error('Error fetching client by email:', error)
+        throw error
+      }
+
+      return data || null
+    } catch (error) {
+      console.error('Error in getClientByEmail:', error)
+      throw error
+    }
+  }
 }
 
 export default ClientService
