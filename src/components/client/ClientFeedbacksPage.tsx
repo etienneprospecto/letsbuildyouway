@@ -17,6 +17,9 @@ const ClientFeedbacksPage: React.FC = () => {
   const [currentFeedback, setCurrentFeedback] = useState<WeeklyFeedback | null>(null)
   const [currentTemplate, setCurrentTemplate] = useState<FeedbackTemplate | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [selectedPastFeedback, setSelectedPastFeedback] = useState<WeeklyFeedback | null>(null)
+  const [selectedPastTemplate, setSelectedPastTemplate] = useState<FeedbackTemplate | null>(null)
+  const [showPastFeedbackDetails, setShowPastFeedbackDetails] = useState(false)
   
   useEffect(() => {
     if (user?.id) {
@@ -99,6 +102,39 @@ const ClientFeedbacksPage: React.FC = () => {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadPastFeedbackDetails = async (feedback: WeeklyFeedback) => {
+    try {
+      setSelectedPastFeedback(feedback)
+      
+      // Récupérer le template et les réponses
+      const { data: templateData, error: templateError } = await supabase
+        .from('feedback_templates')
+        .select(`
+          *,
+          feedback_questions(*)
+        `)
+        .eq('id', feedback.template_id)
+        .single()
+
+      if (templateError) throw templateError
+      
+      const template: FeedbackTemplate = {
+        ...templateData,
+        questions: templateData.feedback_questions || []
+      }
+      
+      setSelectedPastTemplate(template)
+      setShowPastFeedbackDetails(true)
+    } catch (error) {
+      console.error('❌ Erreur chargement détails feedback passé:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les détails du feedback",
+        variant: "destructive"
+      })
     }
   }
 
@@ -245,13 +281,18 @@ const ClientFeedbacksPage: React.FC = () => {
         ) : (
           <div className="space-y-2">
             {feedbacks.map(feedback => (
-              <div key={feedback.id} className="flex items-center justify-between p-3 border rounded">
+              <div 
+                key={feedback.id} 
+                className="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer transition-colors"
+                onClick={() => loadPastFeedbackDetails(feedback)}
+              >
                 <div>
                   <p className="font-medium">
                     Semaine du {new Date(feedback.week_start).toLocaleDateString('fr-FR')}
                   </p>
                   <p className="text-sm text-gray-600">
                     Statut: {feedback.status}
+                    {feedback.status === 'completed' && ' ✅'}
                   </p>
                 </div>
                 <div className="text-right">
@@ -260,6 +301,9 @@ const ClientFeedbacksPage: React.FC = () => {
                       Score: {feedback.score}/100
                     </p>
                   )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Cliquer pour voir les détails
+                  </p>
                 </div>
               </div>
             ))}
@@ -322,6 +366,117 @@ const ClientFeedbacksPage: React.FC = () => {
               }}
               loading={false}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Modal des détails d'un feedback passé */}
+      {showPastFeedbackDetails && selectedPastFeedback && selectedPastTemplate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-y-auto w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">
+                Feedback de la semaine du {new Date(selectedPastFeedback.week_start).toLocaleDateString('fr-FR')}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowPastFeedbackDetails(false)
+                  setSelectedPastFeedback(null)
+                  setSelectedPastTemplate(null)
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* Informations du feedback */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Statut</p>
+                  <p className="font-semibold">
+                    {selectedPastFeedback.status === 'completed' ? '✅ Complété' : 
+                     selectedPastFeedback.status === 'in_progress' ? '🔄 En cours' : 
+                     selectedPastFeedback.status === 'sent' ? '📤 Envoyé' : '📝 Brouillon'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Score global</p>
+                  <p className="font-semibold text-blue-600">
+                    {selectedPastFeedback.score ? `${selectedPastFeedback.score}/100` : 'Non évalué'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Période</p>
+                  <p className="font-semibold">
+                    {new Date(selectedPastFeedback.week_start).toLocaleDateString('fr-FR')} - {new Date(selectedPastFeedback.week_end).toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Template</p>
+                  <p className="font-semibold">{selectedPastTemplate.name}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Template et questions */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Questions et réponses</h3>
+              {selectedPastTemplate.questions.map((question, index) => (
+                <div key={question.id} className="p-4 border rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+                      Question {index + 1}
+                    </span>
+                    <div className="flex-1">
+                      <p className="font-medium mb-2">{question.question_text}</p>
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                          {question.question_type === 'text' ? '📝 Texte libre' :
+                           question.question_type === 'scale_1_10' ? '📊 Échelle 1-10' :
+                           question.question_type === 'multiple_choice' ? '☑️ Choix multiple' :
+                           question.question_type === 'yes_no' ? '✅ Oui/Non' : '❓ Autre'}
+                        </span>
+                        {question.required && (
+                          <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                            Obligatoire
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Affichage de la réponse */}
+                      <div className="mt-3 p-3 bg-green-50 rounded border-l-4 border-green-400">
+                        <p className="text-sm font-medium text-green-800 mb-1">Votre réponse :</p>
+                        {question.question_type === 'scale_1_10' ? (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-lg font-bold text-green-700">
+                              {selectedPastFeedback.responses?.find((r: any) => r.question_id === question.id)?.response || 'Non répondu'}/10
+                            </span>
+                          </div>
+                        ) : question.question_type === 'multiple_choice' ? (
+                          <div className="space-y-1">
+                            {(selectedPastFeedback.responses?.find((r: any) => r.question_id === question.id)?.response || []).map((choice: string, i: number) => (
+                              <span key={i} className="inline-block bg-green-200 text-green-800 px-2 py-1 rounded text-sm mr-2 mb-1">
+                                {choice}
+                              </span>
+                            ))}
+                          </div>
+                        ) : question.question_type === 'yes_no' ? (
+                          <span className="inline-block bg-green-200 text-green-800 px-3 py-1 rounded text-sm font-medium">
+                            {selectedPastFeedback.responses?.find((r: any) => r.question_id === question.id)?.response === 'yes' ? '✅ Oui' : '❌ Non'}
+                          </span>
+                        ) : (
+                          <p className="text-green-800">
+                            {selectedPastFeedback.responses?.find((r: any) => r.question_id === question.id)?.response || 'Non répondu'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
