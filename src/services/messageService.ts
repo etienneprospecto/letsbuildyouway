@@ -76,6 +76,45 @@ export class MessageService {
     }
   }
 
+  // Récupérer les conversations d'un client avec son coach
+  static async getClientConversations(clientId: string): Promise<Conversation[]> {
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select(`
+          *,
+          profiles:coach_id (
+            first_name,
+            last_name
+          )
+        `)
+        .eq('client_id', clientId)
+        .order('updated_at', { ascending: false })
+
+      if (error) throw error
+
+      // Transformer les données
+      const conversationsList = (data || []).map((conv: any) => ({
+        id: conv.id,
+        coach_id: conv.coach_id,
+        client_id: conv.client_id,
+        client_name: conv.client_name,
+        client_avatar: undefined,
+        last_message: conv.last_message,
+        last_message_time: conv.last_message_time,
+        unread_count: conv.unread_count || 0,
+        is_online: conv.is_online || false,
+        created_at: conv.created_at,
+        updated_at: conv.updated_at
+      }))
+
+      return conversationsList
+    } catch (error) {
+      console.error('Error fetching client conversations:', error)
+      throw error
+    }
+  }
+
   // Récupérer une conversation avec tous ses messages
   static async getConversationWithMessages(conversationId: string): Promise<ConversationWithMessages | null> {
     try {

@@ -402,17 +402,17 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
             Programmer une séance
           </h3>
           <p className="text-orange-600 mb-4">
-            Créez une nouvelle séance, réutilisez une séance précédente ou piochez dans votre bibliothèque
+              Créez une nouvelle séance, réutilisez une séance précédente ou piochez dans votre bibliothèque
           </p>
-          <Button
+            <Button
             onClick={openAssignModal}
             className="bg-orange-500 hover:bg-orange-600"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter une séance
-          </Button>
-        </CardContent>
-      </Card>
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter une séance
+            </Button>
+          </CardContent>
+        </Card>
 
       {/* Timeline des séances */}
       <motion.div
@@ -467,11 +467,11 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
                                 {formatDate(seance.date_seance)}
                               </div>
                             </div>
-                          </div>
-                          
+                      </div>
+
                           <div className="flex items-center space-x-2">
-                            <Badge 
-                              variant="outline" 
+                          <Badge 
+                            variant="outline" 
                               className={`${
                                 seance.statut === 'terminée'
                                   ? 'bg-green-100 text-green-800 border-green-200' 
@@ -496,7 +496,7 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
                                   <span>Programmée</span>
                                 </div>
                               )}
-                            </Badge>
+                          </Badge>
                             
                             {/* Boutons d'action */}
                             <div className="flex space-x-2 ml-4">
@@ -527,7 +527,7 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Informations supplémentaires */}
                         {seance.exercices && seance.exercices.length > 0 && (
                           <div className="mt-3 pt-3 border-t">
@@ -763,9 +763,9 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
               </div>
             </div>
           </div>
-        </div>
-      )}
-
+                            </div>
+                          )}
+                          
       {/* Modal d'assignation de séance */}
       {isAssignModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center overflow-y-auto">
@@ -860,8 +860,8 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-              )}
+                            </div>
+                          )}
 
               {/* Mode Exercices */}
               {assignMode === 'exercises' && (
@@ -927,8 +927,8 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
                       </div>
                     </div>
                   )}
-                </div>
-              )}
+                            </div>
+                          )}
 
               {/* Aperçu du workout sélectionné */}
               {assignMode === 'workout' && selectedWorkout && (
@@ -1102,8 +1102,8 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
+                      </div>
+                    </div>
       )}
 
       {/* Modal de confirmation de suppression */}
@@ -1141,8 +1141,8 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
               </div>
             </div>
           </div>
-        </div>
-      )}
+              </div>
+            )}
     </div>
   )
 }

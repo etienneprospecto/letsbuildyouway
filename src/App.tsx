@@ -12,6 +12,7 @@ import ClientsPage from '@/components/dashboard/ClientsPage'
 import WorkoutsPage from '@/components/dashboard/WorkoutsPage'
 import ExercicesPage from '@/components/dashboard/ExercicesPage'
 import MessagesPage from '@/components/dashboard/MessagesPage'
+import ClientMessagesPage from '@/components/client/ClientMessagesPage'
 import EditableProfile from '@/components/client/EditableProfile'
 import ClientSeances from '@/components/client/ClientSeances'
 import ProgressionDashboard from '@/components/client/ProgressionDashboard'
@@ -65,7 +66,7 @@ function AppContent() {
         case 'profile':
           return <EditableProfile />
         case 'messages':
-          return <MessagesPage />
+          return <ClientMessagesPage />
         default:
           return <ClientDashboard />
       }

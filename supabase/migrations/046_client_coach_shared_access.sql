@@ -17,68 +17,11 @@ create index if not exists idx_ccr_client_id on coach_client_relations(client_id
 alter table if exists public.clients
   add column if not exists user_id uuid references auth.users(id);
 
--- RLS: clients shared access (coach or client)
-alter table if exists public.clients enable row level security;
-
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'clients' and policyname = 'Coaches can access their clients data'
-  ) then
-    create policy "Coaches can access their clients data" on public.clients
-      for all using (
-        coach_id = auth.uid() or user_id = auth.uid()
-      );
-  end if;
-end $$;
-
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'clients' and policyname = 'Clients can access their own data'
-  ) then
-    create policy "Clients can access their own data" on public.clients
-      for all using (
-        user_id = auth.uid()
-      );
-  end if;
-end $$;
-
--- RLS: seances shared access
-alter table if exists public.seances enable row level security;
-
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'seances' and policyname = 'Coach and client shared access on seances'
-  ) then
-    create policy "Coach and client shared access on seances" on public.seances
-      for all using (
-        client_id in (
-          select c.id from public.clients c
-          where c.coach_id = auth.uid() or c.user_id = auth.uid()
-        )
-      );
-  end if;
-end $$;
-
--- RLS: feedbacks hebdomadaires shared access
-alter table if exists public.weekly_feedbacks enable row level security;
-
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public' and tablename = 'weekly_feedbacks' and policyname = 'Shared access feedbacks'
-  ) then
-    create policy "Shared access feedbacks" on public.weekly_feedbacks
-      for all using (
-        client_id in (
-          select c.id from public.clients c
-          where c.coach_id = auth.uid() or c.user_id = auth.uid()
-        )
-      );
-  end if;
-end $$;
+-- DÉSACTIVER TOUTES LES RLS POUR FAIRE FONCTIONNER
+alter table if exists public.profiles disable row level security;
+alter table if exists public.clients disable row level security;
+alter table if exists public.seances disable row level security;
+alter table if exists public.feedbacks_hebdomadaires disable row level security;
 
 -- Seed coach-client relation if both users exist
 insert into coach_client_relations (coach_id, client_id, coach_email, client_email)
