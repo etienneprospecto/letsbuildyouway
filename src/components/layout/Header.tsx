@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Settings, LogOut, User, Palette, Clock, Calendar } from 'lucide-react'
+import { LogOut, Clock, Calendar } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { useCoachConnection } from '@/hooks/useCoachConnection'
 import { getInitials } from '@/lib/utils'
@@ -117,19 +117,6 @@ const Header: React.FC = () => {
                   </Badge>
                 </div>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Palette className="mr-2 h-4 w-4" />
-                <span>Appearance</span>
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut}>
                 <LogOut className="mr-2 h-4 w-4" />

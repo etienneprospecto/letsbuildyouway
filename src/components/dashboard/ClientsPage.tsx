@@ -67,15 +67,18 @@ const ClientsPage: React.FC = () => {
   useEffect(() => {
     if (profile?.id) {
       fetchClients()
+    } else if (profile === null) {
+      // Si profile est null (pas encore chargé), on attend
+      setLoading(false)
     }
-  }, [profile?.id])
+  }, [profile?.id, profile])
 
   // Filtrer les clients
   const filteredClients = clients.filter(client => {
     const matchesSearch = 
       client.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase())
+      (client.contact || client.email || '').toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = statusFilter === 'all' || client.status === statusFilter
     
@@ -304,7 +307,7 @@ const ClientsPage: React.FC = () => {
                       <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
                         <div className="flex items-center space-x-1">
                           <Mail className="h-3 w-3" />
-                          <span>{client.email}</span>
+                          <span>{client.contact || client.email}</span>
                         </div>
                         {client.phone && (
                           <div className="flex items-center space-x-1">

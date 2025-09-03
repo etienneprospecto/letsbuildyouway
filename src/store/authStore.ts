@@ -44,7 +44,7 @@ export const useAuthStore = create<AuthState>()(
             user: {
               ...currentUser,
               role,
-              firstName: role === 'coach' ? 'Demo Coach' : 'Demo Client',
+              firstName: role === 'coach' ? 'Demo Coach BYW' : 'Demo Client',
               lastName: 'User'
             }
           })

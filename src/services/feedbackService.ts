@@ -7,7 +7,7 @@ export const feedbackService = {
       .from('weekly_feedbacks')
       .select('*')
       .eq('client_id', clientId)
-      .order('week_start', { ascending: false });
+      .order('week_start_date', { ascending: false });
 
     if (error) throw error;
     return data;
@@ -18,8 +18,8 @@ export const feedbackService = {
       .from('weekly_feedbacks')
       .insert({
         client_id: feedbackData.clientId,
-        week_start: feedbackData.weekStart,
-        week_end: feedbackData.weekEnd,
+        week_start_date: feedbackData.weekStart,
+        week_end_date: feedbackData.weekEnd,
         alimentary_scores: feedbackData.alimentary,
         lifestyle_scores: feedbackData.lifestyle,
         feelings_scores: feedbackData.feelings,

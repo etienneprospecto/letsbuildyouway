@@ -104,7 +104,7 @@ const AddClientModal: React.FC<AddClientModalProps> = ({
       const { data: existingClient } = await supabase
         .from('clients')
         .select('id, coach_id')
-        .eq('email', formData.email)
+        .eq('contact', formData.email)
         .maybeSingle()
 
       if (existingClient) {

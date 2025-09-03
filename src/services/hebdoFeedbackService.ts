@@ -155,8 +155,8 @@ export class HebdoFeedbackService {
         .from('weekly_feedbacks')
         .select('*')
         .eq('client_id', clientId)
-        .eq('week_start', weekStart)
-        .eq('week_end', weekEnd)
+        .eq('week_start_date', weekStart)
+        .eq('week_end_date', weekEnd)
         .maybeSingle()
 
       if (error) throw error

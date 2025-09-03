@@ -1,8 +1,8 @@
-# FitCoach Pro - Plateforme de Coaching Sportif
+# BYW - Build Your Way
 
 ## 🏋️‍♂️ Description
 
-FitCoach Pro est une plateforme complète de coaching sportif qui permet aux coachs de gérer leurs clients et aux clients de suivre leur progression de manière interactive et motivante.
+BYW (Build Your Way) est une plateforme complète de coaching sportif qui permet aux coachs de gérer leurs clients et aux clients de suivre leur progression de manière interactive et motivante.
 
 ## 🚀 Fonctionnalités
 

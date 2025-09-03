@@ -74,6 +74,7 @@ const WorkoutsPage: React.FC = () => {
 
     setLoading(true)
     try {
+      console.log('WorkoutsPage fetchData - profile.id:', profile.id)
       const [workoutsData, exercisesData, statsData] = await Promise.all([
         WorkoutService.getWorkoutsByCoach(profile.id),
         WorkoutService.getExercises(profile.id),
@@ -83,6 +84,8 @@ const WorkoutsPage: React.FC = () => {
       console.log('Exercises fetched:', exercisesData)
       console.log('Exercises count:', exercisesData.length)
 
+      console.log('Exercises fetched:', exercisesData)
+      console.log('Exercises count:', exercisesData.length)
       setWorkouts(workoutsData)
       setExercises(exercisesData)
       setStats(statsData)

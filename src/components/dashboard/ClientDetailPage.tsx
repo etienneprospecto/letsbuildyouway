@@ -32,7 +32,8 @@ const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, onClose, 
     loading,
     handleSaveClient,
     handleSaveProgression,
-    handleSeanceUpdate
+    handleSeanceUpdate,
+    refetch
   } = useClientDetail(clientId)
 
   // Ouvrir automatiquement la modal d'édition si demandé
@@ -103,13 +104,8 @@ const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, onClose, 
                 <SeancesTimeline
                   seances={seances}
                   onAddSeance={async () => {
-                    // Recharger les séances après ajout
-                    try {
-                      const seancesData = await SeanceService.getSeancesByClient(clientId)
-                      // Note: Le hook gère déjà la mise à jour
-                    } catch (error) {
-                      console.error('Error reloading seances:', error)
-                    }
+                    // Recharger toutes les données du client après ajout de séance
+                    await refetch()
                   }}
                   onSeanceClick={handleSeanceClick}
                   isLoading={loading}

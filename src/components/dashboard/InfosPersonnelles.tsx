@@ -53,7 +53,11 @@ const InfosPersonnelles: React.FC<InfosPersonnellesProps> = ({
   const handleSave = async () => {
     try {
       setIsSaving(true)
-      await onSave(formData)
+      const updatedClient = await onSave(formData)
+      // Mettre à jour l'état local avec les données retournées
+      if (updatedClient) {
+        setFormData(updatedClient)
+      }
       toast({
         title: "Informations mises à jour",
         description: "Les informations du client ont été sauvegardées avec succès.",

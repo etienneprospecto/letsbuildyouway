@@ -126,7 +126,7 @@ export const SignUp: React.FC<SignUpProps> = ({ onSwitchToSignIn }) => {
               <SelectValue placeholder="Choisir un rôle" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="coach">Coach Sportif</SelectItem>
+              <SelectItem value="coach">Coach BYW</SelectItem>
               <SelectItem value="client">Client</SelectItem>
             </SelectContent>
           </Select>

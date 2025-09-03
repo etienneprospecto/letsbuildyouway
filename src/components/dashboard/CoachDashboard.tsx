@@ -130,7 +130,7 @@ const CoachDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord Coach</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord BYW Coach</h1>
           <p className="text-muted-foreground">
             Gérez vos clients et suivez leur progression
           </p>

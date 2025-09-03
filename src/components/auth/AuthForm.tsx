@@ -25,7 +25,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onAuthSuccess }) => {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">BYW</h1>
           <p className="mt-2 text-gray-600">
-            Build Your Way - Coaching Sportif
+            BYW - Build Your Way
           </p>
         </div>
 

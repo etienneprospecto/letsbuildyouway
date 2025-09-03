@@ -38,7 +38,7 @@ const ClientResources: React.FC = () => {
         const { data: clientData, error: clientError } = await supabase
           .from('clients')
           .select('id')
-          .eq('email', user.email)
+          .eq('contact', user.email)
           .single()
 
         if (clientError) throw clientError

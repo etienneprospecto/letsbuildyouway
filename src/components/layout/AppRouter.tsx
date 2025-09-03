@@ -6,12 +6,13 @@ import WorkoutsPage from '@/components/dashboard/WorkoutsPage'
 import ExercicesPage from '@/components/dashboard/ExercicesPage'
 import MessagesPage from '@/components/dashboard/MessagesPage'
 import CoachFeedbacksPage from '@/components/dashboard/CoachFeedbacksPage'
+import SettingsPage from '@/components/dashboard/SettingsPage'
 import ClientMessagesPage from '@/components/client/ClientMessagesPage'
-import EditableProfile from '@/components/client/EditableProfile'
 import ClientSeances from '@/components/client/ClientSeances'
 import ProgressionDashboard from '@/components/client/ProgressionDashboard'
 import ClientFeedbacksPage from '@/components/client/ClientFeedbacksPage'
 import ClientResources from '@/components/client/ClientResources'
+import ClientSettingsPage from '@/components/client/ClientSettingsPage'
 
 interface AppRouterProps {
   activeTab: string
@@ -33,6 +34,8 @@ const AppRouter: React.FC<AppRouterProps> = ({ activeTab, userRole }) => {
         return <MessagesPage />
       case 'feedbacks-hebdomadaires':
         return <CoachFeedbacksPage />
+      case 'settings':
+        return <SettingsPage />
       default:
         return <CoachDashboard />
     }
@@ -48,10 +51,10 @@ const AppRouter: React.FC<AppRouterProps> = ({ activeTab, userRole }) => {
         return <ClientFeedbacksPage />
       case 'ressources':
         return <ClientResources />
-      case 'profile':
-        return <EditableProfile />
       case 'messages':
         return <ClientMessagesPage />
+      case 'settings':
+        return <ClientSettingsPage />
       default:
         return <ClientDashboard />
     }

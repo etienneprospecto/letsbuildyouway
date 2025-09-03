@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -35,6 +35,12 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
   const [loading, setLoading] = useState(true)
   const [sendingMessage, setSendingMessage] = useState(false)
   const { toast } = useToast()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Fonction pour scroller vers le bas des messages
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   // Fonction pour formater la date/heure des messages
   const formatMessageTime = (timestamp: string) => {
@@ -87,6 +93,11 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
     }
   }, [profile?.id])
 
+  // Scroller vers le bas quand les messages changent
+  useEffect(() => {
+    scrollToBottom()
+  }, [selectedConversation?.messages])
+
   const loadConversations = async () => {
     try {
       setLoading(true)
@@ -124,6 +135,11 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
             ? { ...conv, unread_count: 0 }
             : conv
         ))
+
+        // Scroller vers le bas après le chargement des messages
+        setTimeout(() => {
+          scrollToBottom()
+        }, 100)
       }
     } catch (error) {
       console.error('Error loading conversation messages:', error)
@@ -174,6 +190,11 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
       ))
 
       setNewMessage('')
+      
+      // Scroller vers le bas après l'envoi du message
+      setTimeout(() => {
+        scrollToBottom()
+      }, 100)
       
       toast({
         title: "Message envoyé",
@@ -419,6 +440,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
                             </div>
                           </div>
                         ))}
+                        {/* Élément invisible pour le scroll automatique */}
+                        <div ref={messagesEndRef} />
                       </div>
                     )}
                   </div>

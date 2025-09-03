@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Target, MessageSquare, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
+import { Calendar, Target, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/hooks/use-toast'
@@ -24,12 +24,7 @@ const ClientSeances: React.FC = () => {
     markSeanceAsCompleted,
     goToPreviousWeek,
     goToNextWeek,
-    goToCurrentWeek,
-    getCurrentWeekSeances,
-    getCompletedSessions,
-    getTotalSessions,
-    getProgressPercentage,
-    getWeekPeriod
+    getCurrentWeekSeances
   } = useClientSeances(user?.email)
 
   const [selectedSeance, setSelectedSeance] = useState<Seance | null>(null)
@@ -148,47 +143,7 @@ const ClientSeances: React.FC = () => {
         <p className="text-gray-600">Suivi de ton programme hebdomadaire</p>
       </div>
 
-      {/* Section "Cette semaine" */}
-      <Card className="bg-white">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl font-bold text-gray-900">Cette semaine</CardTitle>
-              <p className="text-gray-600 text-sm">{getWeekPeriod()}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToCurrentWeek}
-                className="text-xs"
-              >
-                <CalendarDays className="h-4 w-4 mr-1" />
-                Aujourd'hui
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Barre de progression */}
-          <div className="space-y-2">
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div 
-                className="bg-green-500 h-3 rounded-full transition-all duration-300"
-                style={{ width: `${getProgressPercentage()}%` }}
-              ></div>
-            </div>
-          </div>
-          
-          {/* Séances validées */}
-          <div className="text-right">
-            <div className="text-3xl font-bold text-orange-600">
-              {getCompletedSessions()}/{getTotalSessions()}
-            </div>
-            <div className="text-sm text-gray-600">Séances validées</div>
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* Section "Planning de la semaine" */}
       <Card className="bg-white">
@@ -204,8 +159,15 @@ const ClientSeances: React.FC = () => {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm text-gray-600 min-w-[120px] text-center">
-                {getWeekPeriod()}
+              <span className="text-sm text-gray-600 min-w-[200px] text-center">
+                {(() => {
+                  // Calculer le dimanche de la semaine (6 jours après le lundi)
+                  const weekEnd = new Date(currentWeekStart)
+                  weekEnd.setDate(currentWeekStart.getDate() + 6)
+                  const startDate = currentWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+                  const endDate = weekEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+                  return `${startDate} - ${endDate}`
+                })()}
               </span>
               <Button
                 variant="outline"
@@ -241,7 +203,7 @@ const ClientSeances: React.FC = () => {
         <Card className="bg-white">
           <CardHeader>
             <CardTitle className="text-xl font-bold text-gray-900">
-              Détails des séances - {getWeekPeriod()}
+              Détails des séances - {currentWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
             </CardTitle>
             <CardDescription>
               Séances programmées pour cette semaine
@@ -322,7 +284,7 @@ const ClientSeances: React.FC = () => {
         <Card className="bg-white">
           <CardHeader>
             <CardTitle className="text-xl font-bold text-gray-900">
-              Détails des séances - {getWeekPeriod()}
+              Détails des séances - {currentWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
             </CardTitle>
           </CardHeader>
           <CardContent>

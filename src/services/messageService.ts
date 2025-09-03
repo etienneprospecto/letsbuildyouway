@@ -46,7 +46,8 @@ export class MessageService {
           *,
           clients:client_id (
             first_name,
-            last_name
+            last_name,
+            contact
           )
         `)
         .eq('coach_id', coachId)
@@ -125,7 +126,8 @@ export class MessageService {
           *,
           clients:client_id (
             first_name,
-            last_name
+            last_name,
+            contact
           )
         `)
         .eq('id', conversationId)
@@ -271,7 +273,8 @@ export class MessageService {
           *,
           clients:client_id (
             first_name,
-            last_name
+            last_name,
+            contact
           )
         `)
         .eq('id', conversationId)

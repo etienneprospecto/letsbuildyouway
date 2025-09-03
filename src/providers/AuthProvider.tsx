@@ -186,7 +186,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { data: clientRecord } = await supabase
         .from('clients')
         .select('id, coach_id')
-        .eq('email', email)
+        .eq('contact', email)
         .eq('status', 'active')
         .maybeSingle();
       

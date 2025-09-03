@@ -126,6 +126,7 @@ export class SeanceService {
       // 2. Créer les exercices de la séance
       const exercicesData = workoutExercises.map((exercise, index) => ({
         seance_id: seance.id,
+        exercise_id: exercise.exercise_id, // Ajouter l'exercise_id manquant
         nom_exercice: `Exercice ${index + 1}`, // On pourrait récupérer le nom depuis la table exercises
         series: exercise.sets || 3,
         repetitions: exercise.reps || '10-12',

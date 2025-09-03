@@ -322,7 +322,7 @@ export class WeeklyFeedbackService {
         .from('feedbacks_hebdomadaires')
         .select(`
           *,
-          clients!inner(first_name, last_name, email)
+          clients!inner(first_name, last_name, contact)
         `)
         .eq('coach_id', coachId)
         .order('week_start', { ascending: false })
@@ -503,7 +503,7 @@ export class WeeklyFeedbackService {
     try {
       const { data: clients, error: clientsError } = await supabase
         .from('clients')
-        .select('id, first_name, last_name, email')
+        .select('id, first_name, last_name, contact')
         .eq('coach_id', coachId)
 
       if (clientsError) throw clientsError
@@ -524,7 +524,7 @@ export class WeeklyFeedbackService {
           return {
             client_id: client.id,
             client_name: `${client.first_name} ${client.last_name}`,
-            client_email: client.email,
+            client_email: client.contact,
             last_feedback_date: last_feedback,
             completion_rate: Math.round(completion_rate),
             average_score: Math.round(average_score),

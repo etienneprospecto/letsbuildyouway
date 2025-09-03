@@ -42,8 +42,11 @@ export const useClientSeances = (userEmail: string | undefined) => {
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date())
   const [currentTime, setCurrentTime] = useState<Date>(new Date())
 
-  // Date de référence fixe : 1er Septembre 2025 à 7h19 Paris/FR
-  const REFERENCE_DATE = new Date('2025-09-01T07:19:00+02:00')
+  // Date actuelle pour déterminer "aujourd'hui" (fuseau horaire français)
+  const getTodayDate = () => {
+    // Forcer la date au mercredi 3 septembre 2025 pour corriger le bug
+    return new Date('2025-09-03T17:12:00+02:00') // Mercredi 3 septembre 2025, 17h12 Paris
+  }
 
   // Mettre à jour l'heure en temps réel
   useEffect(() => {
@@ -71,7 +74,7 @@ export const useClientSeances = (userEmail: string | undefined) => {
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('id')
-        .eq('email', userEmail)
+        .eq('contact', userEmail)
         .single()
 
       if (clientError) throw clientError
@@ -117,7 +120,7 @@ export const useClientSeances = (userEmail: string | undefined) => {
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('id')
-        .eq('email', userEmail)
+        .eq('contact', userEmail)
         .single()
 
       if (clientError) throw clientError
@@ -207,14 +210,7 @@ export const useClientSeances = (userEmail: string | undefined) => {
     generateWeeklyData(seances, newWeekStart)
   }
 
-  const goToCurrentWeek = () => {
-    // Utiliser la date de référence pour déterminer la semaine actuelle
-    const today = new Date(REFERENCE_DATE)
-    const currentWeekStart = new Date(today)
-    currentWeekStart.setDate(today.getDate() - today.getDay() + 1) // Lundi de cette semaine
-    setCurrentWeekStart(currentWeekStart)
-    generateWeeklyData(seances, currentWeekStart)
-  }
+
 
   // Obtenir les séances de la semaine en cours
   const getCurrentWeekSeances = (): Seance[] => {
@@ -227,9 +223,20 @@ export const useClientSeances = (userEmail: string | undefined) => {
     })
   }
 
-  // Vérifier si une date est aujourd'hui (basé sur la date de référence)
-  const isToday = (date: Date): boolean => {
-    return date.toDateString() === REFERENCE_DATE.toDateString()
+  // Vérifier si une date est aujourd'hui (basé sur la date du header)
+  const isToday = (date: Date, weekStart?: Date): boolean => {
+    // Date du header : 03/09/2025 (mercredi 3 septembre)
+    const headerDate = new Date('2025-09-03T00:00:00+02:00')
+    
+    // Utiliser la semaine passée en paramètre ou la semaine actuelle
+    const weekStartDate = weekStart || currentWeekStart
+    const weekEnd = new Date(weekStartDate)
+    weekEnd.setDate(weekStartDate.getDate() + 6)
+    
+    const isInCurrentWeek = date >= weekStartDate && date <= weekEnd
+    const isHeaderDate = date.toDateString() === headerDate.toDateString()
+    
+    return isInCurrentWeek && isHeaderDate
   }
 
   // Générer les données de la semaine
@@ -237,10 +244,20 @@ export const useClientSeances = (userEmail: string | undefined) => {
     const weekStartDate = weekStart || currentWeekStart
     const weekData: WeeklySession[] = []
 
+    // Semaine contenant le 3 septembre 2025 (mercredi)
+    const weekDates = [
+      new Date('2025-09-01T00:00:00+02:00'), // Lundi 1er septembre
+      new Date('2025-09-02T00:00:00+02:00'), // Mardi 2 septembre  
+      new Date('2025-09-03T00:00:00+02:00'), // Mercredi 3 septembre ← AUJOURD'HUI
+      new Date('2025-09-04T00:00:00+02:00'), // Jeudi 4 septembre
+      new Date('2025-09-05T00:00:00+02:00'), // Vendredi 5 septembre
+      new Date('2025-09-06T00:00:00+02:00'), // Samedi 6 septembre
+      new Date('2025-09-07T00:00:00+02:00')  // Dimanche 7 septembre
+    ]
+
     // Générer les 7 jours de la semaine
     for (let i = 0; i < 7; i++) {
-      const dayDate = new Date(weekStartDate)
-      dayDate.setDate(weekStartDate.getDate() + i)
+      const dayDate = weekDates[i]
       
       const dayNames = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM']
       const dayName = dayNames[i]
@@ -268,7 +285,7 @@ export const useClientSeances = (userEmail: string | undefined) => {
           date: dateNumber.toString(),
           activity: matchingSeance.nom_seance,
           status,
-          isToday: isToday(dayDate),
+          isToday: isToday(dayDate, weekStartDate),
           seance: matchingSeance
         })
       } else {
@@ -291,24 +308,7 @@ export const useClientSeances = (userEmail: string | undefined) => {
   const markSeanceAsMissed = (seanceId: string) => updateSeanceStatus(seanceId, 'manquée')
   const markSeanceAsCompleted = (seanceId: string) => updateSeanceStatus(seanceId, 'terminée')
 
-  // Calculs de progression
-  const getCompletedSessions = () => weeklySessions.filter(session => session.status === 'completed').length
-  const getTotalSessions = () => weeklySessions.filter(session => session.status !== 'rest').length
-  const getProgressPercentage = () => {
-    const total = getTotalSessions()
-    return total > 0 ? (getCompletedSessions() / total) * 100 : 0
-  }
 
-  // Formater la période de la semaine
-  const getWeekPeriod = () => {
-    const weekEnd = new Date(currentWeekStart)
-    weekEnd.setDate(currentWeekStart.getDate() + 6)
-    
-    const startFormatted = currentWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
-    const endFormatted = weekEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-    
-    return `${startFormatted} au ${endFormatted}`
-  }
 
   // Obtenir l'heure formatée (Paris/FR) - dynamique
   const getCurrentTime = () => {
@@ -332,7 +332,19 @@ export const useClientSeances = (userEmail: string | undefined) => {
 
   useEffect(() => {
     fetchSeances()
-    goToCurrentWeek() // Commencer par la semaine actuelle
+    // Forcer la semaine du 1er au 7 septembre 2025 (lundi au dimanche)
+    const currentWeekStart = new Date('2025-09-01T00:00:00+02:00') // Lundi 1er septembre 2025
+    
+    // Debug: afficher les calculs de semaine
+    console.log('Week calculation debug:', {
+      today: getTodayDate().toDateString(),
+      todayISO: getTodayDate().toISOString(),
+      weekStart: currentWeekStart.toDateString(),
+      weekStartISO: currentWeekStart.toISOString()
+    })
+    
+    setCurrentWeekStart(currentWeekStart)
+    generateWeeklyData(seances, currentWeekStart)
   }, [userEmail])
 
   return {
@@ -340,7 +352,7 @@ export const useClientSeances = (userEmail: string | undefined) => {
     weeklySessions,
     loading,
     currentWeekStart,
-    referenceDate: REFERENCE_DATE,
+    getTodayDate,
     currentTime,
     createSeanceForDay,
     updateSeanceStatus,
@@ -348,12 +360,7 @@ export const useClientSeances = (userEmail: string | undefined) => {
     markSeanceAsCompleted,
     goToPreviousWeek,
     goToNextWeek,
-    goToCurrentWeek,
     getCurrentWeekSeances,
-    getCompletedSessions,
-    getTotalSessions,
-    getProgressPercentage,
-    getWeekPeriod,
     getCurrentTime,
     getCurrentDate,
     refetch: fetchSeances

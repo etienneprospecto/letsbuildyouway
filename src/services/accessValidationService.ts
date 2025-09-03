@@ -75,7 +75,7 @@ export class AccessValidationService {
       const { data: clientRecord, error: clientError } = await supabase
         .from('clients')
         .select('id, coach_id, first_name, last_name, status')
-        .eq('email', normalizedEmail)
+        .eq('contact', normalizedEmail)
         .eq('status', 'active')
         .maybeSingle();
 

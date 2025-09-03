@@ -2,7 +2,9 @@ import { supabase } from '@/lib/supabase'
 import { Database } from '@/lib/database.types'
 
 type RessourcePersonnalisee = Database['public']['Tables']['ressources_personnalisees']['Row']
-type RessourcePersonnaliseeInsert = Database['public']['Tables']['ressources_personnalisees']['Insert']
+type RessourcePersonnaliseeInsert = Database['public']['Tables']['ressources_personnalisees']['Insert'] & {
+  titre?: string
+}
 type RessourcePersonnaliseeUpdate = Database['public']['Tables']['ressources_personnalisees']['Update']
 
 export interface ResourceUploadData {
@@ -120,6 +122,7 @@ export class ResourceService {
       const resourceData: RessourcePersonnaliseeInsert = {
         client_id: clientId,
         nom_ressource: uploadData.nom_ressource,
+        titre: uploadData.nom_ressource, // Ajouter titre pour la compatibilité avec la table
         type_ressource: this.getFileType(uploadData.file),
         theme: uploadData.theme,
         url_fichier: fileName,

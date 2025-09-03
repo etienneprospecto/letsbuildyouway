@@ -54,7 +54,7 @@ export const useClientDetail = (clientId: string) => {
           level: clientData.fitness_level as any,
           start_date: clientData.start_date,
           age: clientData.age || 0,
-          contact: clientData.email,
+          contact: clientData.contact || clientData.email,
           mentality: clientData.mentality || clientData.notes || '',
           sports_history: clientData.sports_history || clientData.notes || '',
           coaching_type: clientData.coaching_type || 'Suivi personnalisé',
@@ -134,26 +134,36 @@ export const useClientDetail = (clientId: string) => {
     try {
       setLoading(true)
       
-      const result = await ClientService.updateClient(clientId, {
-        ...updatedClient,
+      // Mapper objective vers primary_goal pour la base de données
+      const { objective, ...restClient } = updatedClient
+      const dbUpdateData = {
+        ...restClient,
+        primary_goal: objective, // Mapper objective vers primary_goal
         poids_depart: updatedClient.poids_depart || client?.poids_depart,
         poids_objectif: updatedClient.poids_objectif || client?.poids_objectif,
         poids_actuel: updatedClient.poids_actuel || client?.poids_actuel,
-      })
+      }
+      
+      const result = await ClientService.updateClient(clientId, dbUpdateData)
 
       if (result && client) {
-        setClient({
+        const updatedClientData = {
           ...client,
           ...result,
+          objective: result.primary_goal, // Mapper primary_goal vers objective pour l'interface
           poids_depart: result.poids_depart || client.poids_depart,
           poids_objectif: result.poids_objectif || client.poids_objectif,
           poids_actuel: result.poids_actuel || client.poids_actuel,
-        })
+        }
+        
+        setClient(updatedClientData)
 
         toast({
           title: "Client mis à jour",
           description: "Les informations du client ont été sauvegardées avec succès.",
         })
+        
+        return updatedClientData
       }
     } catch (error) {
       console.error('Error updating client:', error)
@@ -162,6 +172,7 @@ export const useClientDetail = (clientId: string) => {
         description: "Impossible de mettre à jour le client.",
         variant: "destructive",
       })
+      throw error
     } finally {
       setLoading(false)
     }

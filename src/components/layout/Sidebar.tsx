@@ -47,8 +47,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'progression', label: 'Ma progression', icon: Target },
     { id: 'feedbacks-hebdomadaires', label: 'Feedbacks Hebdo', icon: MessageSquare },
     { id: 'ressources', label: 'Mes ressources', icon: Dumbbell },
-    { id: 'profile', label: 'Mon profil', icon: User },
-    { id: 'messages', label: 'Messages', icon: MessageSquare }
+    { id: 'messages', label: 'Messages', icon: MessageSquare },
+    { id: 'settings', label: 'Paramètres', icon: Settings }
   ]
 
   const navItems = profile?.role === 'coach' ? coachNavItems : clientNavItems
@@ -76,8 +76,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                   <Dumbbell className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg">FitCoach</h1>
-                  <p className="text-xs text-muted-foreground">Pro Dashboard</p>
+                  <h1 className="font-bold text-lg">BYW</h1>
+                  <p className="text-xs text-muted-foreground">Build Your Way</p>
                 </div>
               </motion.div>
             )}

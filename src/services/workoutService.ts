@@ -95,6 +95,7 @@ export interface AddExerciseToWorkoutData {
 export class WorkoutService {
   // Exercices
   static async getExercises(userId?: string): Promise<Exercise[]> {
+    console.log('getExercises called with userId:', userId)
     let query = supabase
       .from('exercises')
       .select('*')
@@ -107,6 +108,7 @@ export class WorkoutService {
     }
 
     const { data, error } = await query
+    console.log('getExercises result:', { data, error })
     if (error) throw error
     return data || []
   }
@@ -157,7 +159,7 @@ export class WorkoutService {
           exercises (*)
         )
       `)
-      .eq('coach_id', coachId)
+      .eq('created_by', coachId)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -169,7 +171,7 @@ export class WorkoutService {
       .from('workouts')
       .insert({
         ...workoutData,
-        coach_id: coachId
+        created_by: coachId
       })
       .select()
       .single()

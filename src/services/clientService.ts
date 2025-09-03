@@ -153,6 +153,7 @@ export class ClientService {
   // Mettre à jour un client
   static async updateClient(clientId: string, updateData: UpdateClientData): Promise<Client> {
     try {
+      console.log('updateClient called with:', { clientId, updateData })
       const { data, error } = await supabase
         .from('clients')
         .update({
@@ -163,6 +164,7 @@ export class ClientService {
         .select()
         .single()
 
+      console.log('updateClient result:', { data, error })
       if (error) {
         console.error('Error updating client:', error)
         throw error
@@ -315,7 +317,7 @@ export class ClientService {
       const { data, error } = await supabase
         .from('clients')
         .select('*')
-        .eq('email', email)
+        .eq('contact', email)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
