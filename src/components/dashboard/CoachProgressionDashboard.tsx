@@ -4,11 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Target, TrendingUp, Camera, Plus, Upload, X, Image as ImageIcon } from 'lucide-react'
-import { useAuth } from '@/providers/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/hooks/use-toast'
 
-// Composant pour la jauge de poids
+// Composant pour la jauge de poids (identique au client)
 const WeightGauge: React.FC<{ data: ProgressData[] }> = ({ data }) => {
   if (data.length === 0) return null
 
@@ -18,16 +17,6 @@ const WeightGauge: React.FC<{ data: ProgressData[] }> = ({ data }) => {
   const currentWeight = weights[0] // Première entrée (la plus récente car triée par date desc)
   const previousWeight = weights[1] // Deuxième entrée
   const firstWeight = weights[weights.length - 1] // Dernière entrée (la plus ancienne)
-
-  // Debug: afficher les valeurs
-  console.log('Debug jauge:', {
-    weights,
-    currentWeight,
-    previousWeight,
-    firstWeight,
-    data: data.slice(0, 3),
-    dataLength: data.length
-  })
 
   const weightChange = previousWeight ? currentWeight - previousWeight : 0
   const totalChange = firstWeight ? currentWeight - firstWeight : 0
@@ -118,8 +107,6 @@ const WeightGauge: React.FC<{ data: ProgressData[] }> = ({ data }) => {
           </div>
         </div>
       </div>
-
-
     </div>
   )
 }
@@ -135,8 +122,12 @@ interface ProgressData {
   notes?: string
 }
 
-const ProgressionDashboard: React.FC = () => {
-  const { user } = useAuth()
+interface CoachProgressionDashboardProps {
+  clientId: string
+  clientName: string
+}
+
+const CoachProgressionDashboard: React.FC<CoachProgressionDashboardProps> = ({ clientId, clientName }) => {
   const [progressData, setProgressData] = useState<ProgressData[]>([])
   const [loading, setLoading] = useState(true)
   const [newWeight, setNewWeight] = useState('')
@@ -148,34 +139,23 @@ const ProgressionDashboard: React.FC = () => {
   // Récupérer les données de progression
   useEffect(() => {
     const fetchProgressData = async () => {
-      if (!user?.email) return
-      
+      if (!clientId) return
+
+      setLoading(true)
       try {
-        // Récupérer l'ID du client
-        const { data: clientData, error: clientError } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('contact', user.email)
-          .single()
-
-        if (clientError) throw clientError
-
-        // Récupérer les données de progression
         const { data, error } = await supabase
           .from('progress_data')
           .select('*')
-          .eq('client_id', clientData.id)
+          .eq('client_id', clientId)
           .order('measurement_date', { ascending: false })
 
         if (error) throw error
-
-        // Utiliser les vraies données de la base
         setProgressData(data || [])
       } catch (error) {
-        console.error('Erreur récupération progression:', error)
+        console.error('Erreur chargement progression:', error)
         toast({
           title: "Erreur",
-          description: "Impossible de récupérer tes données de progression",
+          description: "Impossible de charger les données de progression",
           variant: "destructive"
         })
       } finally {
@@ -184,30 +164,20 @@ const ProgressionDashboard: React.FC = () => {
     }
 
     fetchProgressData()
-  }, [user?.email])
+  }, [clientId])
 
-  // Ajouter une nouvelle pesée
   const handleAddWeight = async () => {
-    if (!newWeight || !user?.email) return
-    
+    if (!newWeight || !clientId) return
+
     setSaving(true)
     try {
-      // Récupérer l'ID du client
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('contact', user.email)
-        .single()
-
-      if (clientError) throw clientError
-
       const weight = parseFloat(newWeight)
       if (isNaN(weight)) throw new Error('Poids invalide')
 
       const { error } = await supabase
         .from('progress_data')
         .insert({
-          client_id: clientData.id,
+          client_id: clientId,
           measurement_date: new Date().toISOString().split('T')[0],
           weight_kg: weight
         })
@@ -223,7 +193,7 @@ const ProgressionDashboard: React.FC = () => {
       const { data, error: fetchError } = await supabase
         .from('progress_data')
         .select('*')
-        .eq('client_id', clientData.id)
+        .eq('client_id', clientId)
         .order('measurement_date', { ascending: false })
 
       if (fetchError) throw fetchError
@@ -279,7 +249,7 @@ const ProgressionDashboard: React.FC = () => {
       const { data, error: fetchError } = await supabase
         .from('progress_data')
         .select('*')
-        .eq('client_id', entry.client_id)
+        .eq('client_id', clientId)
         .order('measurement_date', { ascending: false })
 
       if (fetchError) throw fetchError
@@ -296,24 +266,15 @@ const ProgressionDashboard: React.FC = () => {
 
   // Upload des photos
   const handleUploadPhotos = async () => {
-    if (selectedFiles.length === 0 || !user?.email) return
+    if (selectedFiles.length === 0 || !clientId) return
 
     setUploadingPhotos(true)
     try {
-      // Récupérer l'ID du client
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('contact', user.email)
-        .single()
-
-      if (clientError) throw clientError
-
       // Upload chaque photo vers Supabase Storage
       const uploadedUrls: string[] = []
       
       for (const file of selectedFiles) {
-        const fileName = `${clientData.id}/${Date.now()}-${file.name}`
+        const fileName = `${clientId}/${Date.now()}-${file.name}`
         
         // Essayer d'abord avec le bucket 'progress-photos', sinon utiliser 'avatars'
         let bucketName = 'progress-photos'
@@ -355,7 +316,7 @@ const ProgressionDashboard: React.FC = () => {
       const { error: insertError } = await supabase
         .from('progress_data')
         .insert({
-          client_id: clientData.id,
+          client_id: clientId,
           measurement_date: new Date().toISOString().split('T')[0],
           photos_urls: uploadedUrls
         })
@@ -371,7 +332,7 @@ const ProgressionDashboard: React.FC = () => {
       const { data, error: fetchError } = await supabase
         .from('progress_data')
         .select('*')
-        .eq('client_id', clientData.id)
+        .eq('client_id', clientId)
         .order('measurement_date', { ascending: false })
 
       if (fetchError) throw fetchError
@@ -405,10 +366,10 @@ const ProgressionDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Ma progression</h1>
-          <p className="text-muted-foreground">Chargement...</p>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Chargement des données de progression...</p>
         </div>
       </div>
     )
@@ -417,7 +378,7 @@ const ProgressionDashboard: React.FC = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Ma progression</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Progression de {clientName}</h1>
         <p className="text-muted-foreground">Graphiques, pesées et photos</p>
       </div>
 
@@ -495,7 +456,6 @@ const ProgressionDashboard: React.FC = () => {
         </CardContent>
       </Card>
 
-
       <Card>
         <CardHeader>
           <CardTitle>Historique des pesées</CardTitle>
@@ -533,12 +493,9 @@ const ProgressionDashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Aucune pesée enregistrée</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Commence par ajouter ta première pesée
-                </p>
+              <div className="text-center py-8 text-muted-foreground">
+                <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Aucune pesée enregistrée</p>
               </div>
             )}
           </CardContent>
@@ -547,7 +504,7 @@ const ProgressionDashboard: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Photos de progression</CardTitle>
-            <CardDescription>Photos de votre évolution physique</CardDescription>
+            <CardDescription>Photos de l'évolution physique</CardDescription>
           </CardHeader>
           <CardContent>
             {/* Interface d'upload */}
@@ -663,6 +620,4 @@ const ProgressionDashboard: React.FC = () => {
   )
 }
 
-export default ProgressionDashboard
-
-
+export default CoachProgressionDashboard

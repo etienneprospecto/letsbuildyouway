@@ -6,10 +6,9 @@ import { ClientBasicInfo, SeanceWithExercices } from './__types__'
 import ClientHeader from './ClientHeader'
 import ClientTabs from './ClientTabs'
 import InfosPersonnelles from './InfosPersonnelles'
-import ProgressionChart from './ProgressionChart'
+import CoachProgressionDashboard from './CoachProgressionDashboard'
 import SeancesTimeline from './SeancesTimeline'
 import SeanceModal from './SeanceModal'
-import SuiviGlobal from './SuiviGlobal'
 import RessourcesPersonnalisees from './RessourcesPersonnalisees'
 import SeanceService from '@/services/seanceService'
 import { useClientDetail } from '@/hooks/useClientDetail'
@@ -91,12 +90,9 @@ const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, onClose, 
               />
             ),
             progression: (
-              <ProgressionChart
-                client={client}
+              <CoachProgressionDashboard
                 clientId={clientId}
-                progressHistory={progressData}
-                onSave={handleSaveProgression}
-                isLoading={loading}
+                clientName={`${client.first_name} ${client.last_name}`}
               />
             ),
             seances: (
@@ -111,11 +107,6 @@ const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, onClose, 
                   isLoading={loading}
                   clientId={clientId}
                 />
-              </div>
-            ),
-            suiviGlobal: (
-              <div>
-                <SuiviGlobal clientId={clientId} />
               </div>
             ),
             ressources: (

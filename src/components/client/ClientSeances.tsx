@@ -4,26 +4,18 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Target, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Calendar, Target, MessageSquare } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/hooks/use-toast'
 import { useClientSeances, Seance, ExerciceSeance } from '@/hooks/useClientSeances'
-import WeeklySessionCard from './WeeklySessionCard'
+import WorkoutTimeline from './WorkoutTimeline'
 
 const ClientSeances: React.FC = () => {
   const { user } = useAuth()
   const {
-    seances,
-    weeklySessions,
     loading,
     currentWeekStart,
-    createSeanceForDay,
-    updateSeanceStatus,
-    markSeanceAsMissed,
-    markSeanceAsCompleted,
-    goToPreviousWeek,
-    goToNextWeek,
     getCurrentWeekSeances
   } = useClientSeances(user?.email)
 
@@ -39,29 +31,6 @@ const ClientSeances: React.FC = () => {
   // Obtenir les séances de la semaine en cours
   const currentWeekSeances = getCurrentWeekSeances()
 
-  // Gérer le clic sur une carte du planning
-  const handlePlanningCardClick = async (session: any, dayIndex: number) => {
-    if (session.status === 'rest') return
-
-    if (session.seance) {
-      handleOpenSeance(session.seance)
-    } else {
-      const shouldCreate = window.confirm(
-        `Aucune séance programmée pour le ${session.day} ${session.date}. Voulez-vous en créer une ?`
-      )
-      
-      if (shouldCreate) {
-        const dayDate = new Date(currentWeekStart)
-        dayDate.setDate(currentWeekStart.getDate() + dayIndex)
-        
-        const newSeance = await createSeanceForDay(dayDate, session.activity)
-        if (newSeance) {
-          setSelectedSeance(newSeance)
-          setOpen(true)
-        }
-      }
-    }
-  }
 
   // Récupérer les exercices d'une séance
   const fetchExercices = async (seanceId: string) => {
@@ -143,60 +112,8 @@ const ClientSeances: React.FC = () => {
         <p className="text-gray-600">Suivi de ton programme hebdomadaire</p>
       </div>
 
-
-
-      {/* Section "Planning de la semaine" */}
-      <Card className="bg-white">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-bold text-gray-900">Planning de la semaine</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToPreviousWeek}
-                className="p-2"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm text-gray-600 min-w-[200px] text-center">
-                {(() => {
-                  // Calculer le dimanche de la semaine (6 jours après le lundi)
-                  const weekEnd = new Date(currentWeekStart)
-                  weekEnd.setDate(currentWeekStart.getDate() + 6)
-                  const startDate = currentWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
-                  const endDate = weekEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-                  return `${startDate} - ${endDate}`
-                })()}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToNextWeek}
-                className="p-2"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 gap-3">
-            {weeklySessions.map((session, index) => (
-              <WeeklySessionCard
-                key={session.id}
-                session={session}
-                index={index}
-                onCardClick={handlePlanningCardClick}
-                onOpenSeance={handleOpenSeance}
-                onMarkCompleted={markSeanceAsCompleted}
-                onMarkMissed={markSeanceAsMissed}
-                onReprogram={(seanceId) => updateSeanceStatus(seanceId, 'programmée')}
-              />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Frise des semaines d'entraînement */}
+      <WorkoutTimeline userEmail={user?.email} />
 
       {/* Liste des séances détaillées de la semaine en cours */}
       {currentWeekSeances.length > 0 && (
@@ -211,7 +128,7 @@ const ClientSeances: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="grid gap-6 lg:grid-cols-2">
-              {currentWeekSeances.map((seance) => (
+              {currentWeekSeances.map((seance: Seance) => (
                 <Card key={seance.id} className="hover:shadow-md transition-shadow">
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -346,7 +263,7 @@ const ClientSeances: React.FC = () => {
                         min="1"
                         max="10"
                         value={feedback.intensite}
-                        onChange={(e) => setFeedback(prev => ({ ...prev, intensite: parseInt(e.target.value) }))}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFeedback(prev => ({ ...prev, intensite: parseInt(e.target.value) }))}
                         className="w-full"
                       />
                       <div className="text-center text-sm">{feedback.intensite}/10</div>

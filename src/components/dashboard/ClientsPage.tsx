@@ -15,7 +15,8 @@ import {
   TrendingUp,
   User,
   Users,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/providers/AuthProvider'
 import ClientService, { Client } from '@/services/clientService'
+import SeanceService from '@/services/seanceService'
+import { supabase } from '@/lib/supabase'
+import { toast } from '@/hooks/use-toast'
 import AddClientModal from './AddClientModal'
 import ClientDetailPage from './ClientDetailPage'
 
@@ -48,6 +52,127 @@ const ClientsPage: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [isClientModalOpen, setIsClientModalOpen] = useState(false)
   const [editedClient, setEditedClient] = useState<Partial<Client>>({})
+  const [clientMetrics, setClientMetrics] = useState<Record<string, {
+    progressPercentage: number
+    sessionsCompleted: number
+    totalSessions: number
+    lastActivity: string | null
+  }>>({})
+  const [refreshingMetrics, setRefreshingMetrics] = useState(false)
+
+  // Charger les métriques d'un client
+  const fetchClientMetrics = async (clientId: string) => {
+    try {
+      console.log(`Chargement métriques pour client ${clientId}`)
+      
+      // Récupérer les données du client pour avoir l'objectif
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('poids_depart, poids_objectif, poids_actuel')
+        .eq('id', clientId)
+        .single()
+
+      if (clientError) throw clientError
+      console.log(`Données client pour ${clientId}:`, clientData)
+      
+      // Récupérer les données de progression
+      const { data: progressData, error: progressError } = await supabase
+        .from('progress_data')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('measurement_date', { ascending: false })
+
+      if (progressError) throw progressError
+      console.log(`Données progression pour ${clientId}:`, progressData)
+
+      // Récupérer les séances
+      const seances = await SeanceService.getSeancesByClient(clientId)
+      console.log(`Séances pour ${clientId}:`, seances)
+      
+      // Calculer les métriques
+      const sessionsCompleted = seances.filter(s => s.status === 'completed').length
+      const totalSessions = seances.length
+      
+      // Dernière activité = dernière séance terminée (la plus récente)
+      const completedSeances = seances.filter(s => s.status === 'completed')
+      // Trier par date décroissante pour avoir la plus récente en premier
+      const sortedCompletedSeances = completedSeances.sort((a, b) => new Date(b.date_seance).getTime() - new Date(a.date_seance).getTime())
+      const lastActivity = sortedCompletedSeances.length > 0 ? sortedCompletedSeances[0].date_seance : null
+
+      // Calculer la progression basée sur l'objectif réel du client
+      let progressPercentage = 0
+      
+      // Utiliser les données de progression si disponibles, sinon les données du client
+      if (progressData && progressData.length > 0) {
+        const firstWeight = progressData[progressData.length - 1]?.weight_kg
+        const currentWeight = progressData[0]?.weight_kg
+        
+        if (firstWeight && currentWeight && clientData.poids_objectif) {
+          const targetLoss = Math.abs(firstWeight - clientData.poids_objectif)
+          const actualLoss = Math.abs(currentWeight - firstWeight)
+          progressPercentage = targetLoss > 0 ? Math.min((actualLoss / targetLoss) * 100, 100) : 0
+        }
+      } else if (clientData.poids_depart && clientData.poids_actuel && clientData.poids_objectif) {
+        // Fallback sur les données du client si pas de progression_data
+        const targetLoss = Math.abs(clientData.poids_depart - clientData.poids_objectif)
+        const actualLoss = Math.abs(clientData.poids_actuel - clientData.poids_depart)
+        progressPercentage = targetLoss > 0 ? Math.min((actualLoss / targetLoss) * 100, 100) : 0
+      }
+
+      const metrics = {
+        progressPercentage: Math.round(progressPercentage),
+        sessionsCompleted,
+        totalSessions,
+        lastActivity
+      }
+      
+      console.log(`Métriques calculées pour ${clientId}:`, metrics)
+      return metrics
+    } catch (error) {
+      console.error('Erreur chargement métriques client:', error)
+      return {
+        progressPercentage: 0,
+        sessionsCompleted: 0,
+        totalSessions: 0,
+        lastActivity: null
+      }
+    }
+  }
+
+  // Rafraîchir les métriques
+  const refreshMetrics = async () => {
+    if (!profile?.id || clients.length === 0) return
+    
+    setRefreshingMetrics(true)
+    try {
+      const metricsPromises = clients.map(async (client) => {
+        const metrics = await fetchClientMetrics(client.id)
+        return { clientId: client.id, metrics }
+      })
+
+      const metricsResults = await Promise.all(metricsPromises)
+      const metricsMap = metricsResults.reduce((acc, { clientId, metrics }) => {
+        acc[clientId] = metrics
+        return acc
+      }, {} as Record<string, any>)
+
+      setClientMetrics(metricsMap)
+      
+      toast({
+        title: "Succès",
+        description: "Métriques mises à jour"
+      })
+    } catch (error) {
+      console.error('Erreur rafraîchissement métriques:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour les métriques",
+        variant: "destructive"
+      })
+    } finally {
+      setRefreshingMetrics(false)
+    }
+  }
 
   // Charger les clients depuis le service
   const fetchClients = async () => {
@@ -56,6 +181,20 @@ const ClientsPage: React.FC = () => {
       if (profile?.id) {
         const data = await ClientService.getClientsByCoach(profile.id)
         setClients(data)
+
+        // Charger les métriques pour chaque client
+        const metricsPromises = data.map(async (client) => {
+          const metrics = await fetchClientMetrics(client.id)
+          return { clientId: client.id, metrics }
+        })
+
+        const metricsResults = await Promise.all(metricsPromises)
+        const metricsMap = metricsResults.reduce((acc, { clientId, metrics }) => {
+          acc[clientId] = metrics
+          return acc
+        }, {} as Record<string, any>)
+
+        setClientMetrics(metricsMap)
       }
     } catch (error) {
       console.error('Error fetching clients:', error)
@@ -168,10 +307,21 @@ const ClientsPage: React.FC = () => {
             Gérez vos clients et suivez leur progression
           </p>
         </div>
-        <Button className="gap-2" onClick={() => setIsAddModalOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Ajouter un client
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={refreshMetrics} 
+            disabled={refreshingMetrics}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshingMetrics ? 'animate-spin' : ''}`} />
+            {refreshingMetrics ? 'Mise à jour...' : 'Actualiser'}
+          </Button>
+          <Button className="gap-2" onClick={() => setIsAddModalOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Ajouter un client
+          </Button>
+        </div>
       </div>
 
       {/* Stats rapides */}
@@ -327,32 +477,6 @@ const ClientsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Métriques et progression */}
-                  <div className="flex items-center space-x-6">
-                    <div className="text-center">
-                      <div className="flex items-center space-x-2">
-                        <Progress value={client.progress_percentage} className="w-20" />
-                        <span className="text-sm font-medium">
-                          {client.progress_percentage}%
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Progression
-                      </p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <p className="text-sm font-medium">{client.sessions_completed}</p>
-                      <p className="text-xs text-muted-foreground">Sessions</p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <p className="text-sm font-medium">
-                        {client.start_date ? new Date(client.start_date).toLocaleDateString('fr-FR') : 'N/A'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Début</p>
-                    </div>
-                  </div>
 
                   {/* Actions */}
                   <DropdownMenu>

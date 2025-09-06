@@ -1,13 +1,12 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { User, TrendingUp, Calendar, Globe, BookOpen } from 'lucide-react'
+import { User, TrendingUp, Calendar, BookOpen } from 'lucide-react'
 
 interface ClientTabsProps {
   children: {
     infosPersonnelles: React.ReactNode
     progression: React.ReactNode
     seances: React.ReactNode
-    suiviGlobal: React.ReactNode
     ressources: React.ReactNode
   }
 }
@@ -33,12 +32,6 @@ const ClientTabs: React.FC<ClientTabsProps> = ({ children }) => {
       content: children.seances
     },
     {
-      value: 'suivi',
-      label: 'Suivi Global',
-      icon: Globe,
-      content: children.suiviGlobal
-    },
-    {
       value: 'ressources',
       label: 'Ressources Personnalisées',
       icon: BookOpen,
@@ -56,7 +49,7 @@ const ClientTabs: React.FC<ClientTabsProps> = ({ children }) => {
       className="bg-white rounded-lg shadow-sm border"
     >
       {/* Navigation des onglets (boutons contrôlés) */}
-      <div className="grid w-full grid-cols-5 h-auto p-1 bg-gray-50 rounded-t-lg">
+      <div className="grid w-full grid-cols-4 h-auto p-1 bg-gray-50 rounded-t-lg">
         {tabs.map((tab) => (
           <button
             key={tab.value}
