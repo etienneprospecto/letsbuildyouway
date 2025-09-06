@@ -2,102 +2,219 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/providers/AuthProvider'
 import { WeeklyFeedbackService } from '@/services/weeklyFeedbackService'
 import { ClientService } from '@/services/clientService'
-import { WeeklyFeedback, FeedbackResponse, FeedbackTemplate } from '@/types/feedback'
+import { WeeklyFeedback, FeedbackTemplate } from '@/types/feedback'
 import { toast } from '@/hooks/use-toast'
 import FeedbackForm from './FeedbackForm'
 import { supabase } from '@/lib/supabase'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle,
+  Clock,
+  FileText,
+  Star
+} from 'lucide-react'
 
 const ClientFeedbacksPage: React.FC = () => {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
-  
-  // États des données
-  const [feedbacks, setFeedbacks] = useState<WeeklyFeedback[]>([])
-  const [selectedWeek, setSelectedWeek] = useState<Date>(new Date())
+  const [currentWeek, setCurrentWeek] = useState(new Date())
   const [currentFeedback, setCurrentFeedback] = useState<WeeklyFeedback | null>(null)
   const [currentTemplate, setCurrentTemplate] = useState<FeedbackTemplate | null>(null)
+  const [pastFeedbacks, setPastFeedbacks] = useState<WeeklyFeedback[]>([])
   const [showForm, setShowForm] = useState(false)
+  const [showPastFeedbackDetails, setShowPastFeedbackDetails] = useState(false)
   const [selectedPastFeedback, setSelectedPastFeedback] = useState<WeeklyFeedback | null>(null)
   const [selectedPastTemplate, setSelectedPastTemplate] = useState<FeedbackTemplate | null>(null)
-  const [showPastFeedbackDetails, setShowPastFeedbackDetails] = useState(false)
-  
-  useEffect(() => {
-    if (user?.id) {
-      loadFeedbacks()
-    }
-  }, [user?.id])
 
-  // Recalcule le feedback de la semaine lorsqu'on change de semaine ou quand la liste change
-  useEffect(() => {
-    const weekStart = getWeekStart(selectedWeek).toISOString().split('T')[0]
-    const weekEnd = getWeekEnd(selectedWeek).toISOString().split('T')[0]
-    const weekFeedback = feedbacks.find((f: WeeklyFeedback) => f.week_start === weekStart && f.week_end === weekEnd) || null
-    setCurrentFeedback(weekFeedback)
-  }, [selectedWeek, feedbacks])
+  // Fonctions utilitaires pour les dates
+  const getWeekStart = (date: Date) => {
+    const d = new Date(date)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Ajuster pour lundi
+    return new Date(d.setDate(diff))
+  }
+
+  const getWeekEnd = (date: Date) => {
+    const start = getWeekStart(date)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+    return end
+  }
+
+  const formatWeekRange = (date: Date) => {
+    const start = getWeekStart(date)
+    const end = getWeekEnd(date)
+    return `${start.toLocaleDateString('fr-FR')} - ${end.toLocaleDateString('fr-FR')}`
+  }
 
   const loadFeedbacks = async () => {
+    if (!user) return
+
     try {
       setLoading(true)
-      console.log('🔍 Chargement feedbacks pour user:', user?.id, user?.email)
-      
-      if (!user?.email) throw new Error('Email utilisateur introuvable')
-      console.log('📧 Recherche client avec email:', user.email)
-      
-      const client = await ClientService.getClientByEmail(user.email)
-      console.log('👤 Client trouvé:', client)
-      
+      console.log('🔄 Chargement des feedbacks pour la semaine:', formatWeekRange(currentWeek))
+
+      // Récupérer le client par email
+      const client = await ClientService.getClientByEmail(user.email || '')
       if (!client) {
-        console.log('❌ Aucun client trouvé pour cet email')
-        setFeedbacks([])
-        setCurrentFeedback(null)
+        console.error('❌ Client non trouvé')
         return
       }
 
-      console.log('📊 Récupération feedbacks pour client.id:', client.id)
-      const feedbacksData = await WeeklyFeedbackService.getClientFeedbacks(client.id)
-      console.log('📋 Feedbacks récupérés:', feedbacksData)
-      setFeedbacks(feedbacksData)
+      console.log('👤 Client trouvé:', client.id)
 
-      const weekStart = getWeekStart(selectedWeek).toISOString().split('T')[0]
-      const weekEnd = getWeekEnd(selectedWeek).toISOString().split('T')[0]
-      console.log('🗓️ Semaine recherchée:', weekStart, 'à', weekEnd)
+      // Debug: Vérifier les tables disponibles
+      console.log('🔍 Vérification des tables...')
       
-      const weekFeedback = feedbacksData.find((f: WeeklyFeedback) => f.week_start === weekStart && f.week_end === weekEnd) || null
-      console.log('🎯 Feedback de la semaine trouvé:', weekFeedback)
-      setCurrentFeedback(weekFeedback)
+      // Test simple pour voir si weekly_feedbacks existe
+      const { data: testData, error: testError } = await supabase
+        .from('weekly_feedbacks')
+        .select('id, client_id, week_start, week_start_date, week_end, week_end_date, created_at')
+        .limit(5)
+      
+      console.log('📊 Test weekly_feedbacks:', { testData, testError })
+      
+      // Vérifier tous les feedbacks pour ce client
+      const { data: allFeedbacks, error: allError } = await supabase
+        .from('weekly_feedbacks')
+        .select('*')
+        .eq('client_id', client.id)
+      
+      console.log('📋 Tous les feedbacks pour ce client:', { allFeedbacks, allError })
+      
+      // Vérifier aussi dans feedbacks_hebdomadaires
+      const { data: hebdoFeedbacks, error: hebdoError } = await supabase
+        .from('feedbacks_hebdomadaires')
+        .select('*')
+        .eq('client_id', client.id)
+      
+      console.log('📋 Feedbacks dans feedbacks_hebdomadaires:', { hebdoFeedbacks, hebdoError })
 
-      // Si on a un feedback, récupérer son template avec les questions
-      if (weekFeedback) {
-        try {
-          const { data: templateData, error: templateError } = await supabase
-            .from('feedback_templates')
-            .select(`
-              *,
-              feedback_questions(*)
-            `)
-            .eq('id', weekFeedback.template_id)
-            .single()
+      // Récupérer les feedbacks de la semaine courante
+      const weekStart = getWeekStart(currentWeek)
+      const weekEnd = getWeekEnd(currentWeek)
+      
+      console.log('📅 Période:', weekStart.toISOString(), 'à', weekEnd.toISOString())
 
-          if (templateError) throw templateError
-          
-          const template: FeedbackTemplate = {
-            ...templateData,
-            questions: templateData.feedback_questions || []
-          }
-          
-          console.log('📝 Template récupéré:', template)
-          setCurrentTemplate(template)
-        } catch (error) {
-          console.error('❌ Erreur récupération template:', error)
-        }
-      } else {
-        setCurrentTemplate(null)
+      // Utiliser directement feedbacks_hebdomadaires puisque c'est là que sont les données
+      const { data: currentFeedbacks, error: currentError } = await supabase
+        .from('feedbacks_hebdomadaires')
+        .select(`
+          *,
+          feedback_templates (
+            id,
+            name,
+            description
+          )
+        `)
+        .eq('client_id', client.id)
+        .gte('week_start', weekStart.toISOString().split('T')[0])
+        .lte('week_end', weekEnd.toISOString().split('T')[0])
+
+      if (currentError) {
+        console.error('❌ Erreur récupération feedbacks courants:', currentError)
+        throw currentError
       }
+
+      console.log('📊 Feedbacks courants trouvés:', currentFeedbacks?.length || 0)
+      if (currentFeedbacks && currentFeedbacks.length > 0) {
+        console.log('📋 Détails du feedback courant:', currentFeedbacks[0])
+      }
+
+      // Récupérer les feedbacks passés depuis feedbacks_hebdomadaires
+      const { data: pastFeedbacksData, error: pastError } = await supabase
+        .from('feedbacks_hebdomadaires')
+        .select(`
+          *,
+          feedback_templates (
+            id,
+            name,
+            description
+          )
+        `)
+        .eq('client_id', client.id)
+        .lt('week_start', weekStart.toISOString().split('T')[0])
+        .order('week_start', { ascending: false })
+        .limit(10)
+
+      if (pastError) {
+        console.error('❌ Erreur récupération feedbacks passés:', pastError)
+        throw pastError
+      }
+
+      console.log('📈 Feedbacks passés trouvés:', pastFeedbacksData?.length || 0)
+
+      // Traiter les données
+      const processedCurrentFeedbacks = currentFeedbacks?.map((feedback: any) => ({
+        ...feedback,
+        template: feedback.feedback_templates
+      })) || []
+
+      const processedPastFeedbacks = pastFeedbacksData?.map((feedback: any) => ({
+        ...feedback,
+        template: feedback.feedback_templates
+      })) || []
+
+      setPastFeedbacks(processedPastFeedbacks)
+
+      // Définir le feedback courant
+      if (processedCurrentFeedbacks.length > 0) {
+        const current = processedCurrentFeedbacks[0]
+        setCurrentFeedback(current)
+        
+        // Récupérer le template complet avec ses questions
+        if (current.template_id) {
+          try {
+            const { data: template, error: templateError } = await supabase
+              .from('feedback_templates')
+              .select(`
+                *,
+                feedback_questions (
+                  id,
+                  question_text,
+                  question_type,
+                  order_index,
+                  required,
+                  options
+                )
+              `)
+              .eq('id', current.template_id)
+              .single()
+
+            if (!templateError && template) {
+              const templateWithQuestions = {
+                ...template,
+                questions: template.feedback_questions?.map((q: any) => ({
+                  id: q.id,
+                  question_text: q.question_text,
+                  question_type: q.question_type,
+                  required: q.required,
+                  options: q.options
+                })) || []
+              }
+              setCurrentTemplate(templateWithQuestions)
+            }
+          } catch (error) {
+            console.error('❌ Erreur récupération template courant:', error)
+          }
+        }
+        
+        console.log('✅ Feedback courant défini:', current.id)
+      } else {
+        setCurrentFeedback(null)
+        setCurrentTemplate(null)
+        console.log('ℹ️ Aucun feedback pour cette semaine')
+      }
+
     } catch (error) {
       console.error('❌ Erreur chargement feedbacks:', error)
       toast({
         title: "Erreur",
-        description: "Impossible de charger vos feedbacks",
+        description: "Impossible de charger les feedbacks",
         variant: "destructive"
       })
     } finally {
@@ -105,377 +222,484 @@ const ClientFeedbacksPage: React.FC = () => {
     }
   }
 
-  const loadPastFeedbackDetails = async (feedback: WeeklyFeedback) => {
+  useEffect(() => {
+    loadFeedbacks()
+  }, [user, currentWeek])
+
+  const goToPreviousWeek = () => {
+    const newWeek = new Date(currentWeek)
+    newWeek.setDate(newWeek.getDate() - 7)
+    setCurrentWeek(newWeek)
+  }
+
+  const goToNextWeek = () => {
+    const newWeek = new Date(currentWeek)
+    newWeek.setDate(newWeek.getDate() + 7)
+    setCurrentWeek(newWeek)
+  }
+
+
+  const handlePastFeedbackClick = async (feedback: WeeklyFeedback) => {
     try {
-      setSelectedPastFeedback(feedback)
+      console.log('🔍 Ouverture détails feedback:', feedback.id)
       
-      // Récupérer le template et les réponses
-      const { data: templateData, error: templateError } = await supabase
+      // Récupérer le template complet avec ses questions
+      const { data: template, error: templateError } = await supabase
         .from('feedback_templates')
         .select(`
           *,
-          feedback_questions(*)
+          feedback_questions (
+            id,
+            question_text,
+            question_type,
+            order_index,
+            required,
+            options
+          )
         `)
         .eq('id', feedback.template_id)
         .single()
 
-      if (templateError) throw templateError
-      
-      const template: FeedbackTemplate = {
-        ...templateData,
-        questions: templateData.feedback_questions || []
+      if (templateError) {
+        console.error('❌ Erreur récupération template:', templateError)
+        throw templateError
       }
-      
-      setSelectedPastTemplate(template)
+
+      // Transformer les questions pour correspondre au format attendu
+      const templateWithQuestions = {
+        ...template,
+        questions: template.feedback_questions?.map((q: any) => ({
+          id: q.id,
+          question_text: q.question_text,
+          question_type: q.question_type,
+          required: q.required,
+          options: q.options
+        })) || []
+      }
+
+      setSelectedPastFeedback(feedback)
+      setSelectedPastTemplate(templateWithQuestions)
       setShowPastFeedbackDetails(true)
+      
     } catch (error) {
-      console.error('❌ Erreur chargement détails feedback passé:', error)
+      console.error('❌ Erreur ouverture détails:', error)
       toast({
         title: "Erreur",
-        description: "Impossible de charger les détails du feedback",
+        description: "Impossible d'ouvrir les détails",
         variant: "destructive"
       })
     }
   }
 
-  // Navigation hebdomadaire
-  const goToPreviousWeek = () => {
-    const newWeek = new Date(selectedWeek)
-    newWeek.setDate(selectedWeek.getDate() - 7)
-    setSelectedWeek(newWeek)
-  }
-
-  const goToNextWeek = () => {
-    const newWeek = new Date(selectedWeek)
-    newWeek.setDate(selectedWeek.getDate() + 7)
-    setSelectedWeek(newWeek)
-  }
-
-  const goToCurrentWeek = () => {
-    setSelectedWeek(new Date())
-  }
-
-  // Utilitaires de date
-  const getWeekStart = (date: Date): Date => {
-    const d = new Date(date)
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-    const monday = new Date(d.setDate(diff))
-    return monday
-  }
-
-  const getWeekEnd = (date: Date): Date => {
-    const monday = new Date(getWeekStart(date))
-    const sunday = new Date(monday)
-    sunday.setDate(monday.getDate() + 6)
-    return sunday
-  }
-
-  const formatWeekRange = (date: Date): string => {
-    const start = getWeekStart(date)
-    const end = getWeekEnd(date)
-    return `${start.toLocaleDateString('fr-FR')} - ${end.toLocaleDateString('fr-FR')}`
-  }
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Chargement...</div>
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Chargement de vos feedbacks...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Mes Feedbacks Hebdomadaires</h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Feedback Hebdomadaire</h1>
+          <p className="text-muted-foreground">Partagez votre expérience et suivez votre progression</p>
+        </div>
       </div>
 
       {/* Navigation hebdomadaire */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Navigation hebdomadaire</h3>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={goToPreviousWeek}
-              className="p-2 rounded-lg border hover:bg-gray-50"
-            >
-              ← Semaine précédente
-            </button>
-            <button
-              onClick={goToCurrentWeek}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Cette semaine
-            </button>
-            <button
-              onClick={goToNextWeek}
-              className="p-2 rounded-lg border hover:bg-gray-50"
-            >
-              Semaine suivante →
-            </button>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Calendar className="h-5 w-5 text-orange-500" />
+            <span>Navigation</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <Button variant="outline" onClick={goToPreviousWeek}>
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Semaine précédente
+            </Button>
+            
+            <div className="text-center">
+              <h3 className="text-lg font-semibold">Semaine actuelle</h3>
+              <p className="text-sm text-muted-foreground">{formatWeekRange(currentWeek)}</p>
+            </div>
+            
+            <Button variant="outline" onClick={goToNextWeek}>
+              Semaine suivante
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
           </div>
-        </div>
-        
-        <div className="text-center">
-          <p className="text-2xl font-bold text-blue-600">
-            {formatWeekRange(selectedWeek)}
-          </p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Feedback de la semaine */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4">Feedback de cette semaine</h3>
-        {currentFeedback ? (
-          currentFeedback.status === 'completed' ? (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <FileText className="h-5 w-5 text-orange-500" />
+            <span>Feedback de cette semaine</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {currentFeedback ? (
             <div className="space-y-4">
-              <div className="p-4 border rounded-lg bg-blue-50">
-                <p className="font-medium text-blue-800">
-                  ✅ Feedback terminé pour cette semaine
-                </p>
-                <p className="text-sm text-blue-600 mt-1">
-                  Merci d'avoir complété le feedback !
-                </p>
-                {currentFeedback.score && (
-                  <div className="mt-3 p-3 bg-blue-100 rounded">
-                    <p className="text-sm font-medium">Score global: {currentFeedback.score}/100</p>
+              {currentFeedback.status === 'completed' ? (
+                <div 
+                  className="bg-green-50 border border-green-200 rounded-lg p-4 cursor-pointer hover:bg-green-100 transition-colors"
+                  onClick={() => handlePastFeedbackClick(currentFeedback)}
+                >
+                  <div className="flex items-center space-x-3 mb-3">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                    <div>
+                      <h3 className="font-semibold text-green-800">Feedback complété !</h3>
+                      <p className="text-sm text-green-600">Cliquez pour voir vos réponses</p>
+                    </div>
                   </div>
-                )}
-              </div>
+                  
+                  {currentFeedback.score && (
+                    <div className="bg-white rounded-md p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Score global</span>
+                        <div className="flex items-center space-x-1">
+                          <Star className="h-4 w-4 text-yellow-500" />
+                          <span className="text-lg font-bold">{currentFeedback.score}/100</span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            currentFeedback.score >= 80 ? 'bg-green-500' :
+                            currentFeedback.score >= 60 ? 'bg-blue-500' :
+                            currentFeedback.score >= 40 ? 'bg-yellow-500' :
+                            'bg-red-500'
+                          }`}
+                          style={{ width: `${currentFeedback.score}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="mt-3 text-right">
+                    <span className="text-xs text-green-600 font-medium">Cliquez pour voir les détails →</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <FileText className="h-6 w-6 text-blue-600" />
+                    <div>
+                      <h3 className="font-semibold text-blue-800">Feedback disponible</h3>
+                      <p className="text-sm text-blue-600">Partagez votre expérience de cette semaine</p>
+                    </div>
+                  </div>
+                  
+                  <Button onClick={() => setShowForm(true)}>
+                    Remplir le formulaire
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="p-4 border rounded-lg bg-green-50">
-                <p className="font-medium text-green-800">
-                  📝 Feedback disponible pour cette semaine
-                </p>
-                <p className="text-sm text-green-600 mt-1">
-                  {currentFeedback.status === 'sent' ? 'Cliquez pour remplir le formulaire' : 'En cours de traitement...'}
-                </p>
-                {currentFeedback.status === 'sent' && (
-                  <button
-                    onClick={() => setShowForm(true)}
-                    className="mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    📋 Remplir le formulaire
-                  </button>
-                )}
-              </div>
+            <div className="text-center py-8">
+              <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Aucun feedback cette semaine</h3>
+              <p className="text-muted-foreground">Votre coach n'a pas encore créé de feedback pour cette période</p>
             </div>
-          )
-        ) : (
-          <div className="p-4 border rounded-lg bg-gray-50">
-            <p className="text-gray-600">
-              Aucun feedback disponible pour cette semaine
-            </p>
-          </div>
-        )}
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Historique */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4">Historique des feedbacks</h3>
-        {feedbacks.length === 0 ? (
-          <p className="text-gray-500">Aucun feedback dans l'historique</p>
-        ) : (
-          <div className="space-y-2">
-            {feedbacks.map(feedback => (
-              <div 
-                key={feedback.id} 
-                className="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer transition-colors"
-                onClick={() => loadPastFeedbackDetails(feedback)}
-              >
-                <div>
-                  <p className="font-medium">
-                    Semaine du {new Date(feedback.week_start).toLocaleDateString('fr-FR')}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Statut: {feedback.status}
-                    {feedback.status === 'completed' && ' ✅'}
-                  </p>
+      {/* Historique des feedbacks */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Clock className="h-5 w-5 text-orange-500" />
+            <span>Historique des feedbacks</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {pastFeedbacks.length > 0 ? (
+            <div className="space-y-3">
+              {pastFeedbacks.map((feedback) => (
+                <div 
+                  key={feedback.id} 
+                  className="border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => handlePastFeedbackClick(feedback)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-md ${
+                        feedback.status === 'completed' 
+                          ? 'bg-green-100 text-green-600' 
+                          : feedback.status === 'in_progress'
+                          ? 'bg-yellow-100 text-yellow-600'
+                          : 'bg-blue-100 text-blue-600'
+                      }`}>
+                        {feedback.status === 'completed' ? (
+                          <CheckCircle className="h-4 w-4" />
+                        ) : feedback.status === 'in_progress' ? (
+                          <Clock className="h-4 w-4" />
+                        ) : (
+                          <FileText className="h-4 w-4" />
+                        )}
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-medium">
+                          Semaine du {new Date(feedback.week_start).toLocaleDateString('fr-FR')}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(feedback.week_start).toLocaleDateString('fr-FR')} - {new Date(feedback.week_end).toLocaleDateString('fr-FR')}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-right">
+                      {feedback.score && (
+                        <div className="flex items-center space-x-1 mb-1">
+                          <Star className="h-4 w-4 text-yellow-500" />
+                          <span className="font-semibold">{feedback.score}/100</span>
+                        </div>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {feedback.status === 'completed' ? 'Terminé' : 
+                         feedback.status === 'in_progress' ? 'En cours' : 
+                         feedback.status === 'sent' ? 'Envoyé' : 'Brouillon'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  {feedback.score && (
-                    <p className="font-medium text-blue-600">
-                      Score: {feedback.score}/100
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-500 mt-1">
-                    Cliquer pour voir les détails
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Aucun historique</h3>
+              <p className="text-muted-foreground">Vos feedbacks précédents apparaîtront ici</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Modal du formulaire */}
       {showForm && currentTemplate && currentFeedback && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-y-auto w-full mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Formulaire de feedback</h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-4xl max-h-[95vh] overflow-hidden w-full">
+            <div className="border-b p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <FileText className="h-6 w-6 text-orange-500" />
+                  <h2 className="text-2xl font-bold">Formulaire de feedback</h2>
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowForm(false)}
+                >
+                  <ChevronRight className="h-6 w-6 rotate-45" />
+                </Button>
+              </div>
             </div>
-            
-            <FeedbackForm
-              template={currentTemplate}
-              onSubmit={async (responses) => {
-                try {
-                  console.log('📝 Soumission des réponses:', responses)
-                  
-                  // Convertir les réponses au format attendu par le service
-                  const responsesArray = Object.entries(responses).map(([questionId, response]) => ({
-                    question_id: questionId,
-                    question_text: currentTemplate.questions.find(q => q.id === questionId)?.question_text || '',
-                    question_type: currentTemplate.questions.find(q => q.id === questionId)?.question_type || 'text',
-                    response
-                  }))
-                  
-                  console.log('📊 Réponses formatées:', responsesArray)
-                  
-                  // Soumettre via le service
-                  await WeeklyFeedbackService.submitClientResponses(currentFeedback.id, responsesArray)
-                  
-                  console.log('✅ Réponses soumises avec succès')
-                  
-                  toast({
-                    title: "Succès",
-                    description: "Feedback soumis avec succès !"
-                  })
-                  
-                  // Fermer le formulaire et recharger les données
-                  setShowForm(false)
-                  await loadFeedbacks()
-                  
-                } catch (error) {
-                  console.error('❌ Erreur soumission feedback:', error)
-                  toast({
-                    title: "Erreur",
-                    description: "Impossible de soumettre le feedback",
-                    variant: "destructive"
-                  })
-                }
-              }}
-              loading={false}
-            />
+            <div className="p-6 max-h-[calc(95vh-120px)] overflow-y-auto">
+              <FeedbackForm
+                template={currentTemplate}
+                onSubmit={async (responses) => {
+                  try {
+                    console.log('📝 Soumission des réponses:', responses)
+                    
+                    // Convertir les réponses au format attendu par le service
+                    const responsesArray = Object.entries(responses).map(([questionId, response]) => ({
+                      question_id: questionId,
+                      question_text: currentTemplate.questions.find((q: any) => q.id === questionId)?.question_text || '',
+                      question_type: currentTemplate.questions.find((q: any) => q.id === questionId)?.question_type || 'text',
+                      response
+                    }))
+                    
+                    console.log('📊 Réponses formatées:', responsesArray)
+                    
+                    // Soumettre via le service
+                    await WeeklyFeedbackService.submitClientResponses(currentFeedback.id, responsesArray)
+                    
+                    console.log('✅ Réponses soumises avec succès')
+                    
+                    toast({
+                      title: "Succès",
+                      description: "Feedback soumis avec succès !"
+                    })
+                    
+                    // Fermer le formulaire et recharger les données
+                    setShowForm(false)
+                    await loadFeedbacks()
+                    
+                  } catch (error) {
+                    console.error('❌ Erreur soumission feedback:', error)
+                    toast({
+                      title: "Erreur",
+                      description: "Impossible de soumettre le feedback",
+                      variant: "destructive"
+                    })
+                  }
+                }}
+                loading={false}
+              />
+            </div>
           </div>
         </div>
       )}
 
       {/* Modal des détails d'un feedback passé */}
       {showPastFeedbackDetails && selectedPastFeedback && selectedPastTemplate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-y-auto w-full mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">
-                Feedback de la semaine du {new Date(selectedPastFeedback.week_start).toLocaleDateString('fr-FR')}
-              </h2>
-              <button
-                onClick={() => {
-                  setShowPastFeedbackDetails(false)
-                  setSelectedPastFeedback(null)
-                  setSelectedPastTemplate(null)
-                }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            
-            {/* Informations du feedback */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Statut</p>
-                  <p className="font-semibold">
-                    {selectedPastFeedback.status === 'completed' ? '✅ Complété' : 
-                     selectedPastFeedback.status === 'in_progress' ? '🔄 En cours' : 
-                     selectedPastFeedback.status === 'sent' ? '📤 Envoyé' : '📝 Brouillon'}
-                  </p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-4xl max-h-[95vh] overflow-hidden w-full">
+            <div className="border-b p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Clock className="h-6 w-6 text-orange-500" />
+                  <h2 className="text-2xl font-bold">
+                    Feedback de la semaine du {new Date(selectedPastFeedback.week_start).toLocaleDateString('fr-FR')}
+                  </h2>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Score global</p>
-                  <p className="font-semibold text-blue-600">
-                    {selectedPastFeedback.score ? `${selectedPastFeedback.score}/100` : 'Non évalué'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Période</p>
-                  <p className="font-semibold">
-                    {new Date(selectedPastFeedback.week_start).toLocaleDateString('fr-FR')} - {new Date(selectedPastFeedback.week_end).toLocaleDateString('fr-FR')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Template</p>
-                  <p className="font-semibold">{selectedPastTemplate.name}</p>
-                </div>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowPastFeedbackDetails(false)
+                    setSelectedPastFeedback(null)
+                    setSelectedPastTemplate(null)
+                  }}
+                >
+                  <ChevronRight className="h-6 w-6 rotate-45" />
+                </Button>
               </div>
             </div>
+            <div className="p-6 max-h-[calc(95vh-120px)] overflow-y-auto">
+              {/* Informations du feedback */}
+              <div className="mb-6 bg-muted/50 rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      {selectedPastFeedback.status === 'completed' ? (
+                        <CheckCircle className="w-6 h-6 text-green-600" />
+                      ) : selectedPastFeedback.status === 'in_progress' ? (
+                        <Clock className="w-6 h-6 text-yellow-600" />
+                      ) : (
+                        <FileText className="w-6 h-6 text-blue-600" />
+                      )}
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Statut</p>
+                    <p className="font-semibold">
+                      {selectedPastFeedback.status === 'completed' ? 'Complété' : 
+                       selectedPastFeedback.status === 'in_progress' ? 'En cours' : 
+                       selectedPastFeedback.status === 'sent' ? 'Envoyé' : 'Brouillon'}
+                    </p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <Star className="w-6 h-6 text-yellow-600" />
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Score global</p>
+                    <p className="font-semibold">
+                      {selectedPastFeedback.score ? `${selectedPastFeedback.score}/100` : 'Non évalué'}
+                    </p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <Calendar className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Période</p>
+                    <p className="font-semibold text-sm">
+                      {new Date(selectedPastFeedback.week_start).toLocaleDateString('fr-FR')} - {new Date(selectedPastFeedback.week_end).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-            {/* Template et questions */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Questions et réponses</h3>
-              {selectedPastTemplate.questions.map((question, index) => (
-                <div key={question.id} className="p-4 border rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
-                      Question {index + 1}
-                    </span>
-                    <div className="flex-1">
-                      <p className="font-medium mb-2">{question.question_text}</p>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+              {/* Questions et réponses */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center space-x-2">
+                  <FileText className="h-5 w-5 text-orange-500" />
+                  <span>Questions et réponses</span>
+                </h3>
+                
+                {selectedPastTemplate.questions.map((question: any, index: number) => (
+                  <Card key={question.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center space-x-2">
+                        <span className="bg-orange-100 text-orange-700 text-sm font-semibold px-2 py-1 rounded">
+                          Question {index + 1}
+                        </span>
+                        <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
                           {question.question_type === 'text' ? '📝 Texte libre' :
                            question.question_type === 'scale_1_10' ? '📊 Échelle 1-10' :
                            question.question_type === 'multiple_choice' ? '☑️ Choix multiple' :
                            question.question_type === 'yes_no' ? '✅ Oui/Non' : '❓ Autre'}
                         </span>
                         {question.required && (
-                          <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                          <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">
                             Obligatoire
                           </span>
                         )}
                       </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="font-semibold mb-3">{question.question_text}</p>
                       
                       {/* Affichage de la réponse */}
-                      <div className="mt-3 p-3 bg-green-50 rounded border-l-4 border-green-400">
-                        <p className="text-sm font-medium text-green-800 mb-1">Votre réponse :</p>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <p className="font-medium text-green-800">Votre réponse :</p>
+                        </div>
+                        
                         {question.question_type === 'scale_1_10' ? (
-                          <div className="flex items-center space-x-2">
-                            <span className="text-lg font-bold text-green-700">
-                              {selectedPastFeedback.responses?.find((r: any) => r.question_id === question.id)?.response || 'Non répondu'}/10
-                            </span>
+                          <div className="flex items-center space-x-4">
+                            <div className="text-2xl font-bold text-green-700">
+                              {selectedPastFeedback.responses?.find((r: any) => r.question_id === question.id)?.response || 'Non répondu'}
+                            </div>
+                            <div className="text-muted-foreground">/10</div>
+                            <div className="flex-1 bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-green-500 h-2 rounded-full transition-all duration-1000"
+                                style={{ width: `${(selectedPastFeedback.responses?.find((r: any) => r.question_id === question.id)?.response || 0) * 10}%` }}
+                              ></div>
+                            </div>
                           </div>
                         ) : question.question_type === 'multiple_choice' ? (
-                          <div className="space-y-1">
+                          <div className="flex flex-wrap gap-2">
                             {(selectedPastFeedback.responses?.find((r: any) => r.question_id === question.id)?.response || []).map((choice: string, i: number) => (
-                              <span key={i} className="inline-block bg-green-200 text-green-800 px-2 py-1 rounded text-sm mr-2 mb-1">
+                              <span key={i} className="bg-green-200 text-green-800 px-2 py-1 rounded text-sm font-medium">
                                 {choice}
                               </span>
                             ))}
                           </div>
                         ) : question.question_type === 'yes_no' ? (
-                          <span className="inline-block bg-green-200 text-green-800 px-3 py-1 rounded text-sm font-medium">
-                            {selectedPastFeedback.responses?.find((r: any) => r.question_id === question.id)?.response === 'yes' ? '✅ Oui' : '❌ Non'}
-                          </span>
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-3 py-1 rounded text-sm font-semibold ${
+                              selectedPastFeedback.responses?.find((r: any) => r.question_id === question.id)?.response === 'yes' 
+                                ? 'bg-green-200 text-green-800' 
+                                : 'bg-red-200 text-red-800'
+                            }`}>
+                              {selectedPastFeedback.responses?.find((r: any) => r.question_id === question.id)?.response === 'yes' ? '✅ Oui' : '❌ Non'}
+                            </span>
+                          </div>
                         ) : (
-                          <p className="text-green-800">
+                          <p className="text-green-800 font-medium">
                             {selectedPastFeedback.responses?.find((r: any) => r.question_id === question.id)?.response || 'Non répondu'}
                           </p>
                         )}
                       </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
         </div>
