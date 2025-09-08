@@ -16,49 +16,73 @@ interface AddExerciseModalProps {
   onClose: () => void
   onExerciseAdded: () => void
   coachId: string
+  exercises?: any[]
+  editingExercise?: any | null
 }
 
 interface FormData {
   name: string
   description: string
-  category: string
-  difficulty_level: string
-  instructions: string
+  type: string
+  difficulty: string
   video_url: string
   image_url: string
-  estimated_duration_minutes: string
-  calories_burn_rate: string
   muscle_groups: string[]
   equipment_needed: string[]
-  is_public: boolean
 }
 
 const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
   isOpen,
   onClose,
   onExerciseAdded,
-  coachId
+  coachId,
+  exercises = [],
+  editingExercise
 }) => {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
-    category: 'strength',
-    difficulty_level: 'beginner',
-    instructions: '',
+    type: 'Musculation',
+    difficulty: 'Facile',
     video_url: '',
     image_url: '',
-    estimated_duration_minutes: '',
-    calories_burn_rate: '',
     muscle_groups: [],
-    equipment_needed: [],
-    is_public: false
+    equipment_needed: []
   })
 
   const handleInputChange = (field: keyof FormData, value: string | boolean | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
+
+  // Pré-remplir le formulaire quand on édite un exercice
+  React.useEffect(() => {
+    if (editingExercise) {
+      setFormData({
+        name: editingExercise.name || '',
+        description: editingExercise.description || '',
+        type: editingExercise.type || 'Musculation',
+        difficulty: editingExercise.difficulty || 'Facile',
+        video_url: editingExercise.video_url || '',
+        image_url: editingExercise.image_url || '',
+        muscle_groups: editingExercise.muscle_groups || [],
+        equipment_needed: editingExercise.equipment_needed || []
+      })
+    } else {
+      // Reset form for new exercise
+      setFormData({
+        name: '',
+        description: '',
+        type: 'Musculation',
+        difficulty: 'Facile',
+        video_url: '',
+        image_url: '',
+        muscle_groups: [],
+        equipment_needed: []
+      })
+    }
+  }, [editingExercise])
 
   const handleArrayChange = (field: 'muscle_groups' | 'equipment_needed', value: string) => {
     if (value.trim()) {
@@ -77,7 +101,7 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
   }
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.category || !formData.difficulty_level) {
+    if (!formData.name || !formData.type || !formData.difficulty) {
       toast({
         title: "Erreur",
         description: "Veuillez remplir tous les champs obligatoires",
@@ -91,24 +115,27 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
       const exerciseData: CreateExerciseData = {
         name: formData.name,
         description: formData.description || undefined,
-        category: formData.category,
+        type: formData.type,
         muscle_groups: formData.muscle_groups.length > 0 ? formData.muscle_groups : undefined,
-        difficulty_level: formData.difficulty_level,
+        difficulty: formData.difficulty,
         equipment_needed: formData.equipment_needed.length > 0 ? formData.equipment_needed : undefined,
-        instructions: formData.instructions || undefined,
         video_url: formData.video_url || undefined,
-        image_url: formData.image_url || undefined,
-        estimated_duration_minutes: formData.estimated_duration_minutes ? parseInt(formData.estimated_duration_minutes) : undefined,
-        calories_burn_rate: formData.calories_burn_rate ? parseInt(formData.calories_burn_rate) : undefined,
-        is_public: formData.is_public
+        image_url: formData.image_url || undefined
       }
 
-      await WorkoutService.createExercise(coachId, exerciseData)
-
-      toast({
-        title: "Succès !",
-        description: "Exercice ajouté avec succès",
-      })
+      if (editingExercise) {
+        await WorkoutService.updateExercise(editingExercise.id, exerciseData)
+        toast({
+          title: "Succès !",
+          description: "Exercice modifié avec succès",
+        })
+      } else {
+        await WorkoutService.createExercise(coachId, exerciseData)
+        toast({
+          title: "Succès !",
+          description: "Exercice ajouté avec succès",
+        })
+      }
 
       onExerciseAdded()
       handleClose()
@@ -129,16 +156,12 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
     setFormData({
       name: '',
       description: '',
-      category: 'strength',
-      difficulty_level: 'beginner',
-      instructions: '',
+      type: 'Musculation',
+      difficulty: 'Facile',
       video_url: '',
       image_url: '',
-      estimated_duration_minutes: '',
-      calories_burn_rate: '',
       muscle_groups: [],
-      equipment_needed: [],
-      is_public: false
+      equipment_needed: []
     })
     onClose()
   }
@@ -164,9 +187,11 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
             <div>
-              <h2 className="text-2xl font-bold">Ajouter un nouvel exercice</h2>
+              <h2 className="text-2xl font-bold">
+                {editingExercise ? 'Modifier l\'exercice' : 'Ajouter un nouvel exercice'}
+              </h2>
               <p className="text-muted-foreground">
-                Créez un exercice pour votre bibliothèque personnelle
+                {editingExercise ? 'Modifiez les informations de l\'exercice' : 'Créez un exercice pour votre bibliothèque personnelle'}
               </p>
             </div>
             <Button variant="ghost" size="icon" onClick={handleClose}>
@@ -208,31 +233,34 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="category">Catégorie *</Label>
-                      <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
+                      <Label htmlFor="type">Type *</Label>
+                      <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="strength">Force</SelectItem>
-                          <SelectItem value="cardio">Cardio</SelectItem>
-                          <SelectItem value="flexibility">Flexibilité</SelectItem>
-                          <SelectItem value="balance">Équilibre</SelectItem>
-                          <SelectItem value="plyometric">Plyométrie</SelectItem>
+                          <SelectItem value="Musculation">Musculation</SelectItem>
+                          <SelectItem value="Cardio">Cardio</SelectItem>
+                          <SelectItem value="Étirement">Étirement</SelectItem>
+                          <SelectItem value="Pilates">Pilates</SelectItem>
+                          <SelectItem value="Yoga">Yoga</SelectItem>
+                          <SelectItem value="CrossFit">CrossFit</SelectItem>
+                          <SelectItem value="Fonctionnel">Fonctionnel</SelectItem>
+                          <SelectItem value="Autre">Autre</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div>
-                      <Label htmlFor="difficulty_level">Niveau *</Label>
-                      <Select value={formData.difficulty_level} onValueChange={(value) => handleInputChange('difficulty_level', value)}>
+                      <Label htmlFor="difficulty">Niveau *</Label>
+                      <Select value={formData.difficulty} onValueChange={(value) => handleInputChange('difficulty', value)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="beginner">Débutant</SelectItem>
-                          <SelectItem value="intermediate">Intermédiaire</SelectItem>
-                          <SelectItem value="advanced">Avancé</SelectItem>
+                          <SelectItem value="Facile">Facile</SelectItem>
+                          <SelectItem value="Intermédiaire">Intermédiaire</SelectItem>
+                          <SelectItem value="Difficile">Difficile</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -240,51 +268,6 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                 </CardContent>
               </Card>
 
-              {/* Instructions et détails */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5" />
-                    Instructions d'exécution
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="instructions">Instructions d'exécution</Label>
-                    <Textarea
-                      id="instructions"
-                      value={formData.instructions}
-                      onChange={(e) => handleInputChange('instructions', e.target.value)}
-                      placeholder="Comment exécuter l'exercice correctement..."
-                      rows={4}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="estimated_duration_minutes">Durée estimée (minutes)</Label>
-                      <Input
-                        id="estimated_duration_minutes"
-                        type="number"
-                        value={formData.estimated_duration_minutes}
-                        onChange={(e) => handleInputChange('estimated_duration_minutes', e.target.value)}
-                        placeholder="5"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="calories_burn_rate">Calories/min</Label>
-                      <Input
-                        id="calories_burn_rate"
-                        type="number"
-                        value={formData.calories_burn_rate}
-                        onChange={(e) => handleInputChange('calories_burn_rate', e.target.value)}
-                        placeholder="8"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
               {/* Groupes musculaires et équipement */}
               <Card>
@@ -396,16 +379,6 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                     />
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="is_public"
-                      checked={formData.is_public}
-                      onChange={(e) => handleInputChange('is_public', e.target.checked)}
-                      className="rounded"
-                    />
-                    <Label htmlFor="is_public">Rendre cet exercice public</Label>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -415,7 +388,10 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                   Annuler
                 </Button>
                 <Button onClick={handleSubmit} disabled={isLoading}>
-                  {isLoading ? "Création..." : "Créer l'exercice"}
+                  {isLoading 
+                    ? (editingExercise ? "Modification..." : "Création...") 
+                    : (editingExercise ? "Modifier l'exercice" : "Créer l'exercice")
+                  }
                 </Button>
               </div>
             </div>

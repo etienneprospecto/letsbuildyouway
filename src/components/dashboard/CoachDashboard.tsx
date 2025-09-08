@@ -4,11 +4,11 @@ import {
   Users, 
   TrendingUp, 
   AlertTriangle, 
-  Calendar, 
-  Plus, 
-  MoreHorizontal, 
-  Eye, 
-  Trash2 
+  Plus,
+  Mail,
+  Phone,
+  Target,
+  User
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,23 +18,12 @@ import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/providers/AuthProvider'
 import { getInitials } from '@/lib/utils'
 import { ClientService, Client } from '@/services/clientService'
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { ClientProfileModal } from './ClientProfileModal'
 
 const CoachDashboard: React.FC = () => {
   const { profile } = useAuth()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   
   // Calculer les métriques basées sur les vrais clients
   const clientsNeedingAttention = clients.filter(client => 
@@ -66,34 +55,45 @@ const CoachDashboard: React.FC = () => {
     fetchClients()
   }, [profile?.id])
 
-  // Fonctions pour gérer les actions sur les clients
-  const handleViewProfile = (client: Client) => {
-    setSelectedClient(client)
-    setIsProfileModalOpen(true)
+
+  // Fonctions de formatage
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800'
+      case 'inactive': return 'bg-gray-100 text-gray-800'
+      case 'paused': return 'bg-yellow-100 text-yellow-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
   }
 
-
-
-  const handleScheduleSession = (client: Client) => {
-    console.log('Scheduling session for client:', client)
-    // TODO: Ouvrir modal de planification de session
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active': return 'Actif'
+      case 'inactive': return 'Inactif'
+      case 'paused': return 'En pause'
+      default: return 'Inconnu'
+    }
   }
 
-  const handleDeleteClient = async (client: Client) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${client.first_name} ${client.last_name} ?`)) {
-      return
+  const formatGoal = (goal: string) => {
+    const goals: Record<string, string> = {
+      'weight_loss': 'Perte de poids',
+      'muscle_gain': 'Prise de muscle',
+      'endurance': 'Endurance',
+      'strength': 'Force',
+      'general_fitness': 'Forme générale'
     }
-    
-    try {
-      await ClientService.deleteClient(client.id)
-      // Recharger la liste des clients
-      const updatedClients = await ClientService.getClientsByCoach(profile!.id)
-      setClients(updatedClients)
-      console.log('Client deleted successfully')
-    } catch (err) {
-      console.error('Error deleting client:', err)
-      alert('Erreur lors de la suppression du client')
+    return goals[goal] || goal
+  }
+
+  const formatLevel = (level: string) => {
+    const levels: Record<string, string> = {
+      'beginner': 'Débutant',
+      'intermediate': 'Intermédiaire',
+      'advanced': 'Avancé',
+      'expert': 'Expert'
     }
+    return levels[level] || level
   }
 
 
@@ -176,17 +176,10 @@ const CoachDashboard: React.FC = () => {
       {/* Clients Overview */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Aperçu des Clients</CardTitle>
-              <CardDescription>
-                Gérez vos clients actifs et leur progression
-              </CardDescription>
-            </div>
-            <Button variant="outline" size="sm">
-              Voir Tout
-            </Button>
-          </div>
+          <CardTitle>Liste des Clients</CardTitle>
+          <CardDescription>
+            {clients.length} client(s) trouvé(s)
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -201,145 +194,71 @@ const CoachDashboard: React.FC = () => {
             </div>
           ) : clients.length > 0 ? (
             <div className="space-y-4">
-              {clients.slice(0, 5).map((client, index) => (
+              {clients.map((client, index) => (
                 <motion.div
                   key={client.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
+                  {/* Informations client */}
                   <div className="flex items-center space-x-4">
                     <Avatar>
                       <AvatarFallback>
-                        {getInitials(`${client.first_name} ${client.last_name}`)}
+                        {client.first_name.charAt(0)}{client.last_name.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <p className="font-medium">
-                        {client.first_name} {client.last_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {client.primary_goal} • {client.fitness_level}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <div className="flex items-center space-x-2">
-                        <Progress value={client.progress_percentage} className="w-20" />
-                        <span className="text-sm font-medium">
-                          {client.progress_percentage}%
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {client.sessions_completed} sessions terminées
-                      </p>
-                    </div>
                     
-                    <Badge 
-                      variant={clientsNeedingAttention.includes(client) ? "destructive" : "secondary"}
-                    >
-                      {clientsNeedingAttention.includes(client) ? 'Nécessite Attention' : 'En Bonne Voie'}
-                    </Badge>
-
-                    {/* Menu d'actions */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleViewProfile(client)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          Voir le profil
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleScheduleSession(client)}>
-                          <Calendar className="mr-2 h-4 w-4" />
-                          Planifier une session
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => handleDeleteClient(client)}
-                          className="text-red-600 focus:text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Supprimer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <p className="font-medium">
+                          {client.first_name} {client.last_name}
+                        </p>
+                        <Badge variant="outline" className={getStatusColor(client.status)}>
+                          {getStatusText(client.status)}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
+                        <div className="flex items-center space-x-1">
+                          <Mail className="h-3 w-3" />
+                          <span>{client.contact || client.email}</span>
+                        </div>
+                        {client.phone && (
+                          <div className="flex items-center space-x-1">
+                            <Phone className="h-3 w-3" />
+                            <span>{client.phone}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center space-x-1">
+                          <Target className="h-3 w-3" />
+                          <span>{formatGoal(client.primary_goal)}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <User className="h-3 w-3" />
+                          <span>{formatLevel(client.fitness_level)}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
                 </motion.div>
               ))}
-              
-              {clients.length > 5 && (
-                <div className="text-center pt-4">
-                  <Button variant="outline" size="sm">
-                    Voir Tous les {clients.length} Clients
-                  </Button>
-                </div>
-              )}
             </div>
           ) : (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Aucun client pour le moment</p>
+              <p className="text-muted-foreground">Aucun client trouvé</p>
               <p className="text-sm text-muted-foreground mt-2">
-                Ajoutez votre premier client pour commencer
+                Commencez par ajouter votre premier client
               </p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Sessions d'Aujourd'hui
-            </CardTitle>
-            <CardDescription>
-              Sessions à venir et terminées pour aujourd'hui
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8">
-              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Aucune session programmée pour aujourd'hui</p>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Activité Récente</CardTitle>
-            <CardDescription>
-              Dernières mises à jour de vos clients
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8">
-              <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Aucune activité récente</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Modal de profil client */}
-      <ClientProfileModal
-        client={selectedClient}
-        isOpen={isProfileModalOpen}
-        onClose={() => {
-          setIsProfileModalOpen(false)
-          setSelectedClient(null)
-        }}
-      />
     </div>
   )
 }

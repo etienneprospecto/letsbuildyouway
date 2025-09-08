@@ -117,105 +117,143 @@ const ClientSeances: React.FC = () => {
 
       {/* Liste des séances détaillées de la semaine en cours */}
       {currentWeekSeances.length > 0 && (
-        <Card className="bg-white">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-gray-900">
-              Détails des séances - {currentWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </CardTitle>
-            <CardDescription>
-              Séances programmées pour cette semaine
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-6 lg:grid-cols-2">
-              {currentWeekSeances.map((seance: Seance) => (
-                <Card key={seance.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5" />
-                        {seance.nom_seance}
-                      </CardTitle>
-                      <Badge className={
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          {/* Header compact */}
+          <div className="bg-gradient-to-r from-orange-50 to-orange-100 px-6 py-4 border-b border-orange-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Détails des séances
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {currentWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+              <Badge variant="outline" className="bg-white text-orange-600 border-orange-300">
+                {currentWeekSeances.length} séance{currentWeekSeances.length > 1 ? 's' : ''}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Liste compacte des séances */}
+          <div className="divide-y divide-gray-100">
+            {currentWeekSeances.map((seance: Seance, index: number) => (
+              <div key={seance.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between">
+                  {/* Informations principales */}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`w-3 h-3 rounded-full ${
                         seance.statut === 'terminée' ? 'bg-green-500' :
                         seance.statut === 'manquée' ? 'bg-red-500' : 'bg-orange-500'
-                      }>
+                      }`} />
+                      <h4 className="font-semibold text-gray-900">{seance.nom_seance}</h4>
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs ${
+                          seance.statut === 'terminée' ? 'bg-green-50 text-green-700 border-green-200' :
+                          seance.statut === 'manquée' ? 'bg-red-50 text-red-700 border-red-200' : 
+                          'bg-orange-50 text-orange-700 border-orange-200'
+                        }`}
+                      >
                         {seance.statut}
                       </Badge>
                     </div>
-                    <CardDescription>
-                      {new Date(seance.date_seance).toLocaleDateString('fr-FR', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {seance.statut === 'terminée' && (
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Intensité:</span>
-                          <div className="flex items-center gap-2 mt-1">
+                    
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(seance.date_seance).toLocaleDateString('fr-FR', {
+                          weekday: 'short',
+                          day: 'numeric',
+                          month: 'short'
+                        })}
+                      </div>
+                      
+                      {seance.statut === 'terminée' && (
+                        <>
+                          <div className="flex items-center gap-1">
                             <Target className="h-4 w-4" />
                             {seance.intensite_ressentie}/10
                           </div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Humeur:</span>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-lg">{seance.humeur || '😐'}</span>
+                          <div className="flex items-center gap-1">
+                            <span>{seance.humeur || '😐'}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Réponse du coach (compacte) */}
+                    {seance.reponse_coach && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-start gap-2">
+                          <MessageSquare className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs font-medium text-blue-900 mb-1">Réponse du coach</p>
+                            <p className="text-sm text-blue-800 line-clamp-2">{seance.reponse_coach}</p>
                           </div>
                         </div>
                       </div>
                     )}
-                    
-                    {seance.reponse_coach && (
-                      <div className="bg-muted p-3 rounded-md">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MessageSquare className="h-4 w-4" />
-                          <span className="text-sm font-medium">Réponse du coach:</span>
-                        </div>
-                        <p className="text-sm">{seance.reponse_coach}</p>
-                      </div>
-                    )}
+                  </div>
 
+                  {/* Bouton d'action */}
+                  <div className="ml-4">
                     <Button 
                       onClick={() => handleOpenSeance(seance)}
-                      variant={seance.statut === 'programmée' ? 'default' : 'secondary'}
-                      className="w-full"
+                      size="sm"
+                      className={`${
+                        seance.statut === 'programmée' 
+                          ? 'bg-orange-500 hover:bg-orange-600 text-white' 
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
                     >
-                      {seance.statut === 'programmée' ? 'Commencer la séance' : 'Voir les détails'}
+                      {seance.statut === 'programmée' ? 'Commencer' : 'Détails'}
                     </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Message si aucune séance pour la semaine */}
       {currentWeekSeances.length === 0 && (
-        <Card className="bg-white">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-gray-900">
-              Détails des séances - {currentWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8">
-              <Calendar className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-600">
-                Aucune séance programmée pour cette semaine
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                Utilise les flèches pour naviguer entre les semaines
-              </p>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          {/* Header compact */}
+          <div className="bg-gradient-to-r from-orange-50 to-orange-100 px-6 py-4 border-b border-orange-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Détails des séances
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {currentWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+              <Badge variant="outline" className="bg-white text-orange-600 border-orange-300">
+                0 séance
+              </Badge>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* État vide */}
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="h-8 w-8 text-gray-400" />
+            </div>
+            <h4 className="text-lg font-medium text-gray-900 mb-2">
+              Aucune séance programmée
+            </h4>
+            <p className="text-gray-600 mb-4">
+              Aucune séance n'est prévue pour cette semaine
+            </p>
+            <p className="text-sm text-gray-500">
+              Utilise les flèches pour naviguer entre les semaines
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Modal de séance */}

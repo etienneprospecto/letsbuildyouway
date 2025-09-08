@@ -17,6 +17,7 @@ interface AddWorkoutModalProps {
   onWorkoutAdded: () => void
   coachId: string
   exercises: Exercise[]
+  editingWorkout?: any | null
 }
 
 interface FormData {
@@ -39,7 +40,8 @@ const AddWorkoutModal: React.FC<AddWorkoutModalProps> = ({
   onClose,
   onWorkoutAdded,
   coachId,
-  exercises
+  exercises,
+  editingWorkout
 }) => {
   console.log('AddWorkoutModal received exercises:', exercises)
   console.log('Exercises count in modal:', exercises.length)
@@ -67,6 +69,51 @@ const AddWorkoutModal: React.FC<AddWorkoutModalProps> = ({
     weight_kg: '',
     notes: ''
   })
+
+  // Initialiser le formulaire avec les données d'édition
+  React.useEffect(() => {
+    if (editingWorkout) {
+      setFormData({
+        name: editingWorkout.name || '',
+        description: editingWorkout.description || '',
+        category: editingWorkout.category || 'general',
+        difficulty_level: editingWorkout.difficulty_level || 'beginner',
+        estimated_duration_minutes: editingWorkout.estimated_duration_minutes?.toString() || '',
+        target_audience: editingWorkout.target_audience || [],
+        tags: editingWorkout.tags || [],
+        is_template: editingWorkout.is_template || false
+      })
+      
+      // Convertir les exercices du workout en format WorkoutExerciseData
+      if (editingWorkout.workout_exercises) {
+        const exercisesData = editingWorkout.workout_exercises.map((we: any, index: number) => ({
+          exercise_id: we.exercise_id,
+          order_index: we.order_index || index, // Utiliser order_index existant ou l'index comme fallback
+          sets: we.sets,
+          reps: we.reps,
+          duration_seconds: we.duration_seconds,
+          rest_seconds: we.rest_seconds,
+          weight_kg: we.weight_kg,
+          notes: we.notes,
+          exercise: we.exercises
+        }))
+        setWorkoutExercises(exercisesData)
+      }
+    } else {
+      // Reset form for new workout
+      setFormData({
+        name: '',
+        description: '',
+        category: 'general',
+        difficulty_level: 'beginner',
+        estimated_duration_minutes: '',
+        target_audience: [],
+        tags: [],
+        is_template: false
+      })
+      setWorkoutExercises([])
+    }
+  }, [editingWorkout])
 
   const handleInputChange = (field: keyof FormData, value: string | boolean | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -161,37 +208,68 @@ const AddWorkoutModal: React.FC<AddWorkoutModalProps> = ({
         is_template: formData.is_template
       }
 
-      console.log('Creating workout with data:', workoutData)
-      const newWorkout = await WorkoutService.createWorkout(coachId, workoutData)
-      console.log('Workout created:', newWorkout)
+      if (editingWorkout) {
+        // Mode édition
+        console.log('Updating workout with data:', workoutData)
+        await WorkoutService.updateWorkout(editingWorkout.id, workoutData)
+        
+        // Supprimer tous les exercices existants et les recréer
+        await WorkoutService.removeAllExercisesFromWorkout(editingWorkout.id)
+        
+        // Ajouter les nouveaux exercices
+        for (const exerciseData of workoutExercises) {
+          console.log('Adding exercise:', exerciseData.exercise.name)
+          const reps = exerciseData.reps ? parseInt(exerciseData.reps) : undefined
+          const duration_seconds = exerciseData.duration_seconds ? parseInt(exerciseData.duration_seconds) : undefined
+          const final_duration = duration_seconds || (reps ? undefined : 60)
+          
+          await WorkoutService.addExerciseToWorkout(editingWorkout.id, {
+            exercise_id: exerciseData.exercise_id,
+            order_index: exerciseData.order_index,
+            sets: exerciseData.sets,
+            reps: reps,
+            duration_seconds: final_duration,
+            rest_seconds: exerciseData.rest_seconds,
+            weight_kg: exerciseData.weight_kg,
+            notes: exerciseData.notes
+          })
+        }
 
-      // Étape 2: Ajouter les exercices au workout
-      console.log('Adding exercises to workout:', workoutExercises.length)
-      for (const exerciseData of workoutExercises) {
-        console.log('Adding exercise:', exerciseData.exercise.name)
-        // S'assurer qu'au moins reps OU duration_seconds est défini
-        const reps = exerciseData.reps ? parseInt(exerciseData.reps) : undefined
-        const duration_seconds = exerciseData.duration_seconds ? parseInt(exerciseData.duration_seconds) : undefined
-        
-        // Si aucune des deux n'est définie, définir une durée par défaut
-        const final_duration = duration_seconds || (reps ? undefined : 60)
-        
-        await WorkoutService.addExerciseToWorkout(newWorkout.id, {
-          exercise_id: exerciseData.exercise_id,
-          order_index: exerciseData.order_index,
-          sets: exerciseData.sets,
-          reps: reps,
-          duration_seconds: final_duration,
-          rest_seconds: exerciseData.rest_seconds,
-          weight_kg: exerciseData.weight_kg,
-          notes: exerciseData.notes
+        toast({
+          title: "Succès !",
+          description: "Workout modifié avec succès",
+        })
+      } else {
+        // Mode création
+        console.log('Creating workout with data:', workoutData)
+        const newWorkout = await WorkoutService.createWorkout(coachId, workoutData)
+        console.log('Workout created:', newWorkout)
+
+        // Ajouter les exercices au workout
+        console.log('Adding exercises to workout:', workoutExercises.length)
+        for (const exerciseData of workoutExercises) {
+          console.log('Adding exercise:', exerciseData.exercise.name)
+          const reps = exerciseData.reps ? parseInt(exerciseData.reps) : undefined
+          const duration_seconds = exerciseData.duration_seconds ? parseInt(exerciseData.duration_seconds) : undefined
+          const final_duration = duration_seconds || (reps ? undefined : 60)
+          
+          await WorkoutService.addExerciseToWorkout(newWorkout.id, {
+            exercise_id: exerciseData.exercise_id,
+            order_index: exerciseData.order_index,
+            sets: exerciseData.sets,
+            reps: reps,
+            duration_seconds: final_duration,
+            rest_seconds: exerciseData.rest_seconds,
+            weight_kg: exerciseData.weight_kg,
+            notes: exerciseData.notes
+          })
+        }
+
+        toast({
+          title: "Succès !",
+          description: "Workout créé avec succès",
         })
       }
-
-      toast({
-        title: "Succès !",
-        description: "Workout créé avec succès",
-      })
 
       onWorkoutAdded()
       handleClose()
@@ -245,7 +323,9 @@ const AddWorkoutModal: React.FC<AddWorkoutModalProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
             <div>
-              <h2 className="text-2xl font-bold">Créer un nouveau workout</h2>
+              <h2 className="text-2xl font-bold">
+                {editingWorkout ? "Modifier le workout" : "Créer un nouveau workout"}
+              </h2>
               <p className="text-muted-foreground">
                 {step === 1 ? "Configurez votre workout" : "Ajoutez des exercices"}
               </p>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/providers/AuthProvider'
+import { useWeek } from '@/providers/WeekProvider'
 import { WeeklyFeedbackService } from '@/services/weeklyFeedbackService'
 import { ClientService } from '@/services/clientService'
 import { WeeklyFeedback, FeedbackTemplate } from '@/types/feedback'
@@ -20,8 +21,15 @@ import {
 
 const ClientFeedbacksPage: React.FC = () => {
   const { user } = useAuth()
+  const { 
+    currentWeekStart, 
+    goToPreviousWeek, 
+    goToNextWeek, 
+    formatWeekRange,
+    isCurrentWeek
+  } = useWeek()
+  
   const [loading, setLoading] = useState(true)
-  const [currentWeek, setCurrentWeek] = useState(new Date())
   const [currentFeedback, setCurrentFeedback] = useState<WeeklyFeedback | null>(null)
   const [currentTemplate, setCurrentTemplate] = useState<FeedbackTemplate | null>(null)
   const [pastFeedbacks, setPastFeedbacks] = useState<WeeklyFeedback[]>([])
@@ -30,33 +38,12 @@ const ClientFeedbacksPage: React.FC = () => {
   const [selectedPastFeedback, setSelectedPastFeedback] = useState<WeeklyFeedback | null>(null)
   const [selectedPastTemplate, setSelectedPastTemplate] = useState<FeedbackTemplate | null>(null)
 
-  // Fonctions utilitaires pour les dates
-  const getWeekStart = (date: Date) => {
-    const d = new Date(date)
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Ajuster pour lundi
-    return new Date(d.setDate(diff))
-  }
-
-  const getWeekEnd = (date: Date) => {
-    const start = getWeekStart(date)
-    const end = new Date(start)
-    end.setDate(start.getDate() + 6)
-    return end
-  }
-
-  const formatWeekRange = (date: Date) => {
-    const start = getWeekStart(date)
-    const end = getWeekEnd(date)
-    return `${start.toLocaleDateString('fr-FR')} - ${end.toLocaleDateString('fr-FR')}`
-  }
-
   const loadFeedbacks = async () => {
     if (!user) return
 
     try {
       setLoading(true)
-      console.log('🔄 Chargement des feedbacks pour la semaine:', formatWeekRange(currentWeek))
+      console.log('🔄 Chargement des feedbacks pour la semaine:', formatWeekRange(currentWeekStart))
 
       // Récupérer le client par email
       const client = await ClientService.getClientByEmail(user.email || '')
@@ -94,14 +81,31 @@ const ClientFeedbacksPage: React.FC = () => {
       
       console.log('📋 Feedbacks dans feedbacks_hebdomadaires:', { hebdoFeedbacks, hebdoError })
 
-      // Récupérer les feedbacks de la semaine courante
-      const weekStart = getWeekStart(currentWeek)
-      const weekEnd = getWeekEnd(currentWeek)
+      // Vérifier spécifiquement les feedbacks de la semaine du 01/09
+      const { data: week01Feedbacks, error: week01Error } = await supabase
+        .from('feedbacks_hebdomadaires')
+        .select('*')
+        .eq('client_id', client.id)
+        .gte('week_start', '2025-09-01')
+        .lte('week_end', '2025-09-07')
       
-      console.log('📅 Période:', weekStart.toISOString(), 'à', weekEnd.toISOString())
+      console.log('🎯 Feedbacks semaine 01/09:', { week01Feedbacks, week01Error })
 
-      // Utiliser directement feedbacks_hebdomadaires puisque c'est là que sont les données
-      const { data: currentFeedbacks, error: currentError } = await supabase
+      // Récupérer les feedbacks de la semaine courante
+      const weekStart = currentWeekStart
+      const weekEnd = new Date(currentWeekStart)
+      weekEnd.setDate(currentWeekStart.getDate() + 6)
+      
+      console.log('📅 Période recherchée:', {
+        weekStart: weekStart.toISOString().split('T')[0],
+        weekEnd: weekEnd.toISOString().split('T')[0],
+        weekStartFull: weekStart.toISOString(),
+        weekEndFull: weekEnd.toISOString()
+      })
+
+      // Essayer différentes approches de filtrage
+      console.log('🔍 Tentative 1: Filtrage avec week_start et week_end')
+      const { data: currentFeedbacks1, error: currentError1 } = await supabase
         .from('feedbacks_hebdomadaires')
         .select(`
           *,
@@ -115,9 +119,70 @@ const ClientFeedbacksPage: React.FC = () => {
         .gte('week_start', weekStart.toISOString().split('T')[0])
         .lte('week_end', weekEnd.toISOString().split('T')[0])
 
-      if (currentError) {
-        console.error('❌ Erreur récupération feedbacks courants:', currentError)
-        throw currentError
+      console.log('📊 Résultat tentative 1:', { currentFeedbacks1, currentError1 })
+
+      // Tentative 2: Filtrage avec week_start seulement
+      console.log('🔍 Tentative 2: Filtrage avec week_start seulement')
+      const { data: currentFeedbacks2, error: currentError2 } = await supabase
+        .from('feedbacks_hebdomadaires')
+        .select(`
+          *,
+          feedback_templates (
+            id,
+            name,
+            description
+          )
+        `)
+        .eq('client_id', client.id)
+        .eq('week_start', weekStart.toISOString().split('T')[0])
+
+      console.log('📊 Résultat tentative 2:', { currentFeedbacks2, currentError2 })
+
+      // Tentative 3: Récupérer tous les feedbacks et filtrer côté client
+      console.log('🔍 Tentative 3: Récupération de tous les feedbacks')
+      const { data: allFeedbacksForFiltering, error: allErrorForFiltering } = await supabase
+        .from('feedbacks_hebdomadaires')
+        .select(`
+          *,
+          feedback_templates (
+            id,
+            name,
+            description
+          )
+        `)
+        .eq('client_id', client.id)
+
+      console.log('📊 Tous les feedbacks récupérés:', { allFeedbacksForFiltering, allErrorForFiltering })
+
+      // Filtrer côté client
+      const weekStartStr = weekStart.toISOString().split('T')[0]
+      const weekEndStr = weekEnd.toISOString().split('T')[0]
+      
+      const currentFeedbacks = allFeedbacksForFiltering?.filter((feedback: any) => {
+        const feedbackWeekStart = feedback.week_start
+        const feedbackWeekEnd = feedback.week_end
+        
+        console.log('🔍 Comparaison feedback:', {
+          feedbackId: feedback.id,
+          feedbackWeekStart,
+          feedbackWeekEnd,
+          searchWeekStart: weekStartStr,
+          searchWeekEnd: weekEndStr,
+          matches: feedbackWeekStart === weekStartStr || 
+                   (feedbackWeekStart <= weekStartStr && feedbackWeekEnd >= weekStartStr) ||
+                   (feedbackWeekStart <= weekEndStr && feedbackWeekEnd >= weekEndStr)
+        })
+        
+        return feedbackWeekStart === weekStartStr || 
+               (feedbackWeekStart <= weekStartStr && feedbackWeekEnd >= weekStartStr) ||
+               (feedbackWeekStart <= weekEndStr && feedbackWeekEnd >= weekEndStr)
+      }) || []
+
+      console.log('📊 Feedbacks filtrés côté client:', currentFeedbacks)
+
+      if (allErrorForFiltering) {
+        console.error('❌ Erreur récupération feedbacks courants:', allErrorForFiltering)
+        throw allErrorForFiltering
       }
 
       console.log('📊 Feedbacks courants trouvés:', currentFeedbacks?.length || 0)
@@ -224,19 +289,7 @@ const ClientFeedbacksPage: React.FC = () => {
 
   useEffect(() => {
     loadFeedbacks()
-  }, [user, currentWeek])
-
-  const goToPreviousWeek = () => {
-    const newWeek = new Date(currentWeek)
-    newWeek.setDate(newWeek.getDate() - 7)
-    setCurrentWeek(newWeek)
-  }
-
-  const goToNextWeek = () => {
-    const newWeek = new Date(currentWeek)
-    newWeek.setDate(newWeek.getDate() + 7)
-    setCurrentWeek(newWeek)
-  }
+  }, [user, currentWeekStart])
 
 
   const handlePastFeedbackClick = async (feedback: WeeklyFeedback) => {
@@ -328,8 +381,10 @@ const ClientFeedbacksPage: React.FC = () => {
             </Button>
             
             <div className="text-center">
-              <h3 className="text-lg font-semibold">Semaine actuelle</h3>
-              <p className="text-sm text-muted-foreground">{formatWeekRange(currentWeek)}</p>
+              <h3 className="text-lg font-semibold">
+                {isCurrentWeek(currentWeekStart) ? 'Semaine actuelle' : 'Semaine sélectionnée'}
+              </h3>
+              <p className="text-sm text-muted-foreground">{formatWeekRange(currentWeekStart)}</p>
             </div>
             
             <Button variant="outline" onClick={goToNextWeek}>

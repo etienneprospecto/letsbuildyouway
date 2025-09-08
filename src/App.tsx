@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { QueryProvider } from '@/providers/QueryProvider'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider, useAuth } from '@/providers/AuthProvider'
+import { WeekProvider } from '@/providers/WeekProvider'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { AuthPage } from '@/components/auth/AuthPage'
 import Sidebar from '@/components/layout/Sidebar'
@@ -51,7 +52,9 @@ function App() {
   return (
     <QueryProvider>
       <AuthProvider>
-        <AppContent />
+        <WeekProvider>
+          <AppContent />
+        </WeekProvider>
       </AuthProvider>
       <Toaster />
     </QueryProvider>

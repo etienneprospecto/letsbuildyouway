@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ChevronLeft, ChevronRight, Calendar, Target } from 'lucide-react'
 import { useClientSeances, Seance } from '@/hooks/useClientSeances'
+import { useWeek } from '@/providers/WeekProvider'
 
 interface WorkoutTimelineProps {
   userEmail: string | undefined
@@ -13,26 +14,16 @@ const WorkoutTimeline: React.FC<WorkoutTimelineProps> = ({ userEmail }) => {
   const {
     seances,
     loading,
-    currentWeekStart,
-    goToPreviousWeek,
-    goToNextWeek,
     getCurrentWeekSeances
   } = useClientSeances(userEmail)
 
-  const [currentTime, setCurrentTime] = useState<Date>(new Date())
-
-  // Synchronisation avec l'heure du header
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date()
-      const parisTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Paris"}))
-      setCurrentTime(parisTime)
-    }
-
-    updateTime()
-    const interval = setInterval(updateTime, 1000)
-    return () => clearInterval(interval)
-  }, [])
+  // Utiliser le contexte global pour la gestion de la semaine
+  const { 
+    currentWeekStart, 
+    currentTime, 
+    goToPreviousWeek, 
+    goToNextWeek 
+  } = useWeek()
 
   // Obtenir les 7 jours de la semaine actuelle
   const getWeekDays = () => {

@@ -1,24 +1,20 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Dumbbell,
   Plus,
   Search,
   Clock,
   Target,
-  Star,
   ChevronDown,
   Edit,
   Trash2,
-  Copy,
-  Eye,
+  Star
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/providers/AuthProvider'
 import { WorkoutService, Exercise } from '@/services/workoutService'
@@ -34,6 +30,8 @@ const ExercicesPage: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all')
   const [showAddExerciseModal, setShowAddExerciseModal] = useState(false)
+  const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set())
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null)
 
   const fetchExercises = async () => {
     if (!profile?.id) return
@@ -56,38 +54,41 @@ const ExercicesPage: React.FC = () => {
   const filteredExercises = exercises.filter((e) => {
     const q = searchTerm.trim().toLowerCase()
     const matchesSearch = !q || e.name.toLowerCase().includes(q) || (e.description || '').toLowerCase().includes(q)
-    const matchesCategory = categoryFilter === 'all' || e.category === categoryFilter
-    const matchesDifficulty = difficultyFilter === 'all' || e.difficulty_level === difficultyFilter
+    const matchesCategory = categoryFilter === 'all' || e.type === categoryFilter
+    const matchesDifficulty = difficultyFilter === 'all' || e.difficulty === difficultyFilter
     return matchesSearch && matchesCategory && matchesDifficulty
   })
 
   const formatCategory = (category: string) => {
     const map: Record<string, string> = {
-      strength: 'Force',
-      cardio: 'Cardio',
-      flexibility: 'Flexibilité',
-      balance: 'Équilibre',
-      plyometric: 'Plyométrie',
+      'Musculation': 'Musculation',
+      'Cardio': 'Cardio',
+      'Étirement': 'Étirement',
+      'Pilates': 'Pilates',
+      'Yoga': 'Yoga',
+      'CrossFit': 'CrossFit',
+      'Fonctionnel': 'Fonctionnel',
+      'Autre': 'Autre',
     }
     return map[category] || category
   }
 
   const formatDifficulty = (difficulty: string) => {
     const map: Record<string, string> = {
-      beginner: 'Débutant',
-      intermediate: 'Intermédiaire',
-      advanced: 'Avancé',
+      'Facile': 'Facile',
+      'Intermédiaire': 'Intermédiaire',
+      'Difficile': 'Difficile',
     }
     return map[difficulty] || difficulty
   }
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'beginner':
+      case 'Facile':
         return 'bg-green-100 text-green-800'
-      case 'intermediate':
+      case 'Intermédiaire':
         return 'bg-yellow-100 text-yellow-800'
-      case 'advanced':
+      case 'Difficile':
         return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
@@ -102,6 +103,23 @@ const ExercicesPage: React.FC = () => {
     } catch (err) {
       toast({ title: 'Erreur', description: "Suppression impossible", variant: 'destructive' })
     }
+  }
+
+  const handleEditExercise = (exercise: Exercise) => {
+    setEditingExercise(exercise)
+    setShowAddExerciseModal(true)
+  }
+
+  const toggleExerciseExpansion = (exerciseId: string) => {
+    setExpandedExercises(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(exerciseId)) {
+        newSet.delete(exerciseId)
+      } else {
+        newSet.add(exerciseId)
+      }
+      return newSet
+    })
   }
 
   if (loading) {
@@ -128,38 +146,6 @@ const ExercicesPage: React.FC = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Exercices</CardTitle>
-            <Dumbbell className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{exercises.length}</div>
-            <p className="text-xs text-muted-foreground">Dans votre bibliothèque</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Publics</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{exercises.filter((e) => e.is_public).length}</div>
-            <p className="text-xs text-muted-foreground">Partagés</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Catégories</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{new Set(exercises.map((e) => e.category)).size}</div>
-            <p className="text-xs text-muted-foreground">Types différents</p>
-          </CardContent>
-        </Card>
-      </div>
 
       <Card>
         <CardHeader>
@@ -184,11 +170,14 @@ const ExercicesPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes</SelectItem>
-                <SelectItem value="strength">Force</SelectItem>
-                <SelectItem value="cardio">Cardio</SelectItem>
-                <SelectItem value="flexibility">Flexibilité</SelectItem>
-                <SelectItem value="balance">Équilibre</SelectItem>
-                <SelectItem value="plyometric">Plyométrie</SelectItem>
+                <SelectItem value="Musculation">Musculation</SelectItem>
+                <SelectItem value="Cardio">Cardio</SelectItem>
+                <SelectItem value="Étirement">Étirement</SelectItem>
+                <SelectItem value="Pilates">Pilates</SelectItem>
+                <SelectItem value="Yoga">Yoga</SelectItem>
+                <SelectItem value="CrossFit">CrossFit</SelectItem>
+                <SelectItem value="Fonctionnel">Fonctionnel</SelectItem>
+                <SelectItem value="Autre">Autre</SelectItem>
               </SelectContent>
             </Select>
             <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
@@ -230,57 +219,24 @@ const ExercicesPage: React.FC = () => {
                         <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{exercise.description}</p>
                       )}
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Voir détails
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Modifier
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Dupliquer
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteExercise(exercise.id)}>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Supprimer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => toggleExerciseExpansion(exercise.id)}
+                    >
+                      <ChevronDown 
+                        className={`h-4 w-4 transition-transform ${
+                          expandedExercises.has(exercise.id) ? 'rotate-180' : ''
+                        }`} 
+                      />
+                    </Button>
                   </div>
 
                   <div className="flex items-center gap-2 mb-3">
-                    <Badge variant="outline">{formatCategory(exercise.category)}</Badge>
-                    <Badge className={getDifficultyColor(exercise.difficulty_level)}>{formatDifficulty(exercise.difficulty_level)}</Badge>
-                    {exercise.is_public && (
-                      <Badge variant="secondary">
-                        <Star className="h-3 w-3 mr-1" /> Public
-                      </Badge>
-                    )}
+                    <Badge variant="outline">{formatCategory(exercise.type)}</Badge>
+                    <Badge className={getDifficultyColor(exercise.difficulty)}>{formatDifficulty(exercise.difficulty)}</Badge>
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    {exercise.estimated_duration_minutes && (
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        <span>{exercise.estimated_duration_minutes} min</span>
-                      </div>
-                    )}
-                    {exercise.calories_burn_rate && (
-                      <div className="flex items-center gap-1">
-                        <Target className="h-4 w-4" />
-                        <span>{exercise.calories_burn_rate} cal/min</span>
-                      </div>
-                    )}
-                  </div>
 
                   {exercise.muscle_groups && exercise.muscle_groups.length > 0 && (
                     <div className="mt-3">
@@ -297,6 +253,115 @@ const ExercicesPage: React.FC = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Section déroulée avec les détails de l'exercice */}
+                  {expandedExercises.has(exercise.id) && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="mt-4 pt-4 border-t"
+                    >
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-gray-900">Détails de l'exercice</h4>
+                        
+                        {/* Description complète */}
+                        {exercise.description && (
+                          <div>
+                            <h5 className="font-medium text-gray-900 mb-2">Description</h5>
+                            <p className="text-sm text-gray-600">{exercise.description}</p>
+                          </div>
+                        )}
+
+
+                        {/* Équipement nécessaire */}
+                        {exercise.equipment_needed && exercise.equipment_needed.length > 0 && (
+                          <div>
+                            <h5 className="font-medium text-gray-900 mb-2">Équipement nécessaire</h5>
+                            <div className="flex flex-wrap gap-1">
+                              {exercise.equipment_needed.map((equipment, i) => (
+                                <Badge key={i} variant="outline" className="text-xs">
+                                  {equipment}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Groupes musculaires complets */}
+                        {exercise.muscle_groups && exercise.muscle_groups.length > 0 && (
+                          <div>
+                            <h5 className="font-medium text-gray-900 mb-2">Groupes musculaires ciblés</h5>
+                            <div className="flex flex-wrap gap-1">
+                              {exercise.muscle_groups.map((group, i) => (
+                                <Badge key={i} variant="secondary" className="text-xs">
+                                  {group}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+
+                        {/* Liens vidéo/image */}
+                        {(exercise.video_url || exercise.image_url) && (
+                          <div>
+                            <h5 className="font-medium text-gray-900 mb-2">Ressources</h5>
+                            <div className="space-y-2">
+                              {exercise.video_url && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-500">Vidéo :</span>
+                                  <a 
+                                    href={exercise.video_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                  >
+                                    Voir la vidéo
+                                  </a>
+                                </div>
+                              )}
+                              {exercise.image_url && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-500">Image :</span>
+                                  <a 
+                                    href={exercise.image_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                  >
+                                    Voir l'image
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Actions de l'exercice */}
+                        <div className="flex items-center gap-2 pt-4 border-t">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditExercise(exercise)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Modifier
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDeleteExercise(exercise.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Supprimer
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
                 </motion.div>
               ))}
             </div>
@@ -306,9 +371,14 @@ const ExercicesPage: React.FC = () => {
 
       <AddExerciseModal
         isOpen={showAddExerciseModal}
-        onClose={() => setShowAddExerciseModal(false)}
+        onClose={() => {
+          setShowAddExerciseModal(false)
+          setEditingExercise(null)
+        }}
         onExerciseAdded={fetchExercises}
         coachId={profile?.id || ''}
+        exercises={[]}
+        editingExercise={editingExercise}
       />
     </div>
   )

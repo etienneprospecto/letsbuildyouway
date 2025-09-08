@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/hooks/use-toast'
+import { useWeek } from '@/providers/WeekProvider'
 
 export interface Seance {
   id: string
@@ -39,32 +40,22 @@ export const useClientSeances = (userEmail: string | undefined) => {
   const [seances, setSeances] = useState<Seance[]>([])
   const [weeklySessions, setWeeklySessions] = useState<WeeklySession[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date())
-  const [currentTime, setCurrentTime] = useState<Date>(new Date())
+  
+  // Utiliser le contexte global pour la gestion de la semaine
+  const { 
+    currentWeekStart, 
+    currentTime, 
+    goToPreviousWeek, 
+    goToNextWeek, 
+    getWeekStart, 
+    getWeekEnd 
+  } = useWeek()
 
   // Date actuelle pour déterminer "aujourd'hui" (fuseau horaire français)
   const getTodayDate = () => {
-    // Forcer la date au mercredi 3 septembre 2025 pour corriger le bug
-    return new Date('2025-09-03T17:12:00+02:00') // Mercredi 3 septembre 2025, 17h12 Paris
+    // Utiliser l'heure du contexte global
+    return currentTime
   }
-
-  // Mettre à jour l'heure en temps réel
-  useEffect(() => {
-    const updateTime = () => {
-      // Obtenir l'heure actuelle de Paris
-      const now = new Date()
-      const parisTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Paris"}))
-      setCurrentTime(parisTime)
-    }
-
-    // Mettre à jour immédiatement
-    updateTime()
-    
-    // Mettre à jour toutes les secondes
-    const interval = setInterval(updateTime, 1000)
-
-    return () => clearInterval(interval)
-  }, [])
 
   // Récupérer les séances du client
   const fetchSeances = async () => {
@@ -97,6 +88,27 @@ export const useClientSeances = (userEmail: string | undefined) => {
         .order('date_seance', { ascending: true })
 
       if (seancesError) throw seancesError
+
+      console.log('📊 Séances récupérées:', seancesData?.length || 0)
+      if (seancesData && seancesData.length > 0) {
+        console.log('📋 Détails des séances:', seancesData.map(s => ({
+          nom: s.nom_seance,
+          date: s.date_seance,
+          statut: s.statut
+        })))
+        
+        // Vérifier spécifiquement la séance "myabe not" du dimanche 7
+        const maybeNotSeance = seancesData.find(s => s.nom_seance === 'myabe not')
+        if (maybeNotSeance) {
+          console.log('🎯 Séance "myabe not" trouvée:', {
+            nom: maybeNotSeance.nom_seance,
+            date: maybeNotSeance.date_seance,
+            statut: maybeNotSeance.statut
+          })
+        } else {
+          console.log('❌ Séance "myabe not" non trouvée dans les données')
+        }
+      }
 
       setSeances(seancesData || [])
       generateWeeklyData(seancesData || [])
@@ -195,20 +207,6 @@ export const useClientSeances = (userEmail: string | undefined) => {
     }
   }
 
-  // Navigation entre semaines
-  const goToPreviousWeek = () => {
-    const newWeekStart = new Date(currentWeekStart)
-    newWeekStart.setDate(newWeekStart.getDate() - 7)
-    setCurrentWeekStart(newWeekStart)
-    generateWeeklyData(seances, newWeekStart)
-  }
-
-  const goToNextWeek = () => {
-    const newWeekStart = new Date(currentWeekStart)
-    newWeekStart.setDate(newWeekStart.getDate() + 7)
-    setCurrentWeekStart(newWeekStart)
-    generateWeeklyData(seances, newWeekStart)
-  }
 
 
 
@@ -216,11 +214,31 @@ export const useClientSeances = (userEmail: string | undefined) => {
   const getCurrentWeekSeances = (): Seance[] => {
     const weekEnd = new Date(currentWeekStart)
     weekEnd.setDate(currentWeekStart.getDate() + 6)
+    weekEnd.setHours(23, 59, 59, 999) // Fin de journée
     
-    return seances.filter(seance => {
-      const seanceDate = new Date(seance.date_seance)
-      return seanceDate >= currentWeekStart && seanceDate <= weekEnd
+    console.log('🔍 Filtrage des séances pour la semaine:', {
+      weekStart: currentWeekStart.toISOString(),
+      weekEnd: weekEnd.toISOString(),
+      totalSeances: seances.length
     })
+    
+    const filteredSeances = seances.filter(seance => {
+      const seanceDate = new Date(seance.date_seance)
+      const isInWeek = seanceDate >= currentWeekStart && seanceDate <= weekEnd
+      
+      console.log(`📅 Séance "${seance.nom_seance}" (${seance.date_seance}):`, {
+        seanceDate: seanceDate.toISOString(),
+        isInWeek,
+        weekStart: currentWeekStart.toISOString(),
+        weekEnd: weekEnd.toISOString()
+      })
+      
+      return isInWeek
+    })
+    
+    console.log('✅ Séances filtrées:', filteredSeances.length, filteredSeances.map(s => s.nom_seance))
+    
+    return filteredSeances
   }
 
   // Vérifier si une date est aujourd'hui (basé sur la date du header)
@@ -308,8 +326,6 @@ export const useClientSeances = (userEmail: string | undefined) => {
   const markSeanceAsMissed = (seanceId: string) => updateSeanceStatus(seanceId, 'manquée')
   const markSeanceAsCompleted = (seanceId: string) => updateSeanceStatus(seanceId, 'terminée')
 
-
-
   // Obtenir l'heure formatée (Paris/FR) - dynamique
   const getCurrentTime = () => {
     return currentTime.toLocaleTimeString('fr-FR', {
@@ -330,22 +346,17 @@ export const useClientSeances = (userEmail: string | undefined) => {
     })
   }
 
+  // Charger les séances et générer les données de la semaine
   useEffect(() => {
     fetchSeances()
-    // Forcer la semaine du 1er au 7 septembre 2025 (lundi au dimanche)
-    const currentWeekStart = new Date('2025-09-01T00:00:00+02:00') // Lundi 1er septembre 2025
-    
-    // Debug: afficher les calculs de semaine
-    console.log('Week calculation debug:', {
-      today: getTodayDate().toDateString(),
-      todayISO: getTodayDate().toISOString(),
-      weekStart: currentWeekStart.toDateString(),
-      weekStartISO: currentWeekStart.toISOString()
-    })
-    
-    setCurrentWeekStart(currentWeekStart)
-    generateWeeklyData(seances, currentWeekStart)
   }, [userEmail])
+
+  // Générer les données de la semaine quand les séances ou la semaine changent
+  useEffect(() => {
+    if (seances.length > 0) {
+      generateWeeklyData(seances, currentWeekStart)
+    }
+  }, [seances, currentWeekStart])
 
   return {
     seances,

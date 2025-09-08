@@ -1,28 +1,23 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Dumbbell,
   Plus,
   Search,
   Filter,
   Calendar,
-  Clock,
   Users,
-  Target,
   ChevronDown,
   Edit,
   Trash2,
   Eye,
-  Copy,
-  Star,
-  Play
+  Clock,
+  Star
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/providers/AuthProvider'
 import { WorkoutService, WorkoutWithExercises, Exercise } from '@/services/workoutService'
@@ -42,14 +37,9 @@ const WorkoutsPage: React.FC = () => {
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all')
   const [showAddExerciseModal, setShowAddExerciseModal] = useState(false)
   const [showAddWorkoutModal, setShowAddWorkoutModal] = useState(false)
+  const [expandedWorkouts, setExpandedWorkouts] = useState<Set<string>>(new Set())
+  const [editingWorkout, setEditingWorkout] = useState<WorkoutWithExercises | null>(null)
 
-  // Statistiques
-  const [stats, setStats] = useState({
-    totalWorkouts: 0,
-    activeWorkouts: 0,
-    totalExercises: 0,
-    averageDuration: 0
-  })
 
   // Filtrage des données
   const filteredWorkouts = workouts.filter(workout => {
@@ -75,20 +65,16 @@ const WorkoutsPage: React.FC = () => {
     setLoading(true)
     try {
       console.log('WorkoutsPage fetchData - profile.id:', profile.id)
-      const [workoutsData, exercisesData, statsData] = await Promise.all([
+      const [workoutsData, exercisesData] = await Promise.all([
         WorkoutService.getWorkoutsByCoach(profile.id),
-        WorkoutService.getExercises(profile.id),
-        WorkoutService.getWorkoutStats(profile.id)
+        WorkoutService.getExercises(profile.id)
       ])
 
       console.log('Exercises fetched:', exercisesData)
       console.log('Exercises count:', exercisesData.length)
 
-      console.log('Exercises fetched:', exercisesData)
-      console.log('Exercises count:', exercisesData.length)
       setWorkouts(workoutsData)
       setExercises(exercisesData)
-      setStats(statsData)
     } catch (error) {
       console.error('Error fetching data:', error)
       toast({
@@ -138,6 +124,23 @@ const WorkoutsPage: React.FC = () => {
         variant: "destructive"
       })
     }
+  }
+
+  const toggleWorkoutExpansion = (workoutId: string) => {
+    setExpandedWorkouts(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(workoutId)) {
+        newSet.delete(workoutId)
+      } else {
+        newSet.add(workoutId)
+      }
+      return newSet
+    })
+  }
+
+  const handleEditWorkout = (workout: WorkoutWithExercises) => {
+    setEditingWorkout(workout)
+    setShowAddWorkoutModal(true)
   }
 
   const formatCategory = (category: string) => {
@@ -206,62 +209,6 @@ const WorkoutsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Statistiques */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Workouts</CardTitle>
-            <Dumbbell className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalWorkouts}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.activeWorkouts} actifs
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Exercices</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalExercises}</div>
-            <p className="text-xs text-muted-foreground">
-              Dans votre bibliothèque
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Durée Moyenne</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.averageDuration}min</div>
-            <p className="text-xs text-muted-foreground">
-              Par workout
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Templates</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {workouts.filter(w => w.is_template).length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Workouts sauvegardés
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Filtres et Recherche */}
       <Card>
@@ -325,103 +272,184 @@ const WorkoutsPage: React.FC = () => {
               Aucun workout trouvé
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredWorkouts.map((workout) => (
                 <motion.div
                   key={workout.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-card"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold">{workout.name}</h3>
-                        {workout.is_template && (
-                          <Badge variant="secondary">
-                            <Star className="h-3 w-3 mr-1" />
-                            Template
-                          </Badge>
-                        )}
-                        <Badge variant="outline">
-                          {formatCategory(workout.category)}
-                        </Badge>
-                        <Badge className={getDifficultyColor(workout.difficulty_level)}>
-                          {formatDifficulty(workout.difficulty_level)}
-                        </Badge>
-                      </div>
-
+                      <h3 className="font-semibold text-lg mb-1">{workout.name}</h3>
                       {workout.description && (
-                        <p className="text-muted-foreground mb-3">{workout.description}</p>
-                      )}
-
-                      <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Dumbbell className="h-4 w-4" />
-                          <span>{workout.workout_exercises?.length || 0} exercices</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          <span>{workout.estimated_duration_minutes} min</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>Créé le {new Date(workout.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-
-                      {workout.workout_exercises && workout.workout_exercises.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-sm font-medium mb-2">Exercices :</p>
-                          <div className="flex flex-wrap gap-1">
-                            {workout.workout_exercises.slice(0, 3).map((we) => (
-                              <Badge key={we.id} variant="secondary" className="text-xs">
-                                {we.exercises?.name || 'Exercice inconnu'} ({we.sets}×{we.reps || 'max'})
-                              </Badge>
-                            ))}
-                            {workout.workout_exercises.length > 3 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{workout.workout_exercises.length - 3} autres
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{workout.description}</p>
                       )}
                     </div>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Voir détails
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Modifier
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Dupliquer
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Play className="h-4 w-4 mr-2" />
-                          Démarrer session
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDeleteWorkout(workout.id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Supprimer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => toggleWorkoutExpansion(workout.id)}
+                    >
+                      <ChevronDown 
+                        className={`h-4 w-4 transition-transform ${
+                          expandedWorkouts.has(workout.id) ? 'rotate-180' : ''
+                        }`} 
+                      />
+                    </Button>
                   </div>
+
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge variant="outline">{formatCategory(workout.category)}</Badge>
+                    <Badge className={getDifficultyColor(workout.difficulty_level)}>{formatDifficulty(workout.difficulty_level)}</Badge>
+                    {workout.is_template && (
+                      <Badge variant="secondary">
+                        <Star className="h-3 w-3 mr-1" />
+                        Template
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <span>{workout.workout_exercises?.length || 0} exercices</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      <span>{workout.estimated_duration_minutes} min</span>
+                    </div>
+                  </div>
+
+                  {workout.workout_exercises && workout.workout_exercises.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Exercices :</p>
+                      <div className="flex flex-wrap gap-1">
+                        {workout.workout_exercises.slice(0, 3).map((we) => (
+                          <Badge key={we.id} variant="secondary" className="text-xs">
+                            {we.exercises?.name || 'Exercice inconnu'}
+                          </Badge>
+                        ))}
+                        {workout.workout_exercises.length > 3 && (
+                          <Badge variant="secondary" className="text-xs">+{workout.workout_exercises.length - 3} autres</Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Section déroulée avec les détails de la séance */}
+                  {expandedWorkouts.has(workout.id) && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="mt-4 pt-4 border-t"
+                    >
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-gray-900">Détails du workout</h4>
+                        
+                        {/* Description complète */}
+                        {workout.description && (
+                          <div>
+                            <h5 className="font-medium text-gray-900 mb-2">Description</h5>
+                            <p className="text-sm text-gray-600">{workout.description}</p>
+                          </div>
+                        )}
+
+                        {/* Métriques du workout */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-gray-50 p-3 rounded-lg">
+                            <h6 className="text-xs font-medium text-gray-500 mb-1">Durée estimée</h6>
+                            <p className="text-sm font-semibold">{workout.estimated_duration_minutes} minutes</p>
+                          </div>
+                          <div className="bg-gray-50 p-3 rounded-lg">
+                            <h6 className="text-xs font-medium text-gray-500 mb-1">Nombre d'exercices</h6>
+                            <p className="text-sm font-semibold">{workout.workout_exercises?.length || 0}</p>
+                          </div>
+                        </div>
+
+                        {/* Exercices détaillés */}
+                        <div>
+                          <h5 className="font-medium text-gray-900 mb-3">Séance concoctée par le coach</h5>
+                          {workout.workout_exercises && workout.workout_exercises.length > 0 ? (
+                          <div className="space-y-3">
+                            {workout.workout_exercises.map((we, index) => (
+                              <div key={we.id} className="bg-gray-50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h5 className="font-medium text-gray-900">
+                                    {index + 1}. {we.exercises?.name || 'Exercice inconnu'}
+                                  </h5>
+                                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <span>{we.sets} séries</span>
+                                    <span>•</span>
+                                    <span>{we.reps || 'max'} répétitions</span>
+                                    {we.rest_seconds && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{we.rest_seconds}s de repos</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {we.exercises?.description && (
+                                  <p className="text-sm text-gray-600 mb-2">
+                                    {we.exercises.description}
+                                  </p>
+                                )}
+                                
+                                {we.notes && (
+                                  <div className="bg-blue-50 border-l-4 border-blue-400 p-3">
+                                    <p className="text-sm text-blue-800">
+                                      <strong>Notes du coach :</strong> {we.notes}
+                                    </p>
+                                  </div>
+                                )}
+                                
+                                {we.exercises?.muscle_groups && we.exercises.muscle_groups.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="text-xs font-medium text-gray-500 mb-1">Groupes musculaires :</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {we.exercises.muscle_groups.map((group, i) => (
+                                        <Badge key={i} variant="outline" className="text-xs">
+                                          {group}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          ) : (
+                            <p className="text-gray-500 text-center py-4">Aucun exercice dans ce workout</p>
+                          )}
+                        </div>
+                        
+                        {/* Actions du workout */}
+                        <div className="flex items-center gap-2 pt-4 border-t">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditWorkout(workout)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Modifier
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDeleteWorkout(workout.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Supprimer
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
                 </motion.div>
               ))}
             </div>
@@ -439,10 +467,14 @@ const WorkoutsPage: React.FC = () => {
 
       <AddWorkoutModal
         isOpen={showAddWorkoutModal}
-        onClose={() => setShowAddWorkoutModal(false)}
+        onClose={() => {
+          setShowAddWorkoutModal(false)
+          setEditingWorkout(null)
+        }}
         onWorkoutAdded={fetchData}
         coachId={profile?.id || ''}
         exercises={exercises}
+        editingWorkout={editingWorkout}
       />
     </div>
   )

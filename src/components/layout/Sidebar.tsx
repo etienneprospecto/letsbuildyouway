@@ -10,7 +10,9 @@ import {
   Target,
   User,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Star,
+  FileText
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/AuthProvider'
@@ -37,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'workouts', label: 'Workouts', icon: Dumbbell },
     { id: 'exercices', label: 'Exercices', icon: Target },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
-    { id: 'feedbacks-hebdomadaires', label: 'Feedbacks', icon: MessageSquare },
+    { id: 'feedbacks-hebdomadaires', label: 'Feedbacks', icon: Star },
     { id: 'settings', label: 'Settings', icon: Settings }
   ]
 
@@ -45,7 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'seances', label: 'Mes séances', icon: Calendar },
     { id: 'progression', label: 'Ma progression', icon: Target },
-    { id: 'feedbacks-hebdomadaires', label: 'Feedbacks Hebdo', icon: MessageSquare },
+    { id: 'feedbacks-hebdomadaires', label: 'Feedbacks Hebdo', icon: Star },
     { id: 'ressources', label: 'Mes ressources', icon: Dumbbell },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
     { id: 'settings', label: 'Paramètres', icon: Settings }

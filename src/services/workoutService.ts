@@ -5,17 +5,12 @@ export interface Exercise {
   id: string
   name: string
   description?: string
-  category: string
+  type: string
   muscle_groups?: string[]
-  difficulty_level: string
+  difficulty: string
   equipment_needed?: string[]
-  instructions?: string
   video_url?: string
   image_url?: string
-  estimated_duration_minutes?: number
-  calories_burn_rate?: number
-  created_by?: string
-  is_public: boolean
   created_at: string
   updated_at: string
 }
@@ -58,16 +53,12 @@ export interface WorkoutWithExercises extends Workout {
 export interface CreateExerciseData {
   name: string
   description?: string
-  category: string
+  type: string
   muscle_groups?: string[]
-  difficulty_level: string
+  difficulty: string
   equipment_needed?: string[]
-  instructions?: string
   video_url?: string
   image_url?: string
-  estimated_duration_minutes?: number
-  calories_burn_rate?: number
-  is_public: boolean
 }
 
 export interface CreateWorkoutData {
@@ -96,18 +87,11 @@ export class WorkoutService {
   // Exercices
   static async getExercises(userId?: string): Promise<Exercise[]> {
     console.log('getExercises called with userId:', userId)
-    let query = supabase
+    const { data, error } = await supabase
       .from('exercises')
       .select('*')
       .order('name')
 
-    if (userId) {
-      query = query.or(`created_by.eq.${userId},is_public.eq.true`)
-    } else {
-      query = query.eq('is_public', true)
-    }
-
-    const { data, error } = await query
     console.log('getExercises result:', { data, error })
     if (error) throw error
     return data || []
@@ -116,10 +100,7 @@ export class WorkoutService {
   static async createExercise(userId: string, exerciseData: CreateExerciseData): Promise<Exercise> {
     const { data, error } = await supabase
       .from('exercises')
-      .insert({
-        ...exerciseData,
-        created_by: userId
-      })
+      .insert(exerciseData)
       .select()
       .single()
 
@@ -197,6 +178,15 @@ export class WorkoutService {
       .from('workouts')
       .delete()
       .eq('id', workoutId)
+
+    if (error) throw error
+  }
+
+  static async removeAllExercisesFromWorkout(workoutId: string): Promise<void> {
+    const { error } = await supabase
+      .from('workout_exercises')
+      .delete()
+      .eq('workout_id', workoutId)
 
     if (error) throw error
   }

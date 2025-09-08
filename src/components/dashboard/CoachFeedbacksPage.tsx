@@ -4,9 +4,7 @@ import { WeeklyFeedbackService } from '@/services/weeklyFeedbackService'
 import { ClientService } from '@/services/clientService'
 import { 
   FeedbackTemplate, 
-  WeeklyFeedback, 
-  FeedbackStats,
-  ClientFeedbackSummary 
+  WeeklyFeedback
 } from '@/types/feedback'
 import { toast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
@@ -21,8 +19,6 @@ const CoachFeedbacksPage: React.FC = () => {
   // États des données
   const [templates, setTemplates] = useState<FeedbackTemplate[]>([])
   const [feedbacks, setFeedbacks] = useState<WeeklyFeedback[]>([])
-  const [stats, setStats] = useState<FeedbackStats | null>(null)
-  const [clientsSummary, setClientsSummary] = useState<ClientFeedbackSummary[]>([])
   const [clients, setClients] = useState<any[]>([])
 
   // États des modals
@@ -44,20 +40,16 @@ const CoachFeedbacksPage: React.FC = () => {
       setLoading(true)
       console.log('🔄 Chargement dashboard pour coach:', user!.id)
       
-      const [dashboardData, templatesData, feedbacksData, clientsData] = await Promise.all([
-        WeeklyFeedbackService.getCoachDashboard(user!.id),
+      const [templatesData, feedbacksData, clientsData] = await Promise.all([
         WeeklyFeedbackService.getCoachTemplates(user!.id),
         WeeklyFeedbackService.getCoachFeedbacks(user!.id),
         ClientService.getClientsByCoach(user!.id)
       ])
 
-      console.log('📊 Dashboard data:', dashboardData)
       console.log('📝 Templates récupérés:', templatesData)
       console.log('📋 Feedbacks récupérés:', feedbacksData)
       console.log('👥 Clients récupérés:', clientsData)
 
-      setStats(dashboardData.stats)
-      setClientsSummary(dashboardData.clients_summary)
       setTemplates(templatesData)
       setFeedbacks(feedbacksData)
       setClients(clientsData)
@@ -273,20 +265,6 @@ const CoachFeedbacksPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-2">Templates</h3>
-          <p className="text-3xl font-bold text-blue-600">{templates.length}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-2">Clients</h3>
-          <p className="text-3xl font-bold text-green-600">{clients.length}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-2">Feedbacks</h3>
-          <p className="text-3xl font-bold text-purple-600">{feedbacks.length}</p>
-        </div>
-      </div>
 
       {/* Onglets */}
       <div className="bg-white rounded-lg shadow">
@@ -316,21 +294,6 @@ const CoachFeedbacksPage: React.FC = () => {
           {/* Dashboard Tab */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-2">Templates</h3>
-                  <p className="text-3xl font-bold text-blue-600">{templates.length}</p>
-                </div>
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-2">Clients</h3>
-                  <p className="text-3xl font-bold text-green-600">{clients.length}</p>
-                </div>
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-2">Feedbacks</h3>
-                  <p className="text-3xl font-bold text-purple-600">{feedbacks.length}</p>
-                </div>
-              </div>
-
               <div className="bg-gray-50 p-6 rounded-lg">
                 <h3 className="text-lg font-semibold mb-4">Clients disponibles</h3>
                 {clients.length === 0 ? (
@@ -423,7 +386,11 @@ const CoachFeedbacksPage: React.FC = () => {
                     .map(feedback => {
                       const client = clients.find(c => c.id === feedback.client_id)
                       return (
-                        <div key={feedback.id} className="border rounded-lg p-4 bg-gray-50">
+                        <div 
+                          key={feedback.id} 
+                          className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                          onClick={() => viewClientResponses(feedback.id)}
+                        >
                           <div className="flex justify-between items-center">
                             <div>
                               <h4 className="font-semibold">
@@ -437,6 +404,9 @@ const CoachFeedbacksPage: React.FC = () => {
                               }`}>
                                 {feedback.status === 'sent' ? 'Envoyé' : 'En cours'}
                               </span>
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              Cliquer pour voir les détails →
                             </div>
                           </div>
                         </div>
@@ -460,7 +430,11 @@ const CoachFeedbacksPage: React.FC = () => {
                     .map(feedback => {
                       const client = clients.find(c => c.id === feedback.client_id)
                       return (
-                        <div key={feedback.id} className="border rounded-lg p-4 bg-gray-50">
+                        <div 
+                          key={feedback.id} 
+                          className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                          onClick={() => viewClientResponses(feedback.id)}
+                        >
                           <div className="flex justify-between items-center">
                             <div>
                               <h4 className="font-semibold">
@@ -473,12 +447,9 @@ const CoachFeedbacksPage: React.FC = () => {
                                 Complété
                               </span>
                             </div>
-                            <button
-                              onClick={() => viewClientResponses(feedback.id)}
-                              className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                            >
-                              Voir réponses
-                            </button>
+                            <div className="text-sm text-gray-500">
+                              Cliquer pour voir les détails →
+                            </div>
                           </div>
                         </div>
                       )
@@ -501,8 +472,12 @@ const CoachFeedbacksPage: React.FC = () => {
                     .map(feedback => {
                       const client = clients.find(c => c.id === feedback.client_id)
                       return (
-                        <div key={feedback.id} className="border rounded-lg p-4 bg-gray-50">
-                          <div className="flex justify-between items-center mb-3">
+                        <div 
+                          key={feedback.id} 
+                          className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                          onClick={() => viewClientResponses(feedback.id)}
+                        >
+                          <div className="flex justify-between items-center">
                             <div>
                               <h4 className="font-semibold">
                                 {client ? `${client.first_name} ${client.last_name}` : 'Client inconnu'}
@@ -510,13 +485,13 @@ const CoachFeedbacksPage: React.FC = () => {
                               <p className="text-sm text-gray-600">
                                 Semaine du {new Date(feedback.week_start).toLocaleDateString('fr-FR')} au {new Date(feedback.week_end).toLocaleDateString('fr-FR')}
                               </p>
+                              <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 mt-1">
+                                Complété
+                              </span>
                             </div>
-                            <button
-                              onClick={() => viewClientResponses(feedback.id)}
-                              className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                            >
-                              Voir réponses
-                            </button>
+                            <div className="text-sm text-gray-500">
+                              Cliquer pour voir les détails →
+                            </div>
                           </div>
                         </div>
                       )
