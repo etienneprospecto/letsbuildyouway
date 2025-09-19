@@ -13,6 +13,10 @@ import ProgressionDashboard from '@/components/client/ProgressionDashboard'
 import ClientFeedbacksPage from '@/components/client/ClientFeedbacksPage'
 import ClientResources from '@/components/client/ClientResources'
 import ClientSettingsPage from '@/components/client/ClientSettingsPage'
+import ClientNutritionPage from '@/components/client/ClientNutritionPage'
+import CoachNutritionPage from '@/components/dashboard/CoachNutritionPage'
+import { CoachCalendarPage } from '@/components/dashboard/CoachCalendarPage'
+import { ClientCalendarPage } from '@/components/client/ClientCalendarPage'
 
 interface AppRouterProps {
   activeTab: string
@@ -34,6 +38,10 @@ const AppRouter: React.FC<AppRouterProps> = ({ activeTab, userRole }) => {
         return <MessagesPage />
       case 'feedbacks-hebdomadaires':
         return <CoachFeedbacksPage />
+      case 'nutrition':
+        return <CoachNutritionPage />
+      case 'calendar':
+        return <CoachCalendarPage />
       case 'settings':
         return <SettingsPage />
       default:
@@ -51,6 +59,10 @@ const AppRouter: React.FC<AppRouterProps> = ({ activeTab, userRole }) => {
         return <ClientFeedbacksPage />
       case 'ressources':
         return <ClientResources />
+      case 'nutrition':
+        return <ClientNutritionPage />
+      case 'calendar':
+        return <ClientCalendarPage />
       case 'messages':
         return <ClientMessagesPage />
       case 'settings':

@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from '@/providers/AuthProvider'
 import { WeekProvider } from '@/providers/WeekProvider'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { AuthPage } from '@/components/auth/AuthPage'
+import AcceptInvitation from '@/components/auth/AcceptInvitation'
 import Sidebar from '@/components/layout/Sidebar'
 import Header from '@/components/layout/Header'
 import AppRouter from '@/components/layout/AppRouter'
@@ -15,6 +16,14 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard')
 
   console.log('AppContent render - user:', user?.email, 'profile:', profile?.role, 'loading:', loading)
+
+  // Vérifier si on est sur la page d'acceptation d'invitation
+  const isAcceptInvitationPage = window.location.pathname === '/accept-invitation' || 
+                                 window.location.search.includes('token=')
+
+  if (isAcceptInvitationPage) {
+    return <AcceptInvitation />
+  }
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Chargement...</div>

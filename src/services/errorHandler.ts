@@ -75,6 +75,17 @@ export class ErrorHandler {
       return fallback
     }
   }
+
+  handleError(error: any, message?: string): never {
+    console.error('Service Error:', error);
+    if (message) {
+      throw new Error(message);
+    }
+    throw error;
+  }
 }
+
+// Instance pour l'export nommé
+export const errorHandler = new ErrorHandler();
 
 export default ErrorHandler

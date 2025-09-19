@@ -5,8 +5,10 @@ import ClientService from '@/services/clientService'
 import SeanceService from '@/services/seanceService'
 import HebdoFeedbackService from '@/services/hebdoFeedbackService'
 import ResourceService from '@/services/resourceService'
+import { useAuth } from '../providers/AuthProvider'
 
-export const useClientDetail = (clientId: string) => {
+export const useClientDetail = (clientId?: string) => {
+  const { profile } = useAuth();
   const [client, setClient] = useState<ClientBasicInfo | null>(null)
   const [seances, setSeances] = useState<SeanceWithExercices[]>([])
   const [feedbacks, setFeedbacks] = useState<WeeklyFeedbackBasicInfo[]>([])
@@ -19,7 +21,15 @@ export const useClientDetail = (clientId: string) => {
     try {
       setLoading(true)
       
-      const clientData = await ClientService.getClientById(clientId)
+      // Déterminer l'ID client à utiliser
+      const effectiveClientId = clientId || profile?.client_id
+      
+      if (!effectiveClientId) {
+        console.error('No client ID available')
+        return
+      }
+      
+      const clientData = await ClientService.getClientById(effectiveClientId)
       
       // Charger les autres données avec gestion d'erreur
       let seancesData: SeanceWithExercices[] = []
@@ -27,19 +37,19 @@ export const useClientDetail = (clientId: string) => {
       let resourcesData: ResourceBasicInfo[] = []
       
       try {
-        seancesData = await SeanceService.getSeancesByClient(clientId)
+        seancesData = await SeanceService.getSeancesByClient(effectiveClientId)
       } catch (error) {
         console.warn('Tables séances non disponibles:', error)
       }
       
       try {
-        feedbacksData = await HebdoFeedbackService.getClientFeedbacks(clientId)
+        feedbacksData = await HebdoFeedbackService.getClientFeedbacks(effectiveClientId)
       } catch (error) {
         console.warn('Table weekly_feedbacks non disponible:', error)
       }
       
       try {
-        resourcesData = await ResourceService.getClientResources(clientId)
+        resourcesData = await ResourceService.getClientResources(effectiveClientId)
       } catch (error) {
         console.warn('Table ressources_personnalisees non disponible:', error)
       }
@@ -90,13 +100,16 @@ export const useClientDetail = (clientId: string) => {
   }
 
   const setupRealtimeSubscriptions = () => {
+    const effectiveClientId = clientId || profile?.client_id
+    if (!effectiveClientId) return () => {}
+    
     // Abonnement aux changements de séances
     let seancesSubscription: any = null
     let feedbacksSubscription: any = null
     let resourcesSubscription: any = null
     
     try {
-      seancesSubscription = SeanceService.subscribeToClientSeances(clientId, (payload) => {
+      seancesSubscription = SeanceService.subscribeToClientSeances(effectiveClientId, (payload) => {
         console.log('Seance change:', payload)
         loadClientData() // Recharger les données
       })
@@ -105,7 +118,7 @@ export const useClientDetail = (clientId: string) => {
     }
 
     try {
-      feedbacksSubscription = HebdoFeedbackService.subscribeToClientFeedbacks(clientId, (payload) => {
+      feedbacksSubscription = HebdoFeedbackService.subscribeToClientFeedbacks(effectiveClientId, (payload) => {
         console.log('Feedback change:', payload)
         loadClientData() // Recharger les données
       })
@@ -114,7 +127,7 @@ export const useClientDetail = (clientId: string) => {
     }
 
     try {
-      resourcesSubscription = ResourceService.subscribeToClientResources(clientId, (payload) => {
+      resourcesSubscription = ResourceService.subscribeToClientResources(effectiveClientId, (payload) => {
         console.log('Resource change:', payload)
         loadClientData() // Recharger les données
       })
@@ -131,6 +144,12 @@ export const useClientDetail = (clientId: string) => {
   }
 
   const handleSaveClient = async (updatedClient: Partial<ClientBasicInfo>) => {
+    const effectiveClientId = clientId || profile?.client_id
+    if (!effectiveClientId) {
+      console.error('No client ID available for update')
+      return
+    }
+    
     try {
       setLoading(true)
       
@@ -144,7 +163,7 @@ export const useClientDetail = (clientId: string) => {
         poids_actuel: updatedClient.poids_actuel || client?.poids_actuel,
       }
       
-      const result = await ClientService.updateClient(clientId, dbUpdateData)
+      const result = await ClientService.updateClient(effectiveClientId, dbUpdateData)
 
       if (result && client) {
         const updatedClientData = {
@@ -179,10 +198,16 @@ export const useClientDetail = (clientId: string) => {
   }
 
   const handleSaveProgression = async (progressionData: { poids_depart: number | null, poids_objectif: number | null, poids_actuel: number | null }) => {
+    const effectiveClientId = clientId || profile?.client_id
+    if (!effectiveClientId) {
+      console.error('No client ID available for progression update')
+      return
+    }
+    
     try {
       setLoading(true)
       
-      const result = await ClientService.updateClient(clientId, {
+      const result = await ClientService.updateClient(effectiveClientId, {
         poids_depart: progressionData.poids_depart,
         poids_objectif: progressionData.poids_objectif,
         poids_actuel: progressionData.poids_actuel,
@@ -237,9 +262,11 @@ export const useClientDetail = (clientId: string) => {
   }
 
   useEffect(() => {
-    loadClientData()
-    setupRealtimeSubscriptions()
-  }, [clientId])
+    if (clientId || profile?.client_id) {
+      loadClientData()
+      setupRealtimeSubscriptions()
+    }
+  }, [clientId, profile?.client_id])
 
   return {
     client,

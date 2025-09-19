@@ -133,11 +133,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setProfile(profileData);
         console.log('User authenticated successfully:', profileData.role);
         
-        // 3. Mettre à jour le rôle du profil si nécessaire (en arrière-plan)
-        updateProfileRole(session.user.id, session.user.email || '').catch(error => {
-          console.error('Background role update failed:', error);
-          // Ne pas échouer l'authentification si la mise à jour du rôle échoue
-        });
+        // 3. Mettre à jour le rôle du profil de manière simple
+        // Éviter les appels en arrière-plan qui peuvent causer des boucles
+        setTimeout(() => {
+          updateProfileRoleSimple(session.user.id, session.user.email || '').catch(error => {
+            console.error('Background role update failed:', error);
+          });
+        }, 1000); // Délai pour éviter les conflits
       } else {
         // En cas d'échec du profil, déconnecter
         console.error('Failed to load/create profile, signing out');
@@ -157,10 +159,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Fonction pour mettre à jour le rôle du profil (appelée après la connexion)
-  const updateProfileRole = async (userId: string, email: string) => {
+  // Fonction simplifiée pour mettre à jour le rôle du profil
+  const updateProfileRoleSimple = async (userId: string, email: string) => {
     try {
-      console.log('Updating profile role for:', email);
+      console.log('Updating profile role (simple) for:', email);
+      
+      // Éviter les appels multiples
+      if (isProcessingAuth.current) {
+        console.log('Auth processing in progress, skipping role update');
+        return;
+      }
       
       // Validation d'accès simplifiée
       const allowedCoachEmails = ['etienne.guimbard@gmail.com'];
@@ -182,15 +190,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
       
-      // Vérifier si c'est un client dans la table clients
-      const { data: clientRecord } = await supabase
+      // Vérification client simplifiée - une seule requête
+      const { data: clientRecord, error: clientError } = await supabase
         .from('clients')
         .select('id, coach_id')
-        .eq('contact', email)
+        .eq('contact', email.toLowerCase())
         .eq('status', 'active')
         .maybeSingle();
       
-      if (clientRecord) {
+      if (!clientError && clientRecord) {
+        console.log('Client found, updating profile to client role');
+        
         // Mettre à jour le profil en tant que client
         const { data: updatedProfile, error: updateError } = await supabase
           .from('profiles')
@@ -210,10 +220,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
       
-      console.log('Profile role update completed');
+      console.log('No role update needed or client not found');
       
     } catch (error) {
-      console.error('Error updating profile role:', error);
+      console.error('Error in updateProfileRoleSimple:', error);
       // Ne pas échouer si la mise à jour du rôle échoue
     }
   };
@@ -223,8 +233,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const profileData = await fetchProfile(user.id);
       if (profileData) {
         setProfile(profileData);
-        // Mettre à jour le rôle si nécessaire
-        await updateProfileRole(user.id, user.email || '');
+        // Mettre à jour le rôle si nécessaire (version simplifiée)
+        setTimeout(() => {
+          updateProfileRoleSimple(user.id, user.email || '').catch(error => {
+            console.error('Profile role update failed:', error);
+          });
+        }, 500);
       }
     }
   };

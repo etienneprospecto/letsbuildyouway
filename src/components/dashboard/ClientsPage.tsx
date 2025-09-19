@@ -384,17 +384,21 @@ const ClientsPage: React.FC = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+                  onClick={() => {
+                    setSelectedClient(client)
+                    setIsClientModalOpen(true)
+                  }}
                 >
                   {/* Informations client */}
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-4 flex-1">
                     <Avatar>
                       <AvatarFallback>
                         {client.first_name.charAt(0)}{client.last_name.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <p className="font-medium">
                           {client.first_name} {client.last_name}
@@ -402,6 +406,9 @@ const ClientsPage: React.FC = () => {
                         <Badge variant="outline" className={getStatusColor(client.status)}>
                           {getStatusText(client.status)}
                         </Badge>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity text-sm text-muted-foreground">
+                          Cliquer pour voir le profil
+                        </div>
                       </div>
                       
                       <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
@@ -427,11 +434,15 @@ const ClientsPage: React.FC = () => {
                     </div>
                   </div>
 
-
                   {/* Actions */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={(e) => e.stopPropagation()} // Empêche la propagation du clic
+                        className="opacity-60 group-hover:opacity-100 transition-opacity"
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
