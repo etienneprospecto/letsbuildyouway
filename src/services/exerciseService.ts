@@ -3,13 +3,23 @@ import { Exercise } from '../types';
 
 export const exerciseService = {
   async getExercises() {
-    const { data, error } = await supabase
-      .from('exercises')
-      .select('*')
-      .order('name');
+    try {
+      const { data, error } = await supabase
+        .from('exercises')
+        .select('*')
+        .order('name');
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error('Erreur lors de la récupération des exercices:', error);
+        throw error;
+      }
+      
+      console.log('Exercices récupérés:', data);
+      return data || [];
+    } catch (error) {
+      console.error('Erreur dans getExercises:', error);
+      throw error;
+    }
   },
 
   async getExercisesByTheme(theme: string) {

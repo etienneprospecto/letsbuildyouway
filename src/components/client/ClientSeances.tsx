@@ -9,15 +9,20 @@ import { useAuth } from '@/providers/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/hooks/use-toast'
 import { useClientSeances, Seance, ExerciceSeance } from '@/hooks/useClientSeances'
+import { useWeek } from '@/providers/WeekProvider'
 import WorkoutTimeline from './WorkoutTimeline'
+import { EnhancedSessionDisplay } from './EnhancedSessionDisplay'
 
 const ClientSeances: React.FC = () => {
   const { user } = useAuth()
   const {
     loading,
     currentWeekStart,
-    getCurrentWeekSeances
+    getCurrentWeekSeances,
+    refetch
   } = useClientSeances(user?.email)
+  
+  const { goToCurrentWeek, formatWeekRange } = useWeek()
 
   const [selectedSeance, setSelectedSeance] = useState<Seance | null>(null)
   const [exercices, setExercices] = useState<ExerciceSeance[]>([])
@@ -27,6 +32,10 @@ const ClientSeances: React.FC = () => {
     humeur: '😐',
     commentaire: ''
   })
+
+  // États pour la session active
+  const [activeSession, setActiveSession] = useState<Seance | null>(null)
+  const [isSessionActive, setIsSessionActive] = useState(false)
 
   // Obtenir les séances de la semaine en cours
   const currentWeekSeances = getCurrentWeekSeances()
@@ -91,6 +100,147 @@ const ClientSeances: React.FC = () => {
     }
   }
 
+  // Démarrer une session
+  const handleSessionStart = async (sessionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('seances')
+        .update({
+          session_started_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId)
+
+      if (error) throw error
+
+      toast({
+        title: "Session démarrée",
+        description: "Bonne séance ! 💪"
+      })
+    } catch (error) {
+      console.error('Erreur démarrage session:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de démarrer la session",
+        variant: "destructive"
+      })
+    }
+  }
+
+  // Terminer une session
+  const handleSessionComplete = async (sessionId: string, feedbacks: any[]) => {
+    try {
+      console.log('🔄 Début de la finalisation de la session:', sessionId)
+      console.log('📊 Feedbacks reçus:', feedbacks)
+
+      // Mettre à jour la séance
+      const { error: sessionError } = await supabase
+        .from('seances')
+        .update({
+          statut: 'terminée',
+          session_completed_at: new Date().toISOString(),
+          exercices_termines: feedbacks.length,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId)
+
+      if (sessionError) {
+        console.error('❌ Erreur mise à jour séance:', sessionError)
+        throw sessionError
+      }
+
+      console.log('✅ Séance mise à jour avec succès')
+
+      // Mettre à jour les feedbacks des exercices
+      for (const feedback of feedbacks) {
+        console.log('🔄 Mise à jour exercice:', feedback.exercise_id || feedback.id)
+        
+        const { error: exerciseError } = await supabase
+          .from('exercices_seance')
+          .update({
+            sets_completed: feedback.sets_completed,
+            reps_completed: feedback.reps_completed,
+            difficulty_rating: feedback.difficulty_rating,
+            form_rating: feedback.form_rating,
+            energy_level: feedback.energy_level,
+            pain_level: feedback.pain_level,
+            exercise_notes: feedback.notes,
+            completed: true,
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', feedback.exercise_id || feedback.id)
+
+        if (exerciseError) {
+          console.error('❌ Erreur mise à jour exercice:', exerciseError)
+          throw exerciseError
+        }
+        
+        console.log('✅ Exercice mis à jour avec succès')
+      }
+
+      console.log('🎉 Tous les exercices mis à jour avec succès')
+
+      // Rafraîchir les données
+      await refetch()
+
+      toast({
+        title: "Félicitations ! 🎉",
+        description: "Séance terminée avec succès !"
+      })
+
+      setIsSessionActive(false)
+      setActiveSession(null)
+    } catch (error) {
+      console.error('❌ Erreur fin session:', error)
+      toast({
+        title: "Erreur",
+        description: `Impossible de terminer la session: ${error.message}`,
+        variant: "destructive"
+      })
+    }
+  }
+
+  // Mettre à jour le feedback d'un exercice
+  const handleExerciseComplete = async (sessionId: string, exerciseId: string, feedback: any) => {
+    try {
+      console.log('🔄 Mise à jour exercice individuel:', exerciseId, feedback)
+      
+      const { error } = await supabase
+        .from('exercices_seance')
+        .update({
+          sets_completed: feedback.sets_completed,
+          reps_completed: feedback.reps_completed,
+          difficulty_rating: feedback.difficulty_rating,
+          form_rating: feedback.form_rating,
+          energy_level: feedback.energy_level,
+          pain_level: feedback.pain_level,
+          exercise_notes: feedback.notes,
+          completed: feedback.completed,
+          completed_at: feedback.completed ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', exerciseId)
+
+      if (error) {
+        console.error('❌ Erreur mise à jour exercice:', error)
+        throw error
+      }
+
+      console.log('✅ Exercice individuel mis à jour avec succès')
+      
+      // Rafraîchir les données
+      await refetch()
+    } catch (error) {
+      console.error('Erreur feedback exercice:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder le feedback",
+        variant: "destructive"
+      })
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -107,9 +257,25 @@ const ClientSeances: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mes séances</h1>
-        <p className="text-gray-600">Suivi de ton programme hebdomadaire</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Mes séances</h1>
+          <p className="text-gray-600">Suivi de ton programme hebdomadaire</p>
+        </div>
+        <div className="text-right">
+          <div className="text-sm text-gray-600 mb-2">
+            Semaine du {formatWeekRange(currentWeekStart)}
+          </div>
+          <Button
+            onClick={goToCurrentWeek}
+            variant="outline"
+            size="sm"
+            className="text-orange-600 border-orange-300 hover:bg-orange-50"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Semaine actuelle
+          </Button>
+        </div>
       </div>
 
       {/* Frise des semaines d'entraînement */}
@@ -117,142 +283,34 @@ const ClientSeances: React.FC = () => {
 
       {/* Liste des séances détaillées de la semaine en cours */}
       {currentWeekSeances.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {/* Header compact */}
-          <div className="bg-gradient-to-r from-orange-50 to-orange-100 px-6 py-4 border-b border-orange-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Détails des séances
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {currentWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
-              </div>
-              <Badge variant="outline" className="bg-white text-orange-600 border-orange-300">
-                {currentWeekSeances.length} séance{currentWeekSeances.length > 1 ? 's' : ''}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Liste compacte des séances */}
-          <div className="divide-y divide-gray-100">
-            {currentWeekSeances.map((seance: Seance, index: number) => (
-              <div key={seance.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  {/* Informations principales */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className={`w-3 h-3 rounded-full ${
-                        seance.statut === 'terminée' ? 'bg-green-500' :
-                        seance.statut === 'manquée' ? 'bg-red-500' : 'bg-orange-500'
-                      }`} />
-                      <h4 className="font-semibold text-gray-900">{seance.nom_seance}</h4>
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs ${
-                          seance.statut === 'terminée' ? 'bg-green-50 text-green-700 border-green-200' :
-                          seance.statut === 'manquée' ? 'bg-red-50 text-red-700 border-red-200' : 
-                          'bg-orange-50 text-orange-700 border-orange-200'
-                        }`}
-                      >
-                        {seance.statut}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {new Date(seance.date_seance).toLocaleDateString('fr-FR', {
-                          weekday: 'short',
-                          day: 'numeric',
-                          month: 'short'
-                        })}
-                      </div>
-                      
-                      {seance.statut === 'terminée' && (
-                        <>
-                          <div className="flex items-center gap-1">
-                            <Target className="h-4 w-4" />
-                            {seance.intensite_ressentie}/10
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span>{seance.humeur || '😐'}</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Réponse du coach (compacte) */}
-                    {seance.reponse_coach && (
-                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-start gap-2">
-                          <MessageSquare className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs font-medium text-blue-900 mb-1">Réponse du coach</p>
-                            <p className="text-sm text-blue-800 line-clamp-2">{seance.reponse_coach}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Bouton d'action */}
-                  <div className="ml-4">
-                    <Button 
-                      onClick={() => handleOpenSeance(seance)}
-                      size="sm"
-                      className={`${
-                        seance.statut === 'programmée' 
-                          ? 'bg-orange-500 hover:bg-orange-600 text-white' 
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      {seance.statut === 'programmée' ? 'Commencer' : 'Détails'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="space-y-4">
+          {currentWeekSeances.map((seance: Seance, index: number) => (
+            <EnhancedSessionDisplay
+              key={seance.id}
+              session={seance}
+              onSessionStart={handleSessionStart}
+              onSessionComplete={handleSessionComplete}
+              onExerciseComplete={handleExerciseComplete}
+            />
+          ))}
         </div>
       )}
 
       {/* Message si aucune séance pour la semaine */}
       {currentWeekSeances.length === 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {/* Header compact */}
-          <div className="bg-gradient-to-r from-orange-50 to-orange-100 px-6 py-4 border-b border-orange-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Détails des séances
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {currentWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
-              </div>
-              <Badge variant="outline" className="bg-white text-orange-600 border-orange-300">
-                0 séance
-              </Badge>
-            </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Calendar className="h-8 w-8 text-gray-400" />
           </div>
-
-          {/* État vide */}
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Calendar className="h-8 w-8 text-gray-400" />
-            </div>
-            <h4 className="text-lg font-medium text-gray-900 mb-2">
-              Aucune séance programmée
-            </h4>
-            <p className="text-gray-600 mb-4">
-              Aucune séance n'est prévue pour cette semaine
-            </p>
-            <p className="text-sm text-gray-500">
-              Utilise les flèches pour naviguer entre les semaines
-            </p>
-          </div>
+          <h4 className="text-lg font-medium text-gray-900 mb-2">
+            Aucune séance programmée
+          </h4>
+          <p className="text-gray-600 mb-4">
+            Aucune séance n'est prévue pour cette semaine
+          </p>
+          <p className="text-sm text-gray-500">
+            Utilise les flèches pour naviguer entre les semaines
+          </p>
         </div>
       )}
 

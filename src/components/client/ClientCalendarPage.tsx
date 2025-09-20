@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, Video, MapPin, Plus, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Clock, User, Video, MapPin, Plus, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -7,6 +7,7 @@ import { appointmentService, AppointmentWithDetails } from '../../services/appoi
 import { availabilityService, AvailableSlot } from '../../services/availabilityService';
 import { useAuth } from '../../providers/AuthProvider';
 import { useClientDetail } from '../../hooks/useClientDetail';
+import { useWeek } from '../../providers/WeekProvider';
 import { BookingModal } from './calendar/BookingModal';
 import { AppointmentDetailsModal } from './calendar/AppointmentDetailsModal';
 import { format, addDays, startOfWeek, endOfWeek, isSameDay, isPast, isFuture } from 'date-fns';
@@ -22,6 +23,15 @@ interface CalendarStats {
 export const ClientCalendarPage: React.FC = () => {
   const { user, profile } = useAuth();
   const { client, loading: clientLoading } = useClientDetail();
+  const { 
+    currentWeekStart, 
+    currentTime, 
+    goToPreviousWeek, 
+    goToNextWeek, 
+    goToCurrentWeek, 
+    formatWeekRange 
+  } = useWeek();
+  
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
@@ -43,7 +53,7 @@ export const ClientCalendarPage: React.FC = () => {
     } else if (!clientLoading && !client && profile?.role === 'client') {
       console.error('Client profile loaded but no client data found. Profile client_id:', profile.client_id);
     }
-  }, [client, clientLoading, selectedDate, profile]);
+  }, [client, clientLoading, currentWeekStart, profile]);
 
   const loadCalendarData = async () => {
     if (!client) return;
@@ -64,8 +74,8 @@ export const ClientCalendarPage: React.FC = () => {
 
       // Calculer les statistiques
       const now = new Date();
-      const weekStart = startOfWeek(now, { locale: fr });
-      const weekEnd = endOfWeek(now, { locale: fr });
+      const weekStart = startOfWeek(currentWeekStart, { locale: fr });
+      const weekEnd = endOfWeek(currentWeekStart, { locale: fr });
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
@@ -151,8 +161,7 @@ export const ClientCalendarPage: React.FC = () => {
   };
 
   const getWeekDays = () => {
-    const start = startOfWeek(selectedDate, { locale: fr });
-    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+    return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   };
 
   const getAppointmentsForDate = (date: Date) => {
@@ -196,22 +205,57 @@ export const ClientCalendarPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Header avec navigation par semaine */}
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Mes rendez-vous</h1>
           <p className="text-gray-600">
             Réservez vos séances et gérez vos rendez-vous
           </p>
         </div>
-
-        <Button
-          onClick={() => setShowBookingModal(true)}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Prendre rendez-vous
-        </Button>
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={() => setShowBookingModal(true)}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Prendre rendez-vous
+          </Button>
+          <div className="text-right">
+            <div className="text-sm text-gray-600 mb-2">
+              Semaine du {formatWeekRange(currentWeekStart)}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={goToPreviousWeek}
+                variant="outline"
+                size="sm"
+                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Précédente
+              </Button>
+              <Button
+                onClick={goToCurrentWeek}
+                variant="outline"
+                size="sm"
+                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Semaine actuelle
+              </Button>
+              <Button
+                onClick={goToNextWeek}
+                variant="outline"
+                size="sm"
+                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+              >
+                Suivante
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Statistiques */}
@@ -265,38 +309,13 @@ export const ClientCalendarPage: React.FC = () => {
         </Card>
       </div>
 
+
       {/* Sélecteur de semaine */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Semaine du {format(startOfWeek(selectedDate, { locale: fr }), 'd MMMM yyyy', { locale: fr })}
-            </span>
-            
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedDate(addDays(selectedDate, -7))}
-              >
-                ← Précédente
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedDate(new Date())}
-              >
-                Aujourd'hui
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedDate(addDays(selectedDate, 7))}
-              >
-                Suivante →
-              </Button>
-            </div>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            Semaine du {format(currentWeekStart, 'd MMMM yyyy', { locale: fr })}
           </CardTitle>
         </CardHeader>
 
@@ -304,7 +323,7 @@ export const ClientCalendarPage: React.FC = () => {
           <div className="grid grid-cols-7 gap-2">
             {getWeekDays().map((date) => {
               const dayAppointments = getAppointmentsForDate(date);
-              const isToday = isSameDay(date, new Date());
+              const isToday = isSameDay(date, currentTime);
               const isSelected = isSameDay(date, selectedDate);
               const isPastDate = isPast(date) && !isToday;
 
@@ -314,7 +333,7 @@ export const ClientCalendarPage: React.FC = () => {
                   className={`
                     p-3 rounded-lg border cursor-pointer transition-colors min-h-[120px]
                     ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
-                    ${isToday ? 'bg-blue-100 border-blue-300' : 'bg-white hover:bg-gray-50'}
+                    ${isToday ? 'bg-blue-100 border-blue-300 ring-2 ring-blue-400' : 'bg-white hover:bg-gray-50'}
                     ${isPastDate ? 'opacity-60' : ''}
                   `}
                   onClick={() => setSelectedDate(date)}

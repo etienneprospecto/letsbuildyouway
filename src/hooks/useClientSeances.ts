@@ -14,6 +14,7 @@ export interface Seance {
   exercices_termines?: number
   taux_reussite?: number
   reponse_coach?: string
+  exercices?: ExerciceSeance[]
 }
 
 export interface ExerciceSeance {
@@ -24,6 +25,16 @@ export interface ExerciceSeance {
   temps_repos: string
   ordre: number
   completed: boolean
+  sets_completed?: number
+  reps_completed?: string
+  difficulty_rating?: number
+  form_rating?: number
+  energy_level?: number
+  pain_level?: number
+  exercise_notes?: string
+  exercise_duration?: number
+  started_at?: string
+  completed_at?: string
 }
 
 export interface WeeklySession {
@@ -81,7 +92,17 @@ export const useClientSeances = (userEmail: string | undefined) => {
             repetitions,
             temps_repos,
             ordre,
-            completed
+            completed,
+            sets_completed,
+            reps_completed,
+            difficulty_rating,
+            form_rating,
+            energy_level,
+            pain_level,
+            exercise_notes,
+            exercise_duration,
+            started_at,
+            completed_at
           )
         `)
         .eq('client_id', clientData.id)
@@ -110,8 +131,19 @@ export const useClientSeances = (userEmail: string | undefined) => {
         }
       }
 
-      setSeances(seancesData || [])
-      generateWeeklyData(seancesData || [])
+      // Mapper les données pour que exercices_seance devienne exercices
+      const mappedSeances = (seancesData || []).map(seance => ({
+        ...seance,
+        exercices: seance.exercices_seance || []
+      }))
+      
+      console.log('🔄 Séances mappées:', mappedSeances.map(s => ({
+        nom: s.nom_seance,
+        exercices: s.exercices?.length || 0
+      })))
+      
+      setSeances(mappedSeances)
+      generateWeeklyData(mappedSeances)
     } catch (error) {
       console.error('Erreur récupération séances:', error)
       toast({
@@ -193,6 +225,11 @@ export const useClientSeances = (userEmail: string | undefined) => {
         s.id === seanceId ? { ...s, statut: newStatus } : s
       ))
 
+      // Si la séance est marquée comme terminée, mettre à jour le compteur client
+      if (newStatus === 'terminée') {
+        await updateClientSessionsCompleted(seanceId)
+      }
+
       toast({
         title: "Statut mis à jour",
         description: `Séance marquée comme "${newStatus}"`,
@@ -204,6 +241,40 @@ export const useClientSeances = (userEmail: string | undefined) => {
         description: "Impossible de mettre à jour le statut",
         variant: "destructive"
       })
+    }
+  }
+
+  // Mettre à jour le compteur de séances complétées pour un client
+  const updateClientSessionsCompleted = async (seanceId: string) => {
+    try {
+      // Récupérer l'ID du client depuis la séance
+      const seance = seances.find(s => s.id === seanceId)
+      if (!seance) return
+
+      // Compter les séances terminées pour ce client
+      const { count, error: countError } = await supabase
+        .from('seances')
+        .select('*', { count: 'exact', head: true })
+        .eq('client_id', seance.client_id)
+        .eq('statut', 'terminée')
+
+      if (countError) throw countError
+
+      // Mettre à jour le compteur dans la table clients
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({ 
+          sessions_completed: count || 0,
+          last_session_date: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', seance.client_id)
+
+      if (updateError) throw updateError
+
+      console.log(`✅ Compteur sessions_completed mis à jour: ${count || 0}`)
+    } catch (error) {
+      console.error('Erreur mise à jour compteur sessions:', error)
     }
   }
 
@@ -241,20 +312,16 @@ export const useClientSeances = (userEmail: string | undefined) => {
     return filteredSeances
   }
 
-  // Vérifier si une date est aujourd'hui (basé sur la date du header)
+  // Vérifier si une date est aujourd'hui (basé sur la date actuelle)
   const isToday = (date: Date, weekStart?: Date): boolean => {
-    // Date du header : 03/09/2025 (mercredi 3 septembre)
-    const headerDate = new Date('2025-09-03T00:00:00+02:00')
+    // Utiliser la date actuelle du contexte global
+    const today = new Date(currentTime)
+    today.setHours(0, 0, 0, 0)
     
-    // Utiliser la semaine passée en paramètre ou la semaine actuelle
-    const weekStartDate = weekStart || currentWeekStart
-    const weekEnd = new Date(weekStartDate)
-    weekEnd.setDate(weekStartDate.getDate() + 6)
+    const dateToCheck = new Date(date)
+    dateToCheck.setHours(0, 0, 0, 0)
     
-    const isInCurrentWeek = date >= weekStartDate && date <= weekEnd
-    const isHeaderDate = date.toDateString() === headerDate.toDateString()
-    
-    return isInCurrentWeek && isHeaderDate
+    return dateToCheck.getTime() === today.getTime()
   }
 
   // Générer les données de la semaine
@@ -262,16 +329,14 @@ export const useClientSeances = (userEmail: string | undefined) => {
     const weekStartDate = weekStart || currentWeekStart
     const weekData: WeeklySession[] = []
 
-    // Semaine contenant le 3 septembre 2025 (mercredi)
-    const weekDates = [
-      new Date('2025-09-01T00:00:00+02:00'), // Lundi 1er septembre
-      new Date('2025-09-02T00:00:00+02:00'), // Mardi 2 septembre  
-      new Date('2025-09-03T00:00:00+02:00'), // Mercredi 3 septembre ← AUJOURD'HUI
-      new Date('2025-09-04T00:00:00+02:00'), // Jeudi 4 septembre
-      new Date('2025-09-05T00:00:00+02:00'), // Vendredi 5 septembre
-      new Date('2025-09-06T00:00:00+02:00'), // Samedi 6 septembre
-      new Date('2025-09-07T00:00:00+02:00')  // Dimanche 7 septembre
-    ]
+    // Générer les 7 jours de la semaine en partant du début de semaine
+    const weekDates = []
+    for (let i = 0; i < 7; i++) {
+      const dayDate = new Date(weekStartDate)
+      dayDate.setDate(weekStartDate.getDate() + i)
+      dayDate.setHours(0, 0, 0, 0)
+      weekDates.push(dayDate)
+    }
 
     // Générer les 7 jours de la semaine
     for (let i = 0; i < 7; i++) {

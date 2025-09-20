@@ -76,6 +76,12 @@ export class SeanceService {
         .single()
 
       if (error) throw error
+
+      // Si la séance est marquée comme terminée, mettre à jour le compteur client
+      if (updates.statut === 'terminée') {
+        await this.updateClientSessionsCompleted(data.client_id)
+      }
+
       return data
     } catch (error) {
       console.error('Error updating seance:', error)
@@ -110,6 +116,8 @@ export class SeanceService {
     }>
   ): Promise<SeanceWithExercices> {
     try {
+      console.log('Données de séance à insérer:', seanceData)
+      
       // 1. Créer la séance
       const { data: seance, error: seanceError } = await supabase
         .from('seances')
@@ -121,7 +129,12 @@ export class SeanceService {
         .select()
         .single()
 
-      if (seanceError) throw seanceError
+      if (seanceError) {
+        console.error('Erreur lors de la création de la séance:', seanceError)
+        throw seanceError
+      }
+      
+      console.log('Séance créée avec succès:', seance)
 
       // 2. Créer les exercices de la séance
       const exercicesData = workoutExercises.map((exercise, index) => ({
@@ -205,12 +218,155 @@ export class SeanceService {
         commentaire_client: feedback.commentaire_client,
         exercices_termines: feedback.exercices_termines,
         taux_reussite: feedback.taux_reussite,
-        date_fin: new Date().toISOString()
+        date_fin: new Date().toISOString(),
+        session_completed_at: new Date().toISOString()
+      }
+
+      const updatedSeance = await this.updateSeance(seanceId, updates)
+
+      // Mettre à jour le compteur de séances complétées dans la table clients
+      await this.updateClientSessionsCompleted(updatedSeance.client_id)
+
+      return updatedSeance
+    } catch (error) {
+      console.error('Error marking seance completed:', error)
+      throw error
+    }
+  }
+
+  // Mettre à jour le compteur de séances complétées pour un client
+  private static async updateClientSessionsCompleted(clientId: string): Promise<void> {
+    try {
+      // Compter les séances terminées pour ce client
+      const { count, error: countError } = await supabase
+        .from('seances')
+        .select('*', { count: 'exact', head: true })
+        .eq('client_id', clientId)
+        .eq('statut', 'terminée')
+
+      if (countError) throw countError
+
+      // Mettre à jour le compteur dans la table clients
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({ 
+          sessions_completed: count || 0,
+          last_session_date: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', clientId)
+
+      if (updateError) throw updateError
+
+      console.log(`✅ Compteur sessions_completed mis à jour pour client ${clientId}: ${count || 0}`)
+    } catch (error) {
+      console.error('Error updating client sessions completed:', error)
+      throw error
+    }
+  }
+
+  // Mettre à jour le feedback d'un exercice
+  static async updateExerciseFeedback(exerciseId: string, feedback: {
+    sets_completed: number
+    reps_completed: string
+    difficulty_rating: number
+    form_rating: number
+    energy_level: number
+    pain_level: number
+    exercise_notes?: string
+    exercise_duration?: number
+    completed?: boolean
+  }): Promise<ExerciceSeance> {
+    try {
+      const updates: Partial<ExerciceSeance> = {
+        sets_completed: feedback.sets_completed,
+        reps_completed: feedback.reps_completed,
+        difficulty_rating: feedback.difficulty_rating,
+        form_rating: feedback.form_rating,
+        energy_level: feedback.energy_level,
+        pain_level: feedback.pain_level,
+        exercise_notes: feedback.exercise_notes,
+        exercise_duration: feedback.exercise_duration,
+        completed: feedback.completed || false,
+        completed_at: feedback.completed ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString()
+      }
+
+      const { data, error } = await supabase
+        .from('exercices_seance')
+        .update(updates)
+        .eq('id', exerciseId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error updating exercise feedback:', error)
+      throw error
+    }
+  }
+
+  // Démarrer un exercice
+  static async startExercise(exerciseId: string): Promise<ExerciceSeance> {
+    try {
+      const updates: Partial<ExerciceSeance> = {
+        started_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      const { data, error } = await supabase
+        .from('exercices_seance')
+        .update(updates)
+        .eq('id', exerciseId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error starting exercise:', error)
+      throw error
+    }
+  }
+
+  // Démarrer une séance
+  static async startSession(seanceId: string): Promise<Seance> {
+    try {
+      const updates: SeanceUpdate = {
+        session_started_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }
 
       return await this.updateSeance(seanceId, updates)
     } catch (error) {
-      console.error('Error marking seance completed:', error)
+      console.error('Error starting session:', error)
+      throw error
+    }
+  }
+
+  // Récupérer les statistiques de feedback d'une séance
+  static async getSessionFeedbackStats(seanceId: string): Promise<{
+    total_exercises: number
+    completed_exercises: number
+    completion_percentage: number
+    average_difficulty: number
+    average_energy: number
+    average_form: number
+    average_pain: number
+    total_duration: number
+  }> {
+    try {
+      const { data, error } = await supabase
+        .from('session_feedback_summary')
+        .select('*')
+        .eq('session_id', seanceId)
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error getting session feedback stats:', error)
       throw error
     }
   }
