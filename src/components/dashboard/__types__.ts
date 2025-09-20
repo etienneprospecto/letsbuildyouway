@@ -80,6 +80,7 @@ export interface ResourceWithUrl extends ResourceBasicInfo {
 export interface ProgressData {
   date: string
   weight: number | null
+  waistCircumference: number | null
   body_fat: number | null
   muscle_mass: number | null
 }

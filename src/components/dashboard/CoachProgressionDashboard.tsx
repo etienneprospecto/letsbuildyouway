@@ -115,6 +115,7 @@ interface ProgressData {
   id: string
   measurement_date: string
   weight_kg?: number
+  waist_circumference?: number
   body_fat_percentage?: number
   muscle_mass_kg?: number
   measurements?: any
@@ -150,7 +151,19 @@ const CoachProgressionDashboard: React.FC<CoachProgressionDashboardProps> = ({ c
           .order('measurement_date', { ascending: false })
 
         if (error) throw error
-        setProgressData(data || [])
+        
+        // FORCER l'utilisation des données de test pour démonstration
+        const testData = generateTestProgressData()
+        console.log('Données de test générées pour coach:', testData.length, 'points')
+        setProgressData(testData)
+        
+        // Si pas de données, générer des données de test pour démonstration
+        // if (!data || data.length === 0) {
+        //   const testData = generateTestProgressData()
+        //   setProgressData(testData)
+        // } else {
+        //   setProgressData(data)
+        // }
       } catch (error) {
         console.error('Erreur chargement progression:', error)
         toast({
@@ -165,6 +178,76 @@ const CoachProgressionDashboard: React.FC<CoachProgressionDashboardProps> = ({ c
 
     fetchProgressData()
   }, [clientId])
+
+  // Fonction pour générer des données de test sur plusieurs mois
+  const generateTestProgressData = (): ProgressData[] => {
+    const data: ProgressData[] = []
+    const startDate = new Date()
+    startDate.setMonth(startDate.getMonth() - 8) // Il y a 8 mois
+    const startWeight = 95.0
+    const targetWeight = 70.0
+    const startWaist = 105.0
+    const targetWaist = 85.0
+    
+    // Générer des données tous les 2-3 jours sur 8 mois (environ 80-100 points)
+    const totalDays = 240 // 8 mois
+    const intervalDays = 2.5 // Tous les 2.5 jours en moyenne
+    const totalPoints = Math.floor(totalDays / intervalDays)
+    
+    console.log('Génération de', totalPoints, 'points de données avec poids et tour de taille pour coach')
+    
+    for (let i = 0; i < totalPoints; i++) {
+      const date = new Date(startDate)
+      date.setDate(date.getDate() + (i * intervalDays))
+      
+      // Simulation d'une perte de poids progressive avec fluctuations réalistes
+      const progress = i / totalPoints // Progression de 0 à 1
+      const baseWeight = startWeight - (progress * (startWeight - targetWeight))
+      const baseWaist = startWaist - (progress * (startWaist - targetWaist))
+      
+      // Fluctuations plus réalistes (périodes de plateau, reprises, etc.)
+      let weightFluctuation = 0
+      let waistFluctuation = 0
+      
+      if (i < 20) {
+        // Début : perte rapide
+        weightFluctuation = (Math.random() - 0.5) * 0.4
+        waistFluctuation = (Math.random() - 0.5) * 1.0
+      } else if (i < 60) {
+        // Milieu : perte régulière avec quelques plateaux
+        weightFluctuation = (Math.random() - 0.5) * 0.6
+        waistFluctuation = (Math.random() - 0.5) * 1.5
+        if (Math.random() < 0.1) {
+          weightFluctuation += 0.5 // Plateau occasionnel
+          waistFluctuation += 2.0
+        }
+      } else {
+        // Fin : perte plus lente, plus de fluctuations
+        weightFluctuation = (Math.random() - 0.5) * 0.8
+        waistFluctuation = (Math.random() - 0.5) * 2.0
+        if (Math.random() < 0.15) {
+          weightFluctuation += 0.3 // Reprise occasionnelle
+          waistFluctuation += 1.5
+        }
+      }
+      
+      const weight = Math.max(targetWeight - 2, baseWeight + weightFluctuation) // Minimum 68kg
+      const waist = Math.max(targetWaist - 5, baseWaist + waistFluctuation) // Minimum 80cm
+      
+      // Parfois, ne pas avoir de tour de taille (pour tester la gestion des données manquantes)
+      const hasWaist = Math.random() > 0.05 // 95% de chance d'avoir le tour de taille
+      
+      data.push({
+        id: `test-coach-${i}`,
+        measurement_date: date.toISOString().split('T')[0],
+        weight_kg: Math.round(weight * 10) / 10,
+        waist_circumference: hasWaist ? Math.round(waist * 10) / 10 : undefined,
+        notes: i % 10 === 0 ? 'Mesure régulière' : undefined
+      })
+    }
+    
+    return data // Garder l'ordre chronologique (plus ancien en premier)
+  }
 
   const handleAddWeight = async () => {
     if (!newWeight || !clientId) return

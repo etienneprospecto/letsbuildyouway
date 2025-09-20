@@ -1,6 +1,6 @@
 import React, { useState, useEffect, memo, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Calendar, Target, TrendingUp, Award, Play, CheckCircle, Clock, Droplets, Activity, RefreshCw } from 'lucide-react'
+import { Calendar, Target, TrendingUp, Award, Play, CheckCircle, Clock, Droplets, RefreshCw } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -23,7 +23,6 @@ interface DashboardStats {
   totalSessionsCompleted: number
   nutritionStats: NutritionStats | null
   nextSession: SeanceWithExercices | null
-  recentProgress: any[]
 }
 
 const ClientDashboard: React.FC = memo(() => {
@@ -37,8 +36,7 @@ const ClientDashboard: React.FC = memo(() => {
     totalSessions: 0,
     totalSessionsCompleted: 0,
     nutritionStats: null,
-    nextSession: null,
-    recentProgress: []
+    nextSession: null
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -141,8 +139,7 @@ const ClientDashboard: React.FC = memo(() => {
           totalSessions: seances.length,
           totalSessionsCompleted: sessionsCompleted, // Total toutes semaines confondues
           nutritionStats,
-          nextSession,
-          recentProgress: progressData.slice(0, 3)
+          nextSession
         })
 
       } catch (err) {
@@ -422,54 +419,6 @@ const ClientDashboard: React.FC = memo(() => {
         </Card>
       </div>
 
-      {/* Recent Activities */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Activités récentes
-          </CardTitle>
-          <CardDescription>
-            Votre progression récente
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {stats.recentProgress.length > 0 ? (
-              <div className="space-y-3">
-                {stats.recentProgress.map((progress, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-primary rounded-full"></div>
-                      <div>
-                        <div className="font-medium">
-                          {progress.weight_kg ? `${progress.weight_kg} kg` : 'Mesure ajoutée'}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {format(new Date(progress.measurement_date), 'd MMMM yyyy', { locale: fr })}
-                        </div>
-                      </div>
-                    </div>
-                    {progress.weight_kg && (
-                      <Badge variant="outline">
-                        Poids
-                      </Badge>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Aucune activité récente</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Commencez à suivre votre progression
-                </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 })

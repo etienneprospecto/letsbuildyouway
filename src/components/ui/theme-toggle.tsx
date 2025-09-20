@@ -39,7 +39,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({
         size="icon"
         onClick={handleThemeChange}
         className={cn(
-          "h-8 w-8 relative overflow-hidden",
+          "h-8 w-8 relative overflow-hidden text-gray-700 hover:bg-orange-100 hover:text-orange-600 dark:text-gray-300 dark:hover:bg-orange-900/20 dark:hover:text-orange-300",
           className
         )}
         title={`Mode actuel: ${currentTheme.label}`}
@@ -65,7 +65,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({
           variant="ghost"
           onClick={handleThemeChange}
           className={cn(
-            "w-full justify-start h-10 transition-all duration-200",
+            "w-full justify-start h-10 transition-all duration-200 text-sidebar-text hover:bg-orange-50 hover:text-orange-600 hover:scale-[1.02] dark:hover:bg-orange-900/20 dark:hover:text-orange-300",
             "hover:bg-sidebar-hover hover:scale-[1.02]"
           )}
           title={`Mode actuel: ${currentTheme.label}`}
@@ -118,7 +118,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({
               size="sm"
               onClick={() => setTheme(themeOption.value)}
               className={cn(
-                "h-8 px-3 transition-all duration-200",
+                "h-8 px-3 transition-all duration-200 text-gray-700 hover:bg-orange-100 hover:text-orange-600 dark:text-gray-300 dark:hover:bg-orange-900/20 dark:hover:text-orange-300",
                 isActive && "bg-background shadow-sm",
                 !isActive && "hover:bg-background/50"
               )}

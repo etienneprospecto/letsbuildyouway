@@ -175,8 +175,8 @@ const NutritionRecommendations: React.FC<NutritionRecommendationsProps> = ({
   return (
     <Card className="p-6">
       <div className="flex items-center space-x-2 mb-4">
-        <Lightbulb className="h-5 w-5 text-blue-600" />
-        <h3 className="text-lg font-semibold">Recommandations nutritionnelles</h3>
+        <Lightbulb className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        <h3 className="text-lg font-semibold dark:text-gray-100">Recommandations nutritionnelles</h3>
         <Badge variant="secondary">
           {recommendations.length} conseil{recommendations.length > 1 ? 's' : ''}
         </Badge>
@@ -193,10 +193,10 @@ const NutritionRecommendations: React.FC<NutritionRecommendationsProps> = ({
               <div className="flex items-start space-x-3">
                 <Icon className={`h-5 w-5 mt-0.5 ${getIconColor(rec.type)}`} />
                 <div className="flex-1">
-                  <h4 className="font-medium text-gray-900 mb-1">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
                     {rec.title}
                   </h4>
-                  <p className="text-sm text-gray-700 mb-3">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
                     {rec.message}
                   </p>
                   {rec.action && (
@@ -216,8 +216,8 @@ const NutritionRecommendations: React.FC<NutritionRecommendationsProps> = ({
       </div>
 
       {isCoach && (
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
+        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
             <Target className="h-4 w-4" />
             <span>
               Ces recommandations sont basées sur les objectifs définis et les données actuelles.

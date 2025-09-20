@@ -58,10 +58,10 @@ const NutritionCalendar: React.FC<NutritionCalendarProps> = ({
     const { hasEntries, hasWater, isSelected, isToday } = getDayStatus(day);
 
     if (isSelected) return 'bg-blue-600 text-white';
-    if (isToday) return 'bg-blue-100 text-blue-800 border-2 border-blue-300';
-    if (hasEntries && hasWater) return 'bg-green-100 text-green-800';
-    if (hasEntries || hasWater) return 'bg-yellow-100 text-yellow-800';
-    return 'text-gray-700 hover:bg-gray-100';
+    if (isToday) return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-2 border-blue-300 dark:border-blue-600';
+    if (hasEntries && hasWater) return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200';
+    if (hasEntries || hasWater) return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200';
+    return 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700';
   };
 
   const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];

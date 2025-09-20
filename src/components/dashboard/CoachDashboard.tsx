@@ -157,7 +157,7 @@ const CoachDashboard: React.FC = memo(() => {
               }}
               whileTap={{ scale: 0.98 }}
             >
-              <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50/50 backdrop-blur-sm">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-900/50 backdrop-blur-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-gray-700">
                     {metric.title}
@@ -309,14 +309,14 @@ const CoachDashboard: React.FC = memo(() => {
               className="text-center py-12 px-6"
             >
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full blur-3xl opacity-30"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full blur-3xl opacity-30"></div>
                 <Users className="relative h-16 w-16 text-blue-500 mx-auto mb-6" />
               </div>
               
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Bienvenue dans votre espace coach ! 👋
               </h3>
-              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
                 Commencez votre aventure en ajoutant votre premier client. 
                 Vous pourrez ensuite créer des programmes, suivre les progrès et communiquer efficacement.
               </p>

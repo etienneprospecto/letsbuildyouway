@@ -388,7 +388,7 @@ const ThemeCustomizer: React.FC = () => {
                       <Button
                         variant={modePreference === 'light' ? 'default' : 'outline'}
                         onClick={() => handleModeChange('light')}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300"
                       >
                         <Sun className="h-4 w-4" />
                         Clair
@@ -396,7 +396,7 @@ const ThemeCustomizer: React.FC = () => {
                       <Button
                         variant={modePreference === 'dark' ? 'default' : 'outline'}
                         onClick={() => handleModeChange('dark')}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300"
                       >
                         <Moon className="h-4 w-4" />
                         Sombre
@@ -404,7 +404,7 @@ const ThemeCustomizer: React.FC = () => {
                       <Button
                         variant={modePreference === 'system' ? 'default' : 'outline'}
                         onClick={() => handleModeChange('system')}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300"
                       >
                         <Monitor className="h-4 w-4" />
                         Auto
@@ -414,7 +414,7 @@ const ThemeCustomizer: React.FC = () => {
 
                   {/* Actions */}
                   <div className="flex gap-2 pt-4 border-t">
-                    <Button onClick={handleReset} variant="outline">
+                    <Button onClick={handleReset} variant="outline" className="border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300">
                       <RotateCcw className="h-4 w-4 mr-2" />
                       Réinitialiser
                     </Button>

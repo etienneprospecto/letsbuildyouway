@@ -21,7 +21,6 @@ import {
   Clock,
   FileText,
   Star,
-  TrendingUp,
   BarChart3,
   MessageSquare,
   Target,
@@ -290,79 +289,19 @@ const SimpleClientFeedbacksPage: React.FC = () => {
             <h1 className="text-3xl font-bold tracking-tight">Feedback Hebdomadaire</h1>
             <p className="text-muted-foreground">Partagez votre expérience et suivez votre progression</p>
           </div>
-          <Button onClick={loadFeedbacks} variant="outline" size="sm">
+          <Button onClick={loadFeedbacks} variant="outline" size="sm" className="border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300">
             <RefreshCw className="h-4 w-4 mr-2" />
             Actualiser
           </Button>
         </div>
 
-        {/* Statistiques rapides */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Target className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Série actuelle</p>
-                  <p className="text-2xl font-bold">{stats.currentStreak}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Complétés</p>
-                  <p className="text-2xl font-bold">{stats.completedFeedbacks}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Star className="h-5 w-5 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Score moyen</p>
-                  <p className="text-2xl font-bold">{stats.averageScore}/100</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Amélioration</p>
-                  <p className={`text-2xl font-bold ${stats.improvement >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {stats.improvement >= 0 ? '+' : ''}{stats.improvement}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
 
       {/* Navigation hebdomadaire améliorée */}
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
-            <Button variant="outline" onClick={goToPreviousWeek} className="flex items-center space-x-2">
+            <Button variant="outline" onClick={goToPreviousWeek} className="flex items-center space-x-2 border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300">
               <ChevronLeft className="h-4 w-4" />
               <span>Semaine précédente</span>
             </Button>
@@ -383,7 +322,7 @@ const SimpleClientFeedbacksPage: React.FC = () => {
               )}
             </div>
             
-            <Button variant="outline" onClick={goToNextWeek} className="flex items-center space-x-2">
+            <Button variant="outline" onClick={goToNextWeek} className="flex items-center space-x-2 border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300">
               <span>Semaine suivante</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -393,7 +332,7 @@ const SimpleClientFeedbacksPage: React.FC = () => {
 
       {/* Contenu principal avec onglets */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="current" className="flex items-center space-x-2">
             <FileText className="h-4 w-4" />
             <span>Cette semaine</span>
@@ -401,10 +340,6 @@ const SimpleClientFeedbacksPage: React.FC = () => {
           <TabsTrigger value="history" className="flex items-center space-x-2">
             <BarChart3 className="h-4 w-4" />
             <span>Historique</span>
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center space-x-2">
-            <TrendingUp className="h-4 w-4" />
-            <span>Analyses</span>
           </TabsTrigger>
         </TabsList>
 
@@ -422,16 +357,16 @@ const SimpleClientFeedbacksPage: React.FC = () => {
                 <div className="space-y-4">
                   {currentFeedback.status === 'completed' ? (
                     <div 
-                      className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6 cursor-pointer hover:from-green-100 hover:to-emerald-100 transition-all duration-300"
+                      className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-700/30 rounded-lg p-6 cursor-pointer hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-800/30 dark:hover:to-emerald-800/30 transition-all duration-300"
                       onClick={() => handlePastFeedbackClick(currentFeedback)}
                     >
                       <div className="flex items-center space-x-4 mb-4">
-                        <div className="p-3 bg-green-100 rounded-full">
-                          <CheckCircle className="h-8 w-8 text-green-600" />
+                        <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                          <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
                         </div>
                         <div>
-                          <h3 className="text-xl font-semibold text-green-800">Feedback complété !</h3>
-                          <p className="text-green-600">Cliquez pour voir vos réponses</p>
+                          <h3 className="text-xl font-semibold text-green-800 dark:text-green-200">Feedback complété !</h3>
+                          <p className="text-green-600 dark:text-green-400">Cliquez pour voir vos réponses</p>
                         </div>
                       </div>
                       
@@ -459,14 +394,14 @@ const SimpleClientFeedbacksPage: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 dark:from-blue-900/20 dark:to-indigo-900/20 dark:border-blue-700/30 rounded-lg p-6">
                       <div className="flex items-center space-x-4 mb-4">
-                        <div className="p-3 bg-blue-100 rounded-full">
-                          <FileText className="h-8 w-8 text-blue-600" />
+                        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                          <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                          <h3 className="text-xl font-semibold text-blue-800">Feedback disponible</h3>
-                          <p className="text-blue-600">Partagez votre expérience de cette semaine</p>
+                          <h3 className="text-xl font-semibold text-blue-800 dark:text-blue-200">Feedback disponible</h3>
+                          <p className="text-blue-600 dark:text-blue-400">Partagez votre expérience de cette semaine</p>
                         </div>
                       </div>
                       
@@ -594,80 +529,6 @@ const SimpleClientFeedbacksPage: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* Onglet Analyses */}
-        <TabsContent value="analytics" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  <span>Progression</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Score moyen</span>
-                    <span className="text-2xl font-bold">{stats.averageScore}/100</span>
-                  </div>
-                  <Progress value={stats.averageScore} className="h-2" />
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Meilleur score</span>
-                    <span className="text-xl font-semibold text-green-600">{stats.bestScore}/100</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Série actuelle</span>
-                    <span className="text-xl font-semibold text-blue-600">{stats.currentStreak} semaines</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Award className="h-5 w-5 text-primary" />
-                  <span>Réalisations</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Feedbacks complétés</p>
-                      <p className="text-sm text-muted-foreground">{stats.completedFeedbacks} sur {stats.totalFeedbacks}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-yellow-100 rounded-lg">
-                      <Star className="h-5 w-5 text-yellow-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Score exceptionnel</p>
-                      <p className="text-sm text-muted-foreground">Meilleur: {stats.bestScore}/100</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Zap className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Série en cours</p>
-                      <p className="text-sm text-muted-foreground">{stats.currentStreak} semaines consécutives</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
       </Tabs>
 
       {/* Modal du formulaire */}

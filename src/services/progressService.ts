@@ -20,6 +20,7 @@ export const progressService = {
         client_id: progressData.clientId,
         measurement_date: progressData.date,
         weight_kg: progressData.weight,
+        waist_circumference: progressData.waistCircumference,
         body_fat_percentage: progressData.bodyFat,
         muscle_mass_kg: progressData.muscleMass,
         measurements: progressData.measurements,
@@ -37,6 +38,7 @@ export const progressService = {
       .from('progress_data')
       .update({
         weight_kg: updates.weight,
+        waist_circumference: updates.waistCircumference,
         body_fat_percentage: updates.bodyFat,
         muscle_mass_kg: updates.muscleMass,
         measurements: updates.measurements,

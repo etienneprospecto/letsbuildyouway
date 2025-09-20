@@ -59,7 +59,7 @@ const NutritionGauges: React.FC<NutritionGaugesProps> = ({ stats }) => {
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>{stats.totalCalories}</span>
-            <span className="text-gray-500">
+            <span className="text-gray-500 dark:text-gray-400">
               / {stats.goals?.daily_calories || 0}
             </span>
           </div>
@@ -67,7 +67,7 @@ const NutritionGauges: React.FC<NutritionGaugesProps> = ({ stats }) => {
             value={Math.min(stats.progress.calories, 100)} 
             className="h-2"
           />
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             {stats.progress.calories.toFixed(1)}% de l'objectif
           </div>
         </div>

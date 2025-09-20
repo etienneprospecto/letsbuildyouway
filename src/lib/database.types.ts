@@ -1252,6 +1252,7 @@ export type Database = {
           notes: string | null
           photos_urls: string[] | null
           updated_at: string | null
+          waist_circumference: number | null
           weight_kg: number | null
         }
         Insert: {
@@ -1265,6 +1266,7 @@ export type Database = {
           notes?: string | null
           photos_urls?: string[] | null
           updated_at?: string | null
+          waist_circumference?: number | null
           weight_kg?: number | null
         }
         Update: {
@@ -1278,6 +1280,7 @@ export type Database = {
           notes?: string | null
           photos_urls?: string[] | null
           updated_at?: string | null
+          waist_circumference?: number | null
           weight_kg?: number | null
         }
         Relationships: [
