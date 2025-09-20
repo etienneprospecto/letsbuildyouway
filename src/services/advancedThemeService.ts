@@ -134,7 +134,7 @@ export class AdvancedThemeService {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
-        // Charger depuis Supabase
+        // Charger depuis Supabase (avec gestion d'erreur 404)
         const { data, error } = await supabase
           .from('user_themes')
           .select('*')
@@ -146,16 +146,23 @@ export class AdvancedThemeService {
           this.currentTheme = data
           this.applyTheme(data)
           return
+        } else if (error && error.code !== 'PGRST116') {
+          // PGRST116 = no rows found, on continue vers localStorage
+          console.warn('Erreur chargement thème Supabase:', error)
         }
       }
 
       // Fallback vers localStorage
       const savedTheme = localStorage.getItem('byw_user_theme')
       if (savedTheme) {
-        const theme = JSON.parse(savedTheme)
-        this.currentTheme = theme
-        this.applyTheme(theme)
-        return
+        try {
+          const theme = JSON.parse(savedTheme)
+          this.currentTheme = theme
+          this.applyTheme(theme)
+          return
+        } catch (parseError) {
+          console.warn('Erreur parsing thème localStorage:', parseError)
+        }
       }
 
       // Thème par défaut
