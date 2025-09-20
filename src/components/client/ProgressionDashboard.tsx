@@ -14,74 +14,142 @@ const ProgressStats: React.FC<{ data: ProgressData[] }> = ({ data }) => {
   if (data.length === 0) return null
 
   const weights = data.map(d => d.weight_kg).filter(w => w !== null && w !== undefined) as number[]
-  if (weights.length === 0) return null
+  const waists = data.map(d => d.waist_circumference).filter(w => w !== null && w !== undefined) as number[]
+  
+  if (weights.length === 0 && waists.length === 0) return null
 
   const currentWeight = weights[weights.length - 1] // Dernier poids (plus récent)
   const previousWeight = weights[weights.length - 2] // Avant-dernier poids
   const firstWeight = weights[0] // Premier poids (plus ancien)
   const weightChange = previousWeight ? currentWeight - previousWeight : 0
-  const totalChange = firstWeight ? currentWeight - firstWeight : 0
+  const totalWeightChange = firstWeight ? currentWeight - firstWeight : 0
+
+  const currentWaist = waists[waists.length - 1] // Dernier tour de taille (plus récent)
+  const previousWaist = waists[waists.length - 2] // Avant-dernier tour de taille
+  const firstWaist = waists[0] // Premier tour de taille (plus ancien)
+  const waistChange = previousWaist ? currentWaist - previousWaist : 0
+  const totalWaistChange = firstWaist ? currentWaist - firstWaist : 0
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       {/* Poids actuel */}
-      <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 dark:border-orange-700/30">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Poids actuel</p>
-              <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{currentWeight.toFixed(1)} kg</p>
-              <p className="text-xs text-orange-500 dark:text-orange-400">
-                {new Date(data[0]?.measurement_date).toLocaleDateString('fr-FR')}
-              </p>
+      {weights.length > 0 && (
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 dark:from-blue-900/20 dark:to-blue-800/20 dark:border-blue-700/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Poids actuel</p>
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{currentWeight.toFixed(1)} kg</p>
+                <p className="text-xs text-blue-500 dark:text-blue-400">
+                  {new Date(data[0]?.measurement_date).toLocaleDateString('fr-FR')}
+                </p>
+              </div>
+              <Target className="h-8 w-8 text-blue-500 dark:text-blue-400" />
             </div>
-            <Target className="h-8 w-8 text-orange-500 dark:text-orange-400" />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Variation récente */}
-      <Card className={`${weightChange < 0 ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700/30' : weightChange > 0 ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200 dark:from-red-900/20 dark:to-red-800/20 dark:border-red-700/30' : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 dark:from-gray-800/20 dark:to-gray-700/20 dark:border-gray-700/30'}`}>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Cette semaine</p>
-              <p className={`text-2xl font-bold ${weightChange < 0 ? 'text-green-600 dark:text-green-400' : weightChange > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                {weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)} kg
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">vs semaine dernière</p>
+      {/* Tour de taille actuel */}
+      {waists.length > 0 && (
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 dark:border-orange-700/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Tour de taille</p>
+                <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{currentWaist.toFixed(1)} cm</p>
+                <p className="text-xs text-orange-500 dark:text-orange-400">
+                  {new Date(data[0]?.measurement_date).toLocaleDateString('fr-FR')}
+                </p>
+              </div>
+              <Activity className="h-8 w-8 text-orange-500 dark:text-orange-400" />
             </div>
-            {weightChange < 0 ? <ArrowDown className="h-8 w-8 text-green-500 dark:text-green-400" /> : weightChange > 0 ? <ArrowUp className="h-8 w-8 text-red-500 dark:text-red-400" /> : <Minus className="h-8 w-8 text-gray-500 dark:text-gray-400" />}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Progression totale */}
-      <Card className={`${totalChange < 0 ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700/30' : totalChange > 0 ? 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 dark:border-orange-700/30' : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 dark:from-gray-800/20 dark:to-gray-700/20 dark:border-gray-700/30'}`}>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Progression totale</p>
-              <p className={`text-2xl font-bold ${totalChange < 0 ? 'text-green-600 dark:text-green-400' : totalChange > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                {totalChange > 0 ? '+' : ''}{totalChange.toFixed(1)} kg
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">depuis le début</p>
+      {/* Variation récente poids */}
+      {weights.length > 1 && (
+        <Card className={`${weightChange < 0 ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700/30' : weightChange > 0 ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200 dark:from-red-900/20 dark:to-red-800/20 dark:border-red-700/30' : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 dark:from-gray-800/20 dark:to-gray-700/20 dark:border-gray-700/30'}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Variation poids</p>
+                <p className={`text-2xl font-bold ${weightChange < 0 ? 'text-green-600 dark:text-green-400' : weightChange > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                  {weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)} kg
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">vs mesure précédente</p>
+              </div>
+              {weightChange < 0 ? <ArrowDown className="h-8 w-8 text-green-500 dark:text-green-400" /> : weightChange > 0 ? <ArrowUp className="h-8 w-8 text-red-500 dark:text-red-400" /> : <Minus className="h-8 w-8 text-gray-500 dark:text-gray-400" />}
             </div>
-            <TrendingUp className={`h-8 w-8 ${totalChange < 0 ? 'text-green-500 dark:text-green-400' : totalChange > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400'}`} />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Nombre de pesées */}
-      <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 dark:border-orange-700/30">
+      {/* Variation récente tour de taille */}
+      {waists.length > 1 && (
+        <Card className={`${waistChange < 0 ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700/30' : waistChange > 0 ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200 dark:from-red-900/20 dark:to-red-800/20 dark:border-red-700/30' : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 dark:from-gray-800/20 dark:to-gray-700/20 dark:border-gray-700/30'}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Variation tour</p>
+                <p className={`text-2xl font-bold ${waistChange < 0 ? 'text-green-600 dark:text-green-400' : waistChange > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                  {waistChange > 0 ? '+' : ''}{waistChange.toFixed(1)} cm
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">vs mesure précédente</p>
+              </div>
+              {waistChange < 0 ? <ArrowDown className="h-8 w-8 text-green-500 dark:text-green-400" /> : waistChange > 0 ? <ArrowUp className="h-8 w-8 text-red-500 dark:text-red-400" /> : <Minus className="h-8 w-8 text-gray-500 dark:text-gray-400" />}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Progression totale poids */}
+      {weights.length > 1 && (
+        <Card className={`${totalWeightChange < 0 ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700/30' : totalWeightChange > 0 ? 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 dark:border-orange-700/30' : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 dark:from-gray-800/20 dark:to-gray-700/20 dark:border-gray-700/30'}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Progression poids</p>
+                <p className={`text-2xl font-bold ${totalWeightChange < 0 ? 'text-green-600 dark:text-green-400' : totalWeightChange > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                  {totalWeightChange > 0 ? '+' : ''}{totalWeightChange.toFixed(1)} kg
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">depuis le début</p>
+              </div>
+              <TrendingUp className={`h-8 w-8 ${totalWeightChange < 0 ? 'text-green-500 dark:text-green-400' : totalWeightChange > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400'}`} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Progression totale tour de taille */}
+      {waists.length > 1 && (
+        <Card className={`${totalWaistChange < 0 ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700/30' : totalWaistChange > 0 ? 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 dark:border-orange-700/30' : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 dark:from-gray-800/20 dark:to-gray-700/20 dark:border-gray-700/30'}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Progression tour</p>
+                <p className={`text-2xl font-bold ${totalWaistChange < 0 ? 'text-green-600 dark:text-green-400' : totalWaistChange > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                  {totalWaistChange > 0 ? '+' : ''}{totalWaistChange.toFixed(1)} cm
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">depuis le début</p>
+              </div>
+              <TrendingUp className={`h-8 w-8 ${totalWaistChange < 0 ? 'text-green-500 dark:text-green-400' : totalWaistChange > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400'}`} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Nombre de mesures */}
+      <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 dark:from-purple-900/20 dark:to-purple-800/20 dark:border-purple-700/30">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Pesées</p>
-              <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{data.length}</p>
-              <p className="text-xs text-orange-500 dark:text-orange-400">enregistrées</p>
+              <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Mesures</p>
+              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{data.length}</p>
+              <p className="text-xs text-purple-500 dark:text-purple-400">enregistrées</p>
             </div>
-            <Activity className="h-8 w-8 text-orange-500 dark:text-orange-400" />
+            <Calendar className="h-8 w-8 text-purple-500 dark:text-purple-400" />
           </div>
         </CardContent>
       </Card>
@@ -161,6 +229,8 @@ const ProgressionDashboard: React.FC = () => {
   const [saving, setSaving] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
+  const [showAllMeasurements, setShowAllMeasurements] = useState(false)
+  const [selectedPhoto, setSelectedPhoto] = useState<{url: string, entry: ProgressData} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Récupérer les données de progression
@@ -235,10 +305,10 @@ const ProgressionDashboard: React.FC = () => {
     const startWaist = 105.0
     const targetWaist = 85.0
     
-    // Générer des données tous les 2-3 jours sur 8 mois (environ 80-100 points)
-    const totalDays = 240 // 8 mois
-    const intervalDays = 2.5 // Tous les 2.5 jours en moyenne
-    const totalPoints = Math.floor(totalDays / intervalDays)
+    // Générer seulement 10 prises de pesée sur 2 mois
+    const totalDays = 60 // 2 mois
+    const intervalDays = 6 // Tous les 6 jours en moyenne
+    const totalPoints = 10 // Exactement 10 points
     
     console.log('Génération de', totalPoints, 'points de données avec poids et tour de taille')
     
@@ -283,12 +353,24 @@ const ProgressionDashboard: React.FC = () => {
       // Parfois, ne pas avoir de tour de taille (pour tester la gestion des données manquantes)
       const hasWaist = Math.random() > 0.05 // 95% de chance d'avoir le tour de taille
       
+      // Générer des photos factices pour toutes les mesures
+      const photos_urls = []
+      // 90% de chance d'avoir des photos pour chaque mesure
+      if (Math.random() > 0.1) {
+        const photoCount = Math.floor(Math.random() * 3) + 1 // 1 à 3 photos
+        for (let p = 0; p < photoCount; p++) {
+          // Utiliser des images de placeholder
+          photos_urls.push(`https://picsum.photos/400/300?random=${i * 10 + p}`)
+        }
+      }
+
       data.push({
         id: `test-${i}`,
         client_id: 'test-client',
         measurement_date: date.toISOString().split('T')[0],
         weight_kg: Math.round(weight * 10) / 10,
         waist_circumference: hasWaist ? Math.round(waist * 10) / 10 : undefined,
+        photos_urls: photos_urls.length > 0 ? photos_urls : undefined,
         notes: i % 10 === 0 ? 'Mesure régulière' : undefined
       })
     }
@@ -651,45 +733,34 @@ const ProgressionDashboard: React.FC = () => {
       </Card>
 
 
-      {/* Historique des pesées amélioré */}
+      {/* Historique des mesures amélioré */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Historique des pesées
+            Historique des mesures
           </CardTitle>
-          <CardDescription>Dernières mesures enregistrées avec détails</CardDescription>
+          <CardDescription>7 dernières mesures enregistrées (poids et tour de taille)</CardDescription>
         </CardHeader>
         <CardContent>
             {progressData.length > 0 ? (
               <div className="space-y-3">
-              {progressData.slice(0, 10).map((entry, index) => {
+              {(showAllMeasurements ? progressData : progressData.slice(0, 7)).map((entry, index) => {
                 const prevEntry = progressData[index + 1]
                 const weightDiff = prevEntry ? (entry.weight_kg || 0) - (prevEntry.weight_kg || 0) : 0
+                const waistDiff = prevEntry ? (entry.waist_circumference || 0) - (prevEntry.waist_circumference || 0) : 0
                 
                 return (
-                  <div key={entry.id} className="group relative p-4 border rounded-lg hover:shadow-md transition-all duration-200 bg-white hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                  <div key={entry.id} className="group relative p-5 border rounded-lg hover:shadow-md transition-all duration-200 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 min-h-[140px]">
+                    <div className="flex items-start justify-between h-full">
+                      <div className="flex items-start gap-4 flex-1">
                         <div className="flex-shrink-0">
-                          <div className="w-10 h-10 bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center">
-                            <Target className="h-5 w-5 text-orange-600" />
+                          <div className="w-10 h-10 bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 rounded-full flex items-center justify-center">
+                            <Activity className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                           </div>
                         </div>
-                      <div>
-                          <div className="flex items-center gap-2">
-                            <p className="text-xl font-bold text-gray-900">{entry.weight_kg} kg</p>
-                            {weightDiff !== 0 && (
-                              <Badge 
-                                variant={weightDiff < 0 ? "default" : "secondary"}
-                                className={`text-xs ${weightDiff < 0 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
-                              >
-                                {weightDiff < 0 ? <ArrowDown className="h-3 w-3 mr-1" /> : <ArrowUp className="h-3 w-3 mr-1" />}
-                                {Math.abs(weightDiff).toFixed(1)}kg
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <div className="flex-1">
+                          <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 mb-2">
                             <Calendar className="h-3 w-3" />
                             {new Date(entry.measurement_date).toLocaleDateString('fr-FR', { 
                               weekday: 'long', 
@@ -698,33 +769,144 @@ const ProgressionDashboard: React.FC = () => {
                               day: 'numeric' 
                             })}
                         </p>
+                        
+                        {/* Poids et tour de taille */}
+                        <div className="space-y-2">
+                          {/* Poids */}
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Poids: <strong className="text-gray-900 dark:text-gray-100">
+                                {entry.weight_kg ? `${entry.weight_kg} kg` : 'N/A'}
+                              </strong>
+                            </span>
+                            {weightDiff !== 0 && entry.weight_kg && (
+                              <Badge 
+                                variant={weightDiff < 0 ? "default" : "secondary"}
+                                className={`text-xs ${weightDiff < 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}`}
+                              >
+                                {weightDiff < 0 ? <ArrowDown className="h-3 w-3 mr-1" /> : <ArrowUp className="h-3 w-3 mr-1" />}
+                                {Math.abs(weightDiff).toFixed(1)}kg
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          {/* Tour de taille */}
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Tour: <strong className="text-gray-900 dark:text-gray-100">
+                                {entry.waist_circumference ? `${entry.waist_circumference} cm` : 'N/A'}
+                              </strong>
+                            </span>
+                            {waistDiff !== 0 && entry.waist_circumference && (
+                              <Badge 
+                                variant={waistDiff < 0 ? "default" : "secondary"}
+                                className={`text-xs ${waistDiff < 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}`}
+                              >
+                                {waistDiff < 0 ? <ArrowDown className="h-3 w-3 mr-1" /> : <ArrowUp className="h-3 w-3 mr-1" />}
+                                {Math.abs(waistDiff).toFixed(1)}cm
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                       
-                      {/* Métriques additionnelles */}
-                      <div className="text-right space-y-1">
-                      {entry.body_fat_percentage && (
-                          <div className="text-sm">
-                            <span className="text-gray-500">Masse grasse: </span>
-                            <span className="font-medium text-gray-900">{entry.body_fat_percentage}%</span>
+                      {/* Métriques additionnelles et photos */}
+                      <div className="flex flex-col items-end space-y-2 min-w-[200px]">
+                        {/* Métriques additionnelles */}
+                        <div className="text-right space-y-1">
+                          {entry.body_fat_percentage && (
+                            <div className="text-sm">
+                              <span className="text-gray-500 dark:text-gray-400">Masse grasse: </span>
+                              <span className="font-medium text-gray-900 dark:text-gray-100">{entry.body_fat_percentage}%</span>
+                            </div>
+                          )}
+                          {entry.muscle_mass_kg && (
+                            <div className="text-sm">
+                              <span className="text-gray-500 dark:text-gray-400">Muscle: </span>
+                              <span className="font-medium text-gray-900 dark:text-gray-100">{entry.muscle_mass_kg} kg</span>
+                            </div>
+                          )}
+                          {entry.notes && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 max-w-32 truncate" title={entry.notes}>
+                              💬 {entry.notes}
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {entry.muscle_mass_kg && (
-                          <div className="text-sm">
-                            <span className="text-gray-500">Muscle: </span>
-                            <span className="font-medium text-gray-900">{entry.muscle_mass_kg} kg</span>
-                          </div>
-                        )}
-                        {entry.notes && (
-                          <div className="text-xs text-gray-500 max-w-32 truncate" title={entry.notes}>
-                            💬 {entry.notes}
+                        
+                        {/* Photos miniatures - toujours affichées */}
+                        <div className="flex gap-2 justify-end">
+                          {entry.photos_urls && entry.photos_urls.length > 0 ? (
+                            <>
+                              {entry.photos_urls.slice(0, 3).map((url, photoIndex) => (
+                                <div
+                                  key={photoIndex}
+                                  className="relative group cursor-pointer"
+                                  onClick={() => setSelectedPhoto({url, entry})}
+                                >
+                                  <img
+                                    src={url}
+                                    alt={`Photo ${photoIndex + 1}`}
+                                    className="w-16 h-16 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-orange-400 dark:hover:border-orange-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                  />
+                                  {/* Overlay au survol */}
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center">
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Camera className="h-5 w-5 text-white" />
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                              {entry.photos_urls.length > 3 && (
+                                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600 flex items-center justify-center text-xs font-medium text-gray-500 dark:text-gray-400">
+                                  +{entry.photos_urls.length - 3}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            // Placeholder quand pas de photos
+                            <div className="flex gap-2">
+                              {[1, 2, 3].map((placeholderIndex) => (
+                                <div
+                                  key={placeholderIndex}
+                                  className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center"
+                                >
+                                  <Camera className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
                       </div>
                     </div>
                   </div>
                 )
               })}
+              
+              {/* Bouton pour afficher plus de mesures */}
+              {progressData.length > 7 && (
+                <div className="flex justify-center pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAllMeasurements(!showAllMeasurements)}
+                    className="flex items-center gap-2"
+                  >
+                    {showAllMeasurements ? (
+                      <>
+                        <Minus className="h-4 w-4" />
+                        Voir moins ({progressData.length - 7} mesures cachées)
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        Voir toutes les mesures ({progressData.length - 7} de plus)
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-12">
@@ -866,7 +1048,95 @@ const ProgressionDashboard: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+
+      {/* Modal pour afficher les photos en grand */}
+      {selectedPhoto && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="relative max-w-4xl max-h-[90vh] bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
+            {/* Header de la modal */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Photo de progression
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {new Date(selectedPhoto.entry.measurement_date).toLocaleDateString('fr-FR', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedPhoto(null)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X className="h-6 w-6" />
+              </Button>
+            </div>
+            
+            {/* Image principale */}
+            <div className="p-4">
+              <img
+                src={selectedPhoto.url}
+                alt="Photo de progression"
+                className="w-full h-auto max-h-[60vh] object-contain rounded-lg"
+              />
+            </div>
+            
+            {/* Informations de la mesure */}
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {selectedPhoto.entry.weight_kg && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span className="text-gray-600 dark:text-gray-400">Poids:</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {selectedPhoto.entry.weight_kg} kg
+                    </span>
+                  </div>
+                )}
+                {selectedPhoto.entry.waist_circumference && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                    <span className="text-gray-600 dark:text-gray-400">Tour:</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {selectedPhoto.entry.waist_circumference} cm
+                    </span>
+                  </div>
+                )}
+                {selectedPhoto.entry.body_fat_percentage && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 dark:text-gray-400">Masse grasse:</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {selectedPhoto.entry.body_fat_percentage}%
+                    </span>
+                  </div>
+                )}
+                {selectedPhoto.entry.muscle_mass_kg && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 dark:text-gray-400">Muscle:</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {selectedPhoto.entry.muscle_mass_kg} kg
+                    </span>
+                  </div>
+                )}
+              </div>
+              {selectedPhoto.entry.notes && (
+                <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                    "{selectedPhoto.entry.notes}"
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
