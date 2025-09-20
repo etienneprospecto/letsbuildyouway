@@ -52,34 +52,35 @@ class SimpleThemeService {
    */
   private async loadUserTheme(): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      // Temporairement désactivé pour éviter l'erreur 406
+      // const { data: { user } } = await supabase.auth.getUser()
       
-      if (user) {
-        // Charger depuis Supabase (avec gestion d'erreur 404)
-        const { data, error } = await supabase
-          .from('user_themes')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('is_active', true)
-          .single()
+      // if (user) {
+      //   // Charger depuis Supabase (avec gestion d'erreur 404)
+      //   const { data, error } = await supabase
+      //     .from('user_themes')
+      //     .select('*')
+      //     .eq('user_id', user.id)
+      //     .eq('is_active', true)
+      //     .single()
 
-        if (data && !error) {
-          this.currentTheme = {
-            primary_color: data.primary_color,
-            secondary_color: data.secondary_color,
-            tertiary_color: data.accent_color, // Utilise accent_color comme tertiary
-            mode: data.mode_preference === 'system' 
-              ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-              : data.mode_preference,
-            is_active: data.is_active
-          }
-          this.applyTheme(this.currentTheme)
-          return
-        } else if (error && error.code !== 'PGRST116') {
-          // PGRST116 = no rows found, on continue vers localStorage
-          console.warn('Erreur chargement thème Supabase:', error)
-        }
-      }
+      //   if (data && !error) {
+      //     this.currentTheme = {
+      //       primary_color: data.primary_color,
+      //       secondary_color: data.secondary_color,
+      //       tertiary_color: data.accent_color, // Utilise accent_color comme tertiary
+      //       mode: data.mode_preference === 'system' 
+      //         ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      //         : data.mode_preference,
+      //       is_active: data.is_active
+      //     }
+      //     this.applyTheme(this.currentTheme)
+      //     return
+      //   } else if (error && error.code !== 'PGRST116') {
+      //     // PGRST116 = no rows found, on continue vers localStorage
+      //     console.warn('Erreur chargement thème Supabase:', error)
+      //   }
+      // }
 
       // Fallback vers localStorage
       const savedTheme = localStorage.getItem('byw_simple_theme')

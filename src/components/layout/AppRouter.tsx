@@ -1,30 +1,30 @@
-import React, { Suspense, lazy } from 'react'
+import React from 'react'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
-// Lazy loading des composants de pages avec gestion d'erreur
-const CoachDashboard = lazy(() => import('@/components/dashboard/CoachDashboard').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ClientDashboard = lazy(() => import('@/components/dashboard/ClientDashboard').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ClientsPage = lazy(() => import('@/components/dashboard/ClientsPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const WorkoutsPage = lazy(() => import('@/components/dashboard/WorkoutsPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ExercicesPage = lazy(() => import('@/components/dashboard/ExercicesPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const MessagesPage = lazy(() => import('@/components/dashboard/MessagesPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const SimpleCoachFeedbacksPage = lazy(() => import('@/components/dashboard/SimpleCoachFeedbacksPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const SettingsPage = lazy(() => import('@/components/dashboard/SettingsPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ClientMessagesPage = lazy(() => import('@/components/client/ClientMessagesPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ClientSeances = lazy(() => import('@/components/client/ClientSeances').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ProgressionDashboard = lazy(() => import('@/components/client/ProgressionDashboard').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const SimpleClientFeedbacksPage = lazy(() => import('@/components/client/SimpleClientFeedbacksPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ClientResources = lazy(() => import('@/components/client/ClientResources').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ClientSettingsPage = lazy(() => import('@/components/client/ClientSettingsPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ClientNutritionPage = lazy(() => import('@/components/client/ClientNutritionPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const CoachNutritionPage = lazy(() => import('@/components/dashboard/CoachNutritionPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const CoachCalendarPage = lazy(() => import('@/components/dashboard/CoachCalendarPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ClientCalendarPage = lazy(() => import('@/components/client/ClientCalendarPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const CoachTrophiesPage = lazy(() => import('@/components/dashboard/CoachTrophiesPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ClientTrophiesPage = lazy(() => import('@/components/client/ClientTrophiesPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const CoachBillingPage = lazy(() => import('@/components/dashboard/CoachBillingPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ClientBillingPage = lazy(() => import('@/components/client/ClientBillingPage').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
-const ColorCustomizer = lazy(() => import('@/components/dashboard/ColorCustomizer').catch(() => ({ default: () => <div>Erreur de chargement</div> })))
+// Imports statiques temporaires pour résoudre le problème de lazy loading
+import CoachDashboard from '@/components/dashboard/CoachDashboard'
+import ClientDashboard from '@/components/dashboard/ClientDashboard'
+import ClientsPage from '@/components/dashboard/ClientsPage'
+import WorkoutsPage from '@/components/dashboard/WorkoutsPage'
+import ExercicesPage from '@/components/dashboard/ExercicesPage'
+import MessagesPage from '@/components/dashboard/MessagesPage'
+import SimpleCoachFeedbacksPage from '@/components/dashboard/SimpleCoachFeedbacksPage'
+import SettingsPage from '@/components/dashboard/SettingsPage'
+import ClientMessagesPage from '@/components/client/ClientMessagesPage'
+import ClientSeances from '@/components/client/ClientSeances'
+import ProgressionDashboard from '@/components/client/ProgressionDashboard'
+import SimpleClientFeedbacksPage from '@/components/client/SimpleClientFeedbacksPage'
+import ClientResources from '@/components/client/ClientResources'
+import ClientSettingsPage from '@/components/client/ClientSettingsPage'
+import ClientNutritionPage from '@/components/client/ClientNutritionPage'
+import CoachNutritionPage from '@/components/dashboard/CoachNutritionPage'
+import { CoachCalendarPage } from '@/components/dashboard/CoachCalendarPage'
+import { ClientCalendarPage } from '@/components/client/ClientCalendarPage'
+import { CoachTrophiesPage } from '@/components/dashboard/CoachTrophiesPage'
+import { ClientTrophiesPage } from '@/components/client/ClientTrophiesPage'
+import { CoachBillingPage } from '@/components/dashboard/CoachBillingPage'
+import { ClientBillingPage } from '@/components/client/ClientBillingPage'
+import ColorCustomizer from '@/components/dashboard/ColorCustomizer'
 
 // Composant de chargement
 const PageLoader = () => (
@@ -44,9 +44,7 @@ interface AppRouterProps {
 const AppRouter: React.FC<AppRouterProps> = ({ activeTab, userRole }) => {
   const renderPage = (Component: React.ComponentType) => (
     <ErrorBoundary>
-      <Suspense fallback={<PageLoader />}>
-        <Component />
-      </Suspense>
+      <Component />
     </ErrorBoundary>
   )
 
