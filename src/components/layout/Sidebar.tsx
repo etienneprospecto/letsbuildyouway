@@ -13,11 +13,16 @@ import {
   ChevronRight,
   Star,
   FileText,
-  Apple
+  Apple,
+  Trophy,
+  CreditCard,
+  Palette
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/AuthProvider'
 import { Button } from '@/components/ui/button'
+import ThemeToggle from '@/components/ui/theme-toggle'
+import SimpleThemeToggle from '@/components/ui/simple-theme-toggle'
 
 interface SidebarProps {
   isCollapsed: boolean
@@ -41,8 +46,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'workouts', label: 'Workouts', icon: Dumbbell, badge: null, description: 'Créez et organisez les entraînements' },
     { id: 'exercices', label: 'Exercices', icon: Target, badge: null, description: 'Bibliothèque d\'exercices' },
     { id: 'nutrition', label: 'Nutrition', icon: Apple, badge: null, description: 'Suivi nutritionnel des clients' },
+    { id: 'trophies', label: 'Trophées', icon: Trophy, badge: null, description: 'Système de gamification et récompenses' },
+    { id: 'billing', label: 'Facturation', icon: CreditCard, badge: null, description: 'Gérez vos revenus et factures' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, badge: null, description: 'Communication avec vos clients' },
     { id: 'feedbacks-hebdomadaires', label: 'Feedbacks', icon: Star, badge: null, description: 'Collectez les retours hebdomadaires' },
+    { id: 'color-customizer', label: 'Personnalisation', icon: Palette, badge: null, description: 'Personnalisez vos couleurs primaires/secondaires/tertiaires' },
     { id: 'settings', label: 'Settings', icon: Settings, badge: null, description: 'Paramètres de votre compte' }
   ]
 
@@ -52,6 +60,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'seances', label: 'Mes séances', icon: Dumbbell, badge: null, description: 'Vos entraînements programmés' },
     { id: 'progression', label: 'Ma progression', icon: Target, badge: null, description: 'Suivez vos progrès et évolution' },
     { id: 'nutrition', label: 'Nutrition', icon: Apple, badge: null, description: 'Suivez votre alimentation' },
+    { id: 'trophies', label: 'Mes Trophées', icon: Trophy, badge: null, description: 'Vos accomplissements et récompenses' },
+    { id: 'billing', label: 'Mes Factures', icon: CreditCard, badge: null, description: 'Gérez vos factures et paiements' },
     { id: 'feedbacks-hebdomadaires', label: 'Feedbacks Hebdo', icon: Star, badge: null, description: 'Vos retours hebdomadaires' },
     { id: 'ressources', label: 'Mes ressources', icon: FileText, badge: null, description: 'Documents et guides personnalisés' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, badge: null, description: 'Échangez avec votre coach' },
@@ -65,10 +75,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       initial={false}
       animate={{ width: isCollapsed ? 80 : 280 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="relative h-screen bg-background border-r border-border flex flex-col"
+      className="relative h-screen bg-sidebar-bg border-r border-sidebar-border flex flex-col"
     >
       {/* Header */}
-      <div className="p-6 border-b border-border">
+      <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
           <AnimatePresence mode="wait">
             {!isCollapsed && (
@@ -79,12 +89,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                 transition={{ duration: 0.2 }}
                 className="flex items-center space-x-3"
               >
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Dumbbell className="w-5 h-5 text-primary-foreground" />
+                <div className="w-8 h-8 bg-sidebar-active rounded-lg flex items-center justify-center">
+                  <Dumbbell className="w-5 h-5 text-sidebar-active-text" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg">BYW</h1>
-                  <p className="text-xs text-muted-foreground">Build Your Way</p>
+                  <h1 className="font-bold text-lg text-sidebar-text">BYW</h1>
+                  <p className="text-xs text-sidebar-text-muted">Build Your Way</p>
                 </div>
               </motion.div>
             )}
@@ -119,8 +129,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                   className={cn(
                     "w-full justify-start h-11 transition-all duration-200 relative overflow-hidden",
                     isCollapsed ? "px-0" : "px-4",
-                    isActive && "bg-primary text-primary-foreground shadow-sm",
-                    !isActive && "hover:bg-muted/50 hover:scale-[1.02]"
+                    isActive && "bg-sidebar-active-bg text-sidebar-active-text shadow-sm",
+                    !isActive && "hover:bg-sidebar-hover hover:scale-[1.02] text-sidebar-text"
                   )}
                   onClick={() => onTabChange(item.id)}
                   title={isCollapsed ? item.label : undefined}
@@ -142,7 +152,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         transition={{ duration: 0.2 }}
                         className="flex items-center justify-between flex-1 min-w-0"
                       >
-                        <span className="font-medium text-sm truncate">
+                        <span className="font-medium text-sm truncate text-sidebar-text">
                           {item.label}
                         </span>
                         
@@ -176,10 +186,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 
                 {/* Tooltip pour mode collapsed */}
                 {isCollapsed && (
-                  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-popover text-popover-foreground text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 shadow-lg border border-border">
                     <div className="font-medium">{item.label}</div>
-                    <div className="text-xs text-gray-300 mt-1">{item.description}</div>
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 rotate-45"></div>
+                    <div className="text-xs text-muted-foreground mt-1">{item.description}</div>
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border"></div>
                   </div>
                 )}
               </div>
@@ -188,8 +198,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </nav>
 
+      {/* Theme Controls */}
+      <div className="p-4 border-t border-sidebar-border">
+        <SimpleThemeToggle 
+          variant={isCollapsed ? "compact" : "sidebar"}
+        />
+      </div>
+
       {/* Role Badge */}
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-sidebar-border">
         <div className={cn(
           "flex items-center space-x-3 p-3 rounded-lg bg-muted",
           isCollapsed && "justify-center"
@@ -208,8 +225,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <p className="text-sm font-medium capitalize">{profile?.role} Mode</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm font-medium capitalize text-sidebar-text">{profile?.role} Mode</p>
+                <p className="text-xs text-sidebar-text-muted">
                   {profile?.first_name} {profile?.last_name}
                 </p>
               </motion.div>

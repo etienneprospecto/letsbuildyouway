@@ -380,7 +380,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <div key={hour} className="h-20 border-b"></div>
             ))}
 
-            {/* Créneaux de disponibilité */}
+            {/* Créneaux de disponibilité (seulement s'il n'y a pas de rendez-vous) */}
             {dayAvailability.map((slot) => {
               const startHour = parseInt(slot.start_time.split(':')[0]);
               const startMinutes = parseInt(slot.start_time.split(':')[1]);
@@ -390,14 +390,28 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               const topOffset = startHour * 80 + (startMinutes / 60) * 80;
               const height = ((endHour - startHour) * 60 + (endMinutes - startMinutes)) / 60 * 80;
 
+              // Vérifier s'il y a un rendez-vous sur ce créneau
+              const hasAppointment = dayAppointments.some(apt => 
+                apt.start_time === slot.start_time && 
+                apt.end_time === slot.end_time &&
+                apt.session_type === slot.session_type
+              );
+
+              // Ne pas afficher le créneau de disponibilité s'il y a un rendez-vous
+              if (hasAppointment) return null;
+
               return (
                 <div
                   key={slot.id}
-                  className="absolute left-2 right-2 bg-green-100 border border-green-300 rounded p-2"
+                  className="absolute left-2 right-2 bg-green-100 border border-green-300 rounded p-2 cursor-pointer hover:bg-green-200"
                   style={{
                     top: `${topOffset}px`,
                     height: `${height}px`,
                     zIndex: 1
+                  }}
+                  onClick={() => {
+                    // Ici on pourrait ouvrir un modal pour créer un rendez-vous
+                    console.log('Créneau disponible cliqué:', slot);
                   }}
                 >
                   <div className="text-xs text-green-700">
@@ -417,11 +431,31 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               const topOffset = startHour * 80 + (startMinutes / 60) * 80;
               const height = ((endHour - startHour) * 60 + (endMinutes - startMinutes)) / 60 * 80;
 
+              const getSessionTypeIcon = (type: string) => {
+                switch (type) {
+                  case 'video': return '📹';
+                  case 'in_person': return '🏢';
+                  case 'group': return '👥';
+                  case 'individual': return '👤';
+                  default: return '⏰';
+                }
+              };
+
+              const getSessionTypeLabel = (type: string) => {
+                switch (type) {
+                  case 'video': return 'Visio';
+                  case 'in_person': return 'Présentiel';
+                  case 'group': return 'Groupe';
+                  case 'individual': return 'Individuel';
+                  default: return type;
+                }
+              };
+
               return (
                 <div
                   key={appointment.id}
                   className={`
-                    absolute left-2 right-2 rounded p-2 cursor-pointer border-2
+                    absolute left-2 right-2 rounded p-2 cursor-pointer border-2 shadow-sm hover:shadow-md transition-shadow
                     ${getStatusColor(appointment.status)}
                   `}
                   style={{
@@ -431,15 +465,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   }}
                   onClick={() => onAppointmentClick(appointment)}
                 >
-                  <div className="font-medium">
+                  <div className="font-medium text-sm truncate">
                     {appointment.client.first_name} {appointment.client.last_name}
                   </div>
-                  <div className="text-sm">
+                  <div className="text-xs flex items-center gap-1">
+                    <span>{getSessionTypeIcon(appointment.session_type)}</span>
+                    <span>{getSessionTypeLabel(appointment.session_type)}</span>
+                  </div>
+                  <div className="text-xs opacity-75">
                     {format(new Date(`2000-01-01T${appointment.start_time}`), 'HH:mm')} - 
                     {format(new Date(`2000-01-01T${appointment.end_time}`), 'HH:mm')}
-                  </div>
-                  <div className="text-sm opacity-75">
-                    {appointment.session_type}
                   </div>
                 </div>
               );

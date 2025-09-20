@@ -1888,6 +1888,385 @@ export type Database = {
           },
         ]
       }
+      pricing_plans: {
+        Row: {
+          id: string
+          coach_id: string
+          name: string
+          description: string | null
+          price_amount: number
+          currency: string
+          billing_interval: Database["public"]["Enums"]["billing_interval"]
+          session_count: number | null
+          features: Json
+          is_active: boolean
+          stripe_price_id: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          coach_id: string
+          name: string
+          description?: string | null
+          price_amount: number
+          currency?: string
+          billing_interval?: Database["public"]["Enums"]["billing_interval"]
+          session_count?: number | null
+          features?: Json
+          is_active?: boolean
+          stripe_price_id?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          coach_id?: string
+          name?: string
+          description?: string | null
+          price_amount?: number
+          currency?: string
+          billing_interval?: Database["public"]["Enums"]["billing_interval"]
+          session_count?: number | null
+          features?: Json
+          is_active?: boolean
+          stripe_price_id?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_plans_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          coach_id: string
+          client_id: string
+          pricing_plan_id: string
+          stripe_subscription_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          current_period_start: string | null
+          current_period_end: string | null
+          next_billing_date: string | null
+          sessions_remaining: number | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          coach_id: string
+          client_id: string
+          pricing_plan_id: string
+          stripe_subscription_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          current_period_start?: string | null
+          current_period_end?: string | null
+          next_billing_date?: string | null
+          sessions_remaining?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          coach_id?: string
+          client_id?: string
+          pricing_plan_id?: string
+          stripe_subscription_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          current_period_start?: string | null
+          current_period_end?: string | null
+          next_billing_date?: string | null
+          sessions_remaining?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_pricing_plan_id_fkey"
+            columns: ["pricing_plan_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          id: string
+          coach_id: string
+          client_id: string
+          subscription_id: string | null
+          invoice_number: string
+          stripe_invoice_id: string | null
+          amount_total: number
+          amount_paid: number
+          currency: string
+          status: Database["public"]["Enums"]["invoice_status"]
+          due_date: string
+          paid_at: string | null
+          items: Json
+          notes: string | null
+          pdf_url: string | null
+          tax_rate: number
+          tax_amount: number
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          coach_id: string
+          client_id: string
+          subscription_id?: string | null
+          invoice_number: string
+          stripe_invoice_id?: string | null
+          amount_total: number
+          amount_paid?: number
+          currency?: string
+          status?: Database["public"]["Enums"]["invoice_status"]
+          due_date: string
+          paid_at?: string | null
+          items: Json
+          notes?: string | null
+          pdf_url?: string | null
+          tax_rate?: number
+          tax_amount?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          coach_id?: string
+          client_id?: string
+          subscription_id?: string | null
+          invoice_number?: string
+          stripe_invoice_id?: string | null
+          amount_total?: number
+          amount_paid?: number
+          currency?: string
+          status?: Database["public"]["Enums"]["invoice_status"]
+          due_date?: string
+          paid_at?: string | null
+          items?: Json
+          notes?: string | null
+          pdf_url?: string | null
+          tax_rate?: number
+          tax_amount?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          id: string
+          invoice_id: string
+          stripe_payment_intent_id: string | null
+          amount: number
+          currency: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          status: Database["public"]["Enums"]["payment_status"]
+          processed_at: string | null
+          failure_reason: string | null
+          metadata: Json
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          invoice_id: string
+          stripe_payment_intent_id?: string | null
+          amount: number
+          currency?: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          status?: Database["public"]["Enums"]["payment_status"]
+          processed_at?: string | null
+          failure_reason?: string | null
+          metadata?: Json
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          invoice_id?: string
+          stripe_payment_intent_id?: string | null
+          amount?: number
+          currency?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          status?: Database["public"]["Enums"]["payment_status"]
+          processed_at?: string | null
+          failure_reason?: string | null
+          metadata?: Json
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_reminders: {
+        Row: {
+          id: string
+          invoice_id: string
+          reminder_type: Database["public"]["Enums"]["reminder_type"]
+          sent_at: string | null
+          status: Database["public"]["Enums"]["reminder_status"]
+          email_content: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          invoice_id: string
+          reminder_type: Database["public"]["Enums"]["reminder_type"]
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["reminder_status"]
+          email_content?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          invoice_id?: string
+          reminder_type?: Database["public"]["Enums"]["reminder_type"]
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["reminder_status"]
+          email_content?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_reminders_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_settings: {
+        Row: {
+          id: string
+          coach_id: string
+          stripe_account_id: string | null
+          stripe_publishable_key: string | null
+          stripe_secret_key: string | null
+          payment_methods_enabled: Json
+          auto_invoice_generation: boolean
+          reminder_schedule: Json
+          company_info: Json
+          is_configured: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          coach_id: string
+          stripe_account_id?: string | null
+          stripe_publishable_key?: string | null
+          stripe_secret_key?: string | null
+          payment_methods_enabled?: Json
+          auto_invoice_generation?: boolean
+          reminder_schedule?: Json
+          company_info?: Json
+          is_configured?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          coach_id?: string
+          stripe_account_id?: string | null
+          stripe_publishable_key?: string | null
+          stripe_secret_key?: string | null
+          payment_methods_enabled?: Json
+          auto_invoice_generation?: boolean
+          reminder_schedule?: Json
+          company_info?: Json
+          is_configured?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_settings_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_webhooks: {
+        Row: {
+          id: string
+          stripe_event_id: string
+          event_type: string
+          processed: boolean
+          data: Json
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          stripe_event_id: string
+          event_type: string
+          processed?: boolean
+          data: Json
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          stripe_event_id?: string
+          event_type?: string
+          processed?: boolean
+          data?: Json
+          created_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1941,6 +2320,33 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_coach_financial_stats: {
+        Args: {
+          p_coach_id: string
+          p_period_days: number
+        }
+        Returns: Json
+      }
+      create_subscription: {
+        Args: {
+          p_coach_id: string
+          p_client_id: string
+          p_pricing_plan_id: string
+          p_stripe_subscription_id?: string
+        }
+        Returns: string
+      }
+      create_invoice: {
+        Args: {
+          p_coach_id: string
+          p_client_id: string
+          p_subscription_id?: string
+          p_items: Json
+          p_due_date?: string
+          p_notes?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       appointment_status: "pending" | "confirmed" | "cancelled" | "completed"
@@ -1983,6 +2389,13 @@ export type Database = {
         | "Test"
         | "Compétition"
         | "Autre"
+      billing_interval: "one_time" | "weekly" | "monthly" | "quarterly" | "yearly"
+      subscription_status: "active" | "paused" | "cancelled" | "past_due" | "incomplete" | "trialing"
+      invoice_status: "draft" | "sent" | "paid" | "overdue" | "cancelled" | "void"
+      payment_status: "pending" | "succeeded" | "failed" | "cancelled" | "requires_action"
+      payment_method: "card" | "bank_transfer" | "sepa" | "apple_pay" | "google_pay" | "cash" | "other"
+      reminder_type: "first_notice" | "second_notice" | "final_notice" | "overdue"
+      reminder_status: "pending" | "sent" | "failed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2154,6 +2567,13 @@ export const Constants = {
         "Compétition",
         "Autre",
       ],
+      billing_interval: ["one_time", "weekly", "monthly", "quarterly", "yearly"],
+      subscription_status: ["active", "paused", "cancelled", "past_due", "incomplete", "trialing"],
+      invoice_status: ["draft", "sent", "paid", "overdue", "cancelled", "void"],
+      payment_status: ["pending", "succeeded", "failed", "cancelled", "requires_action"],
+      payment_method: ["card", "bank_transfer", "sepa", "apple_pay", "google_pay", "cash", "other"],
+      reminder_type: ["first_notice", "second_notice", "final_notice", "overdue"],
+      reminder_status: ["pending", "sent", "failed", "cancelled"],
     },
   },
 } as const

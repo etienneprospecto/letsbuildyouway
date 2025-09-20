@@ -1,66 +1,182 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 @layer base {
   :root {
+    /* Light theme - Orange BYW */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 24.6 95% 53.1%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
+    --primary: 20 100% 50%;                    /* Orange BYW */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 100% 60%;                  /* Orange secondaire */
+    --secondary-foreground: 0 0% 100%;
     --muted: 210 40% 96%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
+    --accent: 40 100% 70%;                     /* Orange accent */
+    --accent-foreground: 0 0% 100%;
+    
+    /* Variables personnalisées pour les couleurs utilisateur */
+    --user-primary: #FF6B35;
+    --user-secondary: #FF8C42;
+    --user-tertiary: #FFB74D;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 24.6 95% 53.1%;
+    --ring: 20 100% 50%;
     --radius: 0.75rem;
+    
+    /* Variables supplémentaires pour le dark mode */
+    --sidebar-bg: 0 0% 100%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-text: 222.2 84% 4.9%;
+    --sidebar-text-muted: 215.4 16.3% 46.9%;
+    --sidebar-hover: 210 40% 96%;
+    --sidebar-active: 20 100% 50%;
+    --sidebar-active-bg: 20 100% 50%;
+    --sidebar-active-text: 0 0% 100%;
+    
+    /* États et alertes modernes */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 213 94% 68%;
+    --info-foreground: 0 0% 100%;
+    
+    /* Transitions globales */
+    --transition-colors: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 20.5 90.2% 48.2%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 20.5 90.2% 48.2%;
+    /* Dark theme - Orange BYW adapté */
+    --background: 240 10% 3.9%;           /* Noir profond moderne */
+    --foreground: 0 0% 98%;               /* Blanc pur */
+    --card: 240 10% 6%;                   /* Cards glassmorphism */
+    --card-foreground: 0 0% 98%;          /* Texte sur cards */
+    --popover: 240 10% 6%;                /* Popovers glassmorphism */
+    --popover-foreground: 0 0% 98%;       /* Texte popovers */
+    --primary: 20 100% 60%;               /* Orange BYW plus clair pour le dark */
+    --primary-foreground: 0 0% 100%;      /* Texte sur orange */
+    --secondary: 30 100% 50%;             /* Orange secondaire adapté */
+    --secondary-foreground: 0 0% 100%;    /* Texte sur orange secondaire */
+    --muted: 240 3.7% 15.9%;              /* Fond muted */
+    --muted-foreground: 240 5% 64.9%;     /* Texte muted */
+    --accent: 40 100% 65%;                /* Orange accent adapté */
+    --accent-foreground: 0 0% 100%;       /* Texte sur orange accent */
+    
+    /* Variables personnalisées pour les couleurs utilisateur (dark mode) */
+    --user-primary: #FF8C42;
+    --user-secondary: #FF6B35;
+    --user-tertiary: #FFB74D;
+    --destructive: 0 62.8% 30.6%;         /* Rouge moderne */
+    --destructive-foreground: 0 0% 98%;   /* Texte sur rouge */
+    --border: 240 3.7% 15.9%;             /* Bordures subtiles */
+    --input: 240 3.7% 15.9%;              /* Fond inputs */
+    --ring: 20 100% 60%;                  /* Ring focus orange */
+    
+    /* Sidebar dark mode avec orange */
+    --sidebar-bg: 240 10% 6%;             /* Fond sidebar glassmorphism */
+    --sidebar-border: 240 3.7% 15.9%;     /* Bordure sidebar subtile */
+    --sidebar-text: 0 0% 98%;             /* Texte sidebar blanc */
+    --sidebar-text-muted: 240 5% 64.9%;   /* Texte muted sidebar */
+    --sidebar-hover: 240 3.7% 15.9%;      /* Hover sidebar */
+    --sidebar-active: 20 100% 60%;        /* Orange actif */
+    --sidebar-active-bg: 20 100% 60%;     /* Fond orange actif */
+    --sidebar-active-text: 0 0% 100%;     /* Texte sur orange */
+    
+    /* États et alertes ultra-modernes */
+    --success: 142 76% 36%;               /* Vert émeraude */
+    --success-foreground: 0 0% 100%;      /* Texte sur vert */
+    --warning: 38 92% 50%;                /* Orange ambre */
+    --warning-foreground: 0 0% 100%;      /* Texte sur orange */
+    --info: 199 89% 48%;                  /* Cyan électrique */
+    --info-foreground: 0 0% 100%;         /* Texte sur cyan */
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    transition: var(--transition-colors);
   }
+  
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Smooth transitions for theme switching */
+  html {
+    transition: var(--transition-colors);
+  }
+  
+  /* Dark mode scrollbar */
+  .dark ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+  
+  .dark ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+  }
+  
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+  
+  /* Effets glassmorphism modernes */
+  .glassmorphism {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .dark .glassmorphism {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  /* Gradients modernes */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 45%) 100%);
+  }
+  
+  .gradient-success {
+    background: linear-gradient(135deg, hsl(var(--success)) 0%, hsl(142 76% 25%) 100%);
+  }
+  
+  .gradient-info {
+    background: linear-gradient(135deg, hsl(var(--info)) 0%, hsl(199 89% 35%) 100%);
+  }
+  
+  /* Effets néon */
+  .neon-glow {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+  
+  .dark .neon-glow {
+    box-shadow: 0 0 30px hsl(var(--primary) / 0.5);
+  }
+  
+  /* Animations modernes */
+  @keyframes pulse-modern {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+  }
+  
+  .animate-pulse-modern {
+    animation: pulse-modern 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }
 

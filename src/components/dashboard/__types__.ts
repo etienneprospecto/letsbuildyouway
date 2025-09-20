@@ -22,6 +22,7 @@ export interface ClientBasicInfo {
   poids_depart: number | null
   poids_objectif: number | null
   poids_actuel: number | null
+  coach_id: string
 }
 
 export interface SeanceBasicInfo {

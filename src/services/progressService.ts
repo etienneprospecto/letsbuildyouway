@@ -7,7 +7,7 @@ export const progressService = {
       .from('progress_data')
       .select('*')
       .eq('client_id', clientId)
-      .order('date', { ascending: true });
+      .order('measurement_date', { ascending: false });
 
     if (error) throw error;
     return data;
@@ -18,12 +18,12 @@ export const progressService = {
       .from('progress_data')
       .insert({
         client_id: progressData.clientId,
-        date: progressData.date,
-        weight: progressData.weight,
-        body_fat: progressData.bodyFat,
-        muscle_mass: progressData.muscleMass,
+        measurement_date: progressData.date,
+        weight_kg: progressData.weight,
+        body_fat_percentage: progressData.bodyFat,
+        muscle_mass_kg: progressData.muscleMass,
         measurements: progressData.measurements,
-        photos: progressData.photos
+        photos_urls: progressData.photos
       })
       .select()
       .single();
@@ -36,11 +36,11 @@ export const progressService = {
     const { data, error } = await supabase
       .from('progress_data')
       .update({
-        weight: updates.weight,
-        body_fat: updates.bodyFat,
-        muscle_mass: updates.muscleMass,
+        weight_kg: updates.weight,
+        body_fat_percentage: updates.bodyFat,
+        muscle_mass_kg: updates.muscleMass,
         measurements: updates.measurements,
-        photos: updates.photos
+        photos_urls: updates.photos
       })
       .eq('id', progressId)
       .select()

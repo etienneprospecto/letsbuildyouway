@@ -75,7 +75,8 @@ export const useClientDetail = (clientId?: string) => {
           lifestyle: clientData.lifestyle,
           poids_depart: clientData.poids_depart,
           poids_objectif: clientData.poids_objectif,
-          poids_actuel: clientData.poids_actuel
+          poids_actuel: clientData.poids_actuel,
+          coach_id: clientData.coach_id
         })
       }
 
