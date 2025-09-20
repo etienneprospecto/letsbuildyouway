@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, memo, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Calendar, Target, TrendingUp, Award, Play, CheckCircle, Clock, Droplets, Activity } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,7 +25,7 @@ interface DashboardStats {
   recentProgress: any[]
 }
 
-const ClientDashboard: React.FC = () => {
+const ClientDashboard: React.FC = memo(() => {
   const { user, profile } = useAuth()
   const [stats, setStats] = useState<DashboardStats>({
     currentWeight: null,
@@ -420,6 +420,8 @@ const ClientDashboard: React.FC = () => {
       </Card>
     </div>
   )
-}
+})
+
+ClientDashboard.displayName = 'ClientDashboard'
 
 export default ClientDashboard

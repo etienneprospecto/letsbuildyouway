@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, memo, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Users, 
@@ -19,7 +19,7 @@ import { useAuth } from '@/providers/AuthProvider'
 import { getInitials } from '@/lib/utils'
 import { ClientService, Client } from '@/services/clientService'
 
-const CoachDashboard: React.FC = () => {
+const CoachDashboard: React.FC = memo(() => {
   const { profile } = useAuth()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
@@ -354,6 +354,8 @@ const CoachDashboard: React.FC = () => {
 
     </div>
   )
-}
+})
+
+CoachDashboard.displayName = 'CoachDashboard'
 
 export default CoachDashboard

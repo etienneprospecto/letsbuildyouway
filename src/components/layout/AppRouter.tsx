@@ -1,27 +1,39 @@
-import React from 'react'
-import CoachDashboard from '@/components/dashboard/CoachDashboard'
-import ClientDashboard from '@/components/dashboard/ClientDashboard'
-import ClientsPage from '@/components/dashboard/ClientsPage'
-import WorkoutsPage from '@/components/dashboard/WorkoutsPage'
-import ExercicesPage from '@/components/dashboard/ExercicesPage'
-import MessagesPage from '@/components/dashboard/MessagesPage'
-import SimpleCoachFeedbacksPage from '@/components/dashboard/SimpleCoachFeedbacksPage'
-import SettingsPage from '@/components/dashboard/SettingsPage'
-import ClientMessagesPage from '@/components/client/ClientMessagesPage'
-import ClientSeances from '@/components/client/ClientSeances'
-import ProgressionDashboard from '@/components/client/ProgressionDashboard'
-import SimpleClientFeedbacksPage from '@/components/client/SimpleClientFeedbacksPage'
-import ClientResources from '@/components/client/ClientResources'
-import ClientSettingsPage from '@/components/client/ClientSettingsPage'
-import ClientNutritionPage from '@/components/client/ClientNutritionPage'
-import CoachNutritionPage from '@/components/dashboard/CoachNutritionPage'
-import { CoachCalendarPage } from '@/components/dashboard/CoachCalendarPage'
-import { ClientCalendarPage } from '@/components/client/ClientCalendarPage'
-import { CoachTrophiesPage } from '@/components/dashboard/CoachTrophiesPage'
-import { ClientTrophiesPage } from '@/components/client/ClientTrophiesPage'
-import { CoachBillingPage } from '@/components/dashboard/CoachBillingPage'
-import { ClientBillingPage } from '@/components/client/ClientBillingPage'
-import ColorCustomizer from '@/components/dashboard/ColorCustomizer'
+import React, { Suspense, lazy } from 'react'
+
+// Lazy loading des composants de pages
+const CoachDashboard = lazy(() => import('@/components/dashboard/CoachDashboard'))
+const ClientDashboard = lazy(() => import('@/components/dashboard/ClientDashboard'))
+const ClientsPage = lazy(() => import('@/components/dashboard/ClientsPage'))
+const WorkoutsPage = lazy(() => import('@/components/dashboard/WorkoutsPage'))
+const ExercicesPage = lazy(() => import('@/components/dashboard/ExercicesPage'))
+const MessagesPage = lazy(() => import('@/components/dashboard/MessagesPage'))
+const SimpleCoachFeedbacksPage = lazy(() => import('@/components/dashboard/SimpleCoachFeedbacksPage'))
+const SettingsPage = lazy(() => import('@/components/dashboard/SettingsPage'))
+const ClientMessagesPage = lazy(() => import('@/components/client/ClientMessagesPage'))
+const ClientSeances = lazy(() => import('@/components/client/ClientSeances'))
+const ProgressionDashboard = lazy(() => import('@/components/client/ProgressionDashboard'))
+const SimpleClientFeedbacksPage = lazy(() => import('@/components/client/SimpleClientFeedbacksPage'))
+const ClientResources = lazy(() => import('@/components/client/ClientResources'))
+const ClientSettingsPage = lazy(() => import('@/components/client/ClientSettingsPage'))
+const ClientNutritionPage = lazy(() => import('@/components/client/ClientNutritionPage'))
+const CoachNutritionPage = lazy(() => import('@/components/dashboard/CoachNutritionPage'))
+const CoachCalendarPage = lazy(() => import('@/components/dashboard/CoachCalendarPage'))
+const ClientCalendarPage = lazy(() => import('@/components/client/ClientCalendarPage'))
+const CoachTrophiesPage = lazy(() => import('@/components/dashboard/CoachTrophiesPage'))
+const ClientTrophiesPage = lazy(() => import('@/components/client/ClientTrophiesPage'))
+const CoachBillingPage = lazy(() => import('@/components/dashboard/CoachBillingPage'))
+const ClientBillingPage = lazy(() => import('@/components/client/ClientBillingPage'))
+const ColorCustomizer = lazy(() => import('@/components/dashboard/ColorCustomizer'))
+
+// Composant de chargement
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+      <p className="mt-4 text-gray-600">Chargement de la page...</p>
+    </div>
+  </div>
+)
 
 interface AppRouterProps {
   activeTab: string
@@ -29,61 +41,67 @@ interface AppRouterProps {
 }
 
 const AppRouter: React.FC<AppRouterProps> = ({ activeTab, userRole }) => {
+  const renderPage = (Component: React.ComponentType) => (
+    <Suspense fallback={<PageLoader />}>
+      <Component />
+    </Suspense>
+  )
+
   if (userRole === 'coach') {
     switch (activeTab) {
       case 'dashboard':
-        return <CoachDashboard />
+        return renderPage(CoachDashboard)
       case 'clients':
-        return <ClientsPage />
+        return renderPage(ClientsPage)
       case 'workouts':
-        return <WorkoutsPage />
+        return renderPage(WorkoutsPage)
       case 'exercices':
-        return <ExercicesPage />
+        return renderPage(ExercicesPage)
       case 'messages':
-        return <MessagesPage />
+        return renderPage(MessagesPage)
       case 'feedbacks-hebdomadaires':
-        return <SimpleCoachFeedbacksPage />
+        return renderPage(SimpleCoachFeedbacksPage)
       case 'nutrition':
-        return <CoachNutritionPage />
+        return renderPage(CoachNutritionPage)
       case 'calendar':
-        return <CoachCalendarPage />
+        return renderPage(CoachCalendarPage)
       case 'trophies':
-        return <CoachTrophiesPage />
+        return renderPage(CoachTrophiesPage)
       case 'billing':
-        return <CoachBillingPage />
+        return renderPage(CoachBillingPage)
       case 'settings':
-        return <SettingsPage />
+        return renderPage(SettingsPage)
       case 'color-customizer':
-        return <ColorCustomizer />
+        return renderPage(ColorCustomizer)
       default:
-        return <CoachDashboard />
+        return renderPage(CoachDashboard)
     }
   } else {
     switch (activeTab) {
       case 'dashboard':
-        return <ClientDashboard />
+        return renderPage(ClientDashboard)
       case 'seances':
-        return <ClientSeances />
+        return renderPage(ClientSeances)
       case 'progression':
-        return <ProgressionDashboard />
+        return renderPage(ProgressionDashboard)
       case 'feedbacks-hebdomadaires':
-        return <SimpleClientFeedbacksPage />
+        return renderPage(SimpleClientFeedbacksPage)
       case 'ressources':
-        return <ClientResources />
+        return renderPage(ClientResources)
       case 'nutrition':
-        return <ClientNutritionPage />
+        return renderPage(ClientNutritionPage)
       case 'calendar':
-        return <ClientCalendarPage />
+        return renderPage(ClientCalendarPage)
       case 'trophies':
-        return <ClientTrophiesPage />
+        return renderPage(ClientTrophiesPage)
       case 'billing':
-        return <ClientBillingPage />
+        return renderPage(ClientBillingPage)
       case 'messages':
-        return <ClientMessagesPage />
+        return renderPage(ClientMessagesPage)
       case 'settings':
-        return <ClientSettingsPage />
+        return renderPage(ClientSettingsPage)
       default:
-        return <ClientDashboard />
+        return renderPage(ClientDashboard)
     }
   }
 }
