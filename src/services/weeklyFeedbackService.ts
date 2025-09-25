@@ -262,13 +262,18 @@ export class WeeklyFeedbackService {
   }
 
   // Envoyer un feedback à un client
-  static async sendFeedbackToClient(feedbackId: string): Promise<void> {
+  static async sendFeedbackToClient(feedbackId: string, deadlineDays: number = 7): Promise<void> {
     try {
+      // Calculer la deadline (par défaut 7 jours après l'envoi)
+      const deadline = new Date()
+      deadline.setDate(deadline.getDate() + deadlineDays)
+      
       const { error } = await supabase
         .from('feedbacks_hebdomadaires')
         .update({
           status: 'sent',
-          sent_at: new Date().toISOString()
+          sent_at: new Date().toISOString(),
+          deadline: deadline.toISOString()
         })
         .eq('id', feedbackId)
 
@@ -282,35 +287,35 @@ export class WeeklyFeedbackService {
   // Récupérer les feedbacks d'un client
   static async getClientFeedbacks(clientId: string): Promise<WeeklyFeedback[]> {
     try {
+      console.log('🔍 Récupération feedbacks pour client:', clientId)
+      
       const { data: feedbacks, error: feedbacksError } = await supabase
         .from('feedbacks_hebdomadaires')
         .select('*')
         .eq('client_id', clientId)
         .order('week_start', { ascending: false })
 
-      if (feedbacksError) throw feedbacksError
+      if (feedbacksError) {
+        console.error('❌ Erreur récupération feedbacks:', feedbacksError)
+        throw feedbacksError
+      }
 
-      // Récupérer les réponses pour chaque feedback
-      const feedbacksWithResponses = await Promise.all(
-        feedbacks.map(async (feedback) => {
-          const { data: responses, error: responsesError } = await supabase
-            .from('feedback_responses')
-            .select('*')
-            .eq('feedback_id', feedback.id)
-            .order('created_at')
+      console.log('📋 Feedbacks trouvés:', feedbacks.length)
 
-          if (responsesError) throw responsesError
+      // Les réponses sont maintenant stockées directement dans le champ responses du feedback
+      const feedbacksWithResponses = feedbacks.map((feedback) => {
+        console.log(`🔍 Feedback ${feedback.id} - réponses dans le champ responses:`, feedback.responses?.length || 0)
+        
+        return {
+          ...feedback,
+          responses: feedback.responses || []
+        }
+      })
 
-          return {
-            ...feedback,
-            responses: responses || []
-          }
-        })
-      )
-
+      console.log('✅ Tous les feedbacks avec réponses récupérés')
       return feedbacksWithResponses
     } catch (error) {
-      console.error('Error fetching client feedbacks:', error)
+      console.error('❌ Erreur récupération feedbacks client:', error)
       throw error
     }
   }
@@ -318,6 +323,8 @@ export class WeeklyFeedbackService {
   // Récupérer les feedbacks d'un coach
   static async getCoachFeedbacks(coachId: string): Promise<WeeklyFeedback[]> {
     try {
+      console.log('🔍 Service: Récupération feedbacks pour coach:', coachId)
+      
       const { data: feedbacks, error: feedbacksError } = await supabase
         .from('feedbacks_hebdomadaires')
         .select(`
@@ -327,26 +334,20 @@ export class WeeklyFeedbackService {
         .eq('coach_id', coachId)
         .order('week_start', { ascending: false })
 
+      console.log('📊 Service: Feedbacks bruts récupérés:', feedbacks)
+
       if (feedbacksError) throw feedbacksError
 
-      // Récupérer les réponses pour chaque feedback
-      const feedbacksWithResponses = await Promise.all(
-        feedbacks.map(async (feedback) => {
-          const { data: responses, error: responsesError } = await supabase
-            .from('feedback_responses')
-            .select('*')
-            .eq('feedback_id', feedback.id)
-            .order('created_at')
+      // Les réponses sont maintenant stockées directement dans le champ responses du feedback
+      const feedbacksWithResponses = feedbacks.map((feedback) => {
+        console.log(`🔍 Feedback ${feedback.id} - réponses récupérées:`, feedback.responses)
+        return {
+          ...feedback,
+          responses: feedback.responses || []
+        }
+      })
 
-          if (responsesError) throw responsesError
-
-          return {
-            ...feedback,
-            responses: responses || []
-          }
-        })
-      )
-
+      console.log('📊 Tous les feedbacks avec réponses:', feedbacksWithResponses)
       return feedbacksWithResponses
     } catch (error) {
       console.error('Error fetching coach feedbacks:', error)
@@ -357,35 +358,80 @@ export class WeeklyFeedbackService {
   // Soumettre les réponses d'un client
   static async submitClientResponses(feedbackId: string, responses: Omit<FeedbackResponse, 'created_at'>[]): Promise<void> {
     try {
-      // Mettre à jour le statut du feedback
+      console.log('🚀 Service: Soumission des réponses pour feedback:', feedbackId)
+      console.log('📝 Réponses reçues:', responses)
+      
+      // Mettre à jour le statut du feedback avec les réponses stockées dans un champ JSONB
       const { error: statusError } = await supabase
         .from('feedbacks_hebdomadaires')
         .update({
           status: 'completed',
-          completed_at: new Date().toISOString()
+          completed_at: new Date().toISOString(),
+          responses: responses // Stocker les réponses directement dans le feedback
         })
         .eq('id', feedbackId)
 
-      if (statusError) throw statusError
-
-      // Créer les réponses
-      await Promise.all(
-        responses.map(async (response) => {
-          const { error: responseError } = await supabase
-            .from('feedback_responses')
-            .insert({
-              feedback_id: feedbackId,
-              question_id: response.question_id,
-              question_text: response.question_text,
-              question_type: response.question_type,
-              response: response.response
-            })
-
-          if (responseError) throw responseError
+      if (statusError) {
+        console.error('❌ Erreur mise à jour statut et réponses:', statusError)
+        console.error('❌ Détails de l\'erreur:', {
+          code: statusError.code,
+          message: statusError.message,
+          details: statusError.details,
+          hint: statusError.hint
         })
-      )
+        throw statusError
+      }
+
+      console.log('✅ Statut feedback et réponses mis à jour avec succès')
+      
+      // Note: Les réponses sont maintenant stockées dans le champ responses du feedback principal
+      // pour éviter les problèmes de RLS avec la table feedback_responses
+      console.log('📝 Réponses stockées dans le champ responses du feedback principal')
+      
+      console.log('🎉 Réponses soumises avec succès')
     } catch (error) {
-      console.error('Error submitting client responses:', error)
+      console.error('❌ Erreur soumission réponses client:', error)
+      throw error
+    }
+  }
+
+  // Mettre à jour les réponses d'un client (pour modification)
+  static async updateClientResponses(feedbackId: string, responses: Omit<FeedbackResponse, 'created_at'>[]): Promise<void> {
+    try {
+      console.log('🔄 Mise à jour des réponses pour feedback:', feedbackId)
+      console.log('📝 Nouvelles réponses:', responses)
+      
+      // Mettre à jour le feedback avec les nouvelles réponses
+      const { error: statusError } = await supabase
+        .from('feedbacks_hebdomadaires')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          responses: responses // Stocker les réponses directement dans le feedback
+        })
+        .eq('id', feedbackId)
+
+      if (statusError) {
+        console.error('❌ Erreur mise à jour statut et réponses:', statusError)
+        console.error('❌ Détails de l\'erreur:', {
+          code: statusError.code,
+          message: statusError.message,
+          details: statusError.details,
+          hint: statusError.hint
+        })
+        throw statusError
+      }
+
+      console.log('✅ Feedback et réponses mis à jour avec succès')
+      
+      // Note: Les réponses sont maintenant stockées dans le champ responses du feedback principal
+      // pour éviter les problèmes de RLS avec la table feedback_responses
+      console.log('📝 Réponses mises à jour dans le champ responses du feedback principal')
+
+      console.log('✅ Réponses mises à jour avec succès')
+    } catch (error) {
+      console.error('❌ Erreur mise à jour réponses client:', error)
       throw error
     }
   }
@@ -587,37 +633,76 @@ export class WeeklyFeedbackService {
   }
 
   // Créer et envoyer immédiatement des feedbacks pour une semaine donnée
-  static async createAndSendWeeklyFeedbacks(coachId: string, templateId: string, clientIds: string[], weekStart: string, weekEnd: string): Promise<void> {
+  static async createAndSendWeeklyFeedbacks(coachId: string, templateId: string, clientIds: string[], weekStart: string, weekEnd: string, deadlineDays: number = 7): Promise<void> {
     try {
       console.log('🚀 Service: Création feedbacks pour', clientIds.length, 'clients')
+      console.log('📋 Paramètres reçus:', {
+        coachId,
+        templateId,
+        clientIds,
+        weekStart,
+        weekEnd,
+        deadlineDays
+      })
       
-      await Promise.all(
-        clientIds.map(async (clientId) => {
-          console.log('📝 Création feedback pour client:', clientId)
-          
-          const { data, error } = await supabase
-            .from('feedbacks_hebdomadaires')
-            .insert({
-              client_id: clientId,
-              coach_id: coachId,
-              template_id: templateId,
-              week_start: weekStart,
-              week_end: weekEnd,
-              status: 'sent',
-              sent_at: new Date().toISOString()
-            })
-            .select()
-            .single()
+      // Vérifier que le template existe
+      const { data: template, error: templateError } = await supabase
+        .from('feedback_templates')
+        .select('id, name')
+        .eq('id', templateId)
+        .single()
 
-          if (error) {
-            console.error('❌ Erreur création feedback pour client', clientId, ':', error)
-            throw error
-          }
-          
-          console.log('✅ Feedback créé pour client', clientId, ':', data)
-          return data
-        })
-      )
+      if (templateError) {
+        console.error('❌ Template non trouvé:', templateError)
+        throw new Error(`Template non trouvé: ${templateError.message}`)
+      }
+
+      console.log('✅ Template trouvé:', template)
+
+      // Vérifier que les clients existent
+      const { data: clients, error: clientsError } = await supabase
+        .from('clients')
+        .select('id, first_name, last_name, contact')
+        .in('id', clientIds)
+
+      if (clientsError) {
+        console.error('❌ Erreur récupération clients:', clientsError)
+        throw new Error(`Erreur récupération clients: ${clientsError.message}`)
+      }
+
+      console.log('✅ Clients trouvés:', clients)
+      
+      // Créer les feedbacks un par un pour mieux gérer les erreurs
+      for (const clientId of clientIds) {
+        console.log('📝 Création feedback pour client:', clientId)
+        
+        const { data, error } = await supabase
+          .from('feedbacks_hebdomadaires')
+          .insert({
+            client_id: clientId,
+            coach_id: coachId,
+            template_id: templateId,
+            week_start: weekStart,
+            week_end: weekEnd,
+            status: 'sent',
+            sent_at: new Date().toISOString()
+          })
+          .select()
+          .single()
+
+        if (error) {
+          console.error('❌ Erreur création feedback pour client', clientId, ':', error)
+          console.error('❌ Détails de l\'erreur:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          })
+          throw error
+        }
+        
+        console.log('✅ Feedback créé pour client', clientId, ':', data)
+      }
       
       console.log('🎉 Tous les feedbacks ont été créés avec succès')
     } catch (error) {

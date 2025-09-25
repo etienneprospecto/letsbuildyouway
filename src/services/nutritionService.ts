@@ -1,4 +1,6 @@
 import { supabase } from '../lib/supabase';
+import { ErrorHandler, ApiError } from './errorHandler';
+import { PaginationService, PaginationParams, PaginatedResult } from './paginationService';
 
 export interface NutritionEntry {
   id: string;
@@ -94,7 +96,7 @@ export class NutritionService {
       
       return data as NutritionEntry[];
     } catch (error) {
-      console.error('Error in getClientNutritionEntries:', error);
+
       // En cas d'erreur, retourner un tableau vide pour éviter de planter l'interface
       return [];
     }
@@ -219,8 +221,7 @@ export class NutritionService {
       return data as NutritionGoals;
     } catch (error: any) {
       // Si l'upsert échoue, essayer une approche manuelle
-      console.log('Upsert failed, trying manual approach:', error);
-      
+
       // Chercher un objectif existant
       const existing = await this.getNutritionGoals(goals.client_id);
       
@@ -354,7 +355,7 @@ export class NutritionService {
         progress
       };
     } catch (error) {
-      console.error('Error in getNutritionStats:', error);
+
       // Retourner des stats par défaut en cas d'erreur
       return {
         totalCalories: 0,

@@ -47,6 +47,7 @@ const CoachDashboard: React.FC = memo(() => {
       } catch (err) {
         console.error('Error fetching clients:', err)
         setError('Failed to load clients')
+        setClients([]) // S'assurer que clients est toujours un tableau
       } finally {
         setLoading(false)
       }
@@ -55,14 +56,13 @@ const CoachDashboard: React.FC = memo(() => {
     fetchClients()
   }, [profile?.id])
 
-
   // Fonctions de formatage
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800'
-      case 'inactive': return 'bg-gray-100 text-gray-800'
-      case 'paused': return 'bg-yellow-100 text-yellow-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+      case 'inactive': return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+      case 'paused': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
     }
   }
 
@@ -95,8 +95,6 @@ const CoachDashboard: React.FC = memo(() => {
     }
     return levels[level] || level
   }
-
-
 
   const metrics = [
     {
@@ -159,7 +157,7 @@ const CoachDashboard: React.FC = memo(() => {
             >
               <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-900/50 backdrop-blur-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-700">
+                  <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {metric.title}
                   </CardTitle>
                   <motion.div 
@@ -172,7 +170,7 @@ const CoachDashboard: React.FC = memo(() => {
                 </CardHeader>
                 <CardContent>
                   <motion.div 
-                    className="text-2xl font-bold text-gray-900"
+                    className="text-2xl font-bold text-gray-900 dark:text-gray-100"
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: index * 0.1 + 0.3, type: "spring", stiffness: 200 }}
@@ -184,7 +182,7 @@ const CoachDashboard: React.FC = memo(() => {
                   </p>
                   
                   {/* Barre de progression subtile */}
-                  <div className="mt-3 h-1 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="mt-3 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <motion.div 
                       className={`h-full ${metric.bgColor.replace('bg-', 'bg-').replace('/20', '/60')}`}
                       initial={{ width: 0 }}
@@ -229,7 +227,7 @@ const CoachDashboard: React.FC = memo(() => {
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 hover:shadow-md transition-all cursor-pointer group"
                   onClick={() => {
                     // Pour l'instant, on peut afficher un toast ou naviguer vers la page clients
-                    console.log('Navigate to client:', client.id);
+
                   }}
                 >
                   {/* Informations client */}
@@ -331,7 +329,7 @@ const CoachDashboard: React.FC = memo(() => {
                   Ajouter mon premier client
                 </Button>
                 
-                <div className="flex items-center justify-center space-x-6 text-sm text-gray-500 mt-4">
+                <div className="flex items-center justify-center space-x-6 text-sm text-gray-500 dark:text-gray-400 mt-4">
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
                     Programmes personnalisés
@@ -350,7 +348,6 @@ const CoachDashboard: React.FC = memo(() => {
           )}
         </CardContent>
       </Card>
-
 
     </div>
   )

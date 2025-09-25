@@ -7,6 +7,7 @@ import { WeeklyFeedback, FeedbackTemplate } from '@/types/feedback'
 import { toast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
 import SimpleFeedbackForm from './SimpleFeedbackForm'
+import FeedbackDeadlineAlert from './FeedbackDeadlineAlert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -70,19 +71,42 @@ const SimpleClientFeedbacksPage: React.FC = () => {
   })
 
   const loadFeedbacks = async () => {
-    if (!user) return
+    if (!user) {
+      console.log('❌ Pas d\'utilisateur connecté')
+      return
+    }
 
     try {
       setLoading(true)
+      console.log('🔄 SimpleClientFeedbacksPage - Chargement des feedbacks pour:', user.email)
       
       const client = await ClientService.getClientByEmail(user.email || '')
       if (!client) {
-        console.error('❌ Client non trouvé')
+        console.error('❌ Client non trouvé pour email:', user.email)
         return
       }
+      
+      console.log('👤 Client trouvé:', { id: client.id, name: `${client.first_name} ${client.last_name}`, contact: client.contact })
 
-      // Récupérer tous les feedbacks
-      const { data: allFeedbacks, error } = await supabase
+      // Calcul début/fin de semaine en local (évite UTC)
+      const formatDateLocal = (date: Date): string => {
+        const y = date.getFullYear()
+        const m = String(date.getMonth() + 1).padStart(2, '0')
+        const d = String(date.getDate()).padStart(2, '0')
+        return `${y}-${m}-${d}`
+      }
+
+      const weekStart = currentWeekStart
+      const weekEnd = new Date(currentWeekStart)
+      weekEnd.setDate(currentWeekStart.getDate() + 6)
+
+      const weekStartStr = formatDateLocal(weekStart)
+      const weekEndStr = formatDateLocal(weekEnd)
+
+      console.log('📅 Semaine courante (local):', { weekStartStr, weekEndStr })
+
+      // Récupérer feedbacks de la semaine courante (filtrage côté DB)
+      const { data: currentFeedbacks, error: currentErr } = await supabase
         .from('feedbacks_hebdomadaires')
         .select(`
           *,
@@ -93,30 +117,43 @@ const SimpleClientFeedbacksPage: React.FC = () => {
           )
         `)
         .eq('client_id', client.id)
+        .gte('week_start', weekStartStr)
+        .lte('week_start', weekEndStr)
+        .order('week_start', { ascending: false })
+        .order('created_at', { ascending: false })
+
+      if (currentErr) {
+        console.error('❌ Erreur récupération feedbacks (courants):', currentErr)
+        throw currentErr
+      }
+
+      console.log('📊 Feedbacks courants trouvés (DB):', currentFeedbacks?.length || 0)
+
+      // Récupérer l'historique (avant cette semaine)
+      const { data: pastFeedbacksData, error: pastErr } = await supabase
+        .from('feedbacks_hebdomadaires')
+        .select(`
+          *,
+          feedback_templates (
+            id,
+            name,
+            description
+          )
+        `)
+        .eq('client_id', client.id)
+        .lt('week_start', weekStartStr)
         .order('week_start', { ascending: false })
 
-      if (error) throw error
-
-      // Filtrer les feedbacks de la semaine courante
-      const weekStart = currentWeekStart
-      const weekEnd = new Date(currentWeekStart)
-      weekEnd.setDate(currentWeekStart.getDate() + 6)
-      
-      const currentFeedbacks = allFeedbacks?.filter((feedback: any) => {
-        const feedbackWeekStart = feedback.week_start
-        return feedbackWeekStart === weekStart.toISOString().split('T')[0]
-      }) || []
-
-      const pastFeedbacksData = allFeedbacks?.filter((feedback: any) => {
-        const feedbackWeekStart = feedback.week_start
-        return feedbackWeekStart < weekStart.toISOString().split('T')[0]
-      }) || []
+      if (pastErr) {
+        console.error('❌ Erreur récupération feedbacks (historique):', pastErr)
+        throw pastErr
+      }
 
       setPastFeedbacks(pastFeedbacksData)
 
-      // Définir le feedback courant
-      if (currentFeedbacks.length > 0) {
-        const current = currentFeedbacks[0]
+      // Définir le feedback courant (prendre le plus récent si plusieurs)
+      if ((currentFeedbacks?.length || 0) > 0) {
+        const current = currentFeedbacks![0]
         setCurrentFeedback(current)
         
         // Récupérer le template complet
@@ -156,8 +193,12 @@ const SimpleClientFeedbacksPage: React.FC = () => {
         setCurrentTemplate(null)
       }
 
-      // Calculer les statistiques
-      calculateStats(allFeedbacks || [])
+      // Calculer les statistiques sur l'ensemble (courants + historiques)
+      const allForStats = [
+        ...(currentFeedbacks || []),
+        ...(pastFeedbacksData || [])
+      ]
+      calculateStats(allForStats)
 
     } catch (error) {
       console.error('❌ Erreur chargement feedbacks:', error)
@@ -281,48 +322,59 @@ const SimpleClientFeedbacksPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header avec statistiques */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Feedback Hebdomadaire</h1>
-            <p className="text-muted-foreground">Partagez votre expérience et suivez votre progression</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+
+        {/* Header avec statistiques */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-orange-600 to-orange-500 dark:from-orange-400 dark:to-orange-300 bg-clip-text text-transparent">
+                Feedback Hebdomadaire
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400 text-lg">
+                Partagez votre expérience et suivez votre progression
+              </p>
+            </div>
+            <Button 
+              onClick={loadFeedbacks} 
+              variant="outline" 
+              size="sm" 
+              className="shadow-sm"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualiser
+            </Button>
           </div>
-          <Button onClick={loadFeedbacks} variant="outline" size="sm" className="border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualiser
-          </Button>
-        </div>
 
       </div>
 
-      {/* Navigation hebdomadaire améliorée */}
-      <Card>
-        <CardContent className="p-6">
+        {/* Navigation hebdomadaire améliorée */}
+        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 shadow-lg">
+          <CardContent className="p-6">
           <div className="flex items-center justify-between">
-            <Button variant="outline" onClick={goToPreviousWeek} className="flex items-center space-x-2 border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300">
+            <Button variant="outline" onClick={goToPreviousWeek} className="flex items-center space-x-2">
               <ChevronLeft className="h-4 w-4" />
               <span>Semaine précédente</span>
             </Button>
             
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-3">
               <div className="flex items-center justify-center space-x-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold">
+                <Calendar className="h-6 w-6 text-orange-500 dark:text-orange-400" />
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                   {isCurrentWeek(currentWeekStart) ? 'Semaine actuelle' : 'Semaine sélectionnée'}
                 </h3>
               </div>
-              <p className="text-sm text-muted-foreground">{formatWeekRange(currentWeekStart)}</p>
+              <p className="text-lg text-slate-600 dark:text-slate-400 font-medium">{formatWeekRange(currentWeekStart)}</p>
               {isCurrentWeek(currentWeekStart) && (
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                <Badge variant="secondary" className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 dark:from-green-900/40 dark:to-emerald-900/40 dark:text-green-300 border-green-300 dark:border-green-700">
                   <Zap className="h-3 w-3 mr-1" />
                   En cours
                 </Badge>
               )}
             </div>
             
-            <Button variant="outline" onClick={goToNextWeek} className="flex items-center space-x-2 border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300">
+            <Button variant="outline" onClick={goToNextWeek} className="flex items-center space-x-2">
               <span>Semaine suivante</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -330,57 +382,54 @@ const SimpleClientFeedbacksPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Contenu principal avec onglets */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="current" className="flex items-center space-x-2">
-            <FileText className="h-4 w-4" />
-            <span>Cette semaine</span>
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center space-x-2">
-            <BarChart3 className="h-4 w-4" />
-            <span>Historique</span>
-          </TabsTrigger>
-        </TabsList>
+        {/* Contenu principal avec onglets */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 shadow-lg">
+            <TabsTrigger value="current" className="flex items-center space-x-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-800 dark:data-[state=active]:bg-orange-900/30 dark:data-[state=active]:text-orange-300">
+              <FileText className="h-4 w-4" />
+              <span>Cette semaine</span>
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center space-x-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-800 dark:data-[state=active]:bg-orange-900/30 dark:data-[state=active]:text-orange-300">
+              <BarChart3 className="h-4 w-4" />
+              <span>Historique</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Onglet Cette semaine */}
-        <TabsContent value="current" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-5 w-5 text-primary" />
-                <span>Feedback de cette semaine</span>
-              </CardTitle>
+          {/* Onglet Cette semaine */}
+          <TabsContent value="current" className="space-y-6">
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-slate-100">
+                  <FileText className="h-5 w-5 text-orange-500 dark:text-orange-400" />
+                  <span>Feedback de cette semaine</span>
+                </CardTitle>
             </CardHeader>
             <CardContent>
               {currentFeedback ? (
                 <div className="space-y-4">
                   {currentFeedback.status === 'completed' ? (
-                    <div 
-                      className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-700/30 rounded-lg p-6 cursor-pointer hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-800/30 dark:hover:to-emerald-800/30 transition-all duration-300"
-                      onClick={() => handlePastFeedbackClick(currentFeedback)}
-                    >
-                      <div className="flex items-center space-x-4 mb-4">
-                        <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 dark:from-green-900/30 dark:to-emerald-900/30 dark:border-green-700/50 rounded-xl p-6 shadow-lg">
+                      <div className="flex items-center space-x-4 mb-6">
+                        <div className="p-4 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 rounded-full shadow-md">
                           <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
                         </div>
                         <div>
-                          <h3 className="text-xl font-semibold text-green-800 dark:text-green-200">Feedback complété !</h3>
-                          <p className="text-green-600 dark:text-green-400">Cliquez pour voir vos réponses</p>
+                          <h3 className="text-2xl font-bold text-green-800 dark:text-green-200">Feedback complété !</h3>
+                          <p className="text-green-600 dark:text-green-400 text-lg">Vous pouvez le modifier ou voir les détails</p>
                         </div>
                       </div>
                       
                       {currentFeedback.score && (
-                        <div className="bg-white rounded-lg p-4 mb-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-medium text-gray-600">Score global</span>
-                            <div className="flex items-center space-x-2">
-                              <Star className="h-5 w-5 text-yellow-500" />
-                              <span className="text-2xl font-bold text-gray-900">{currentFeedback.score}/100</span>
+                        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl p-6 mb-6 shadow-lg border border-slate-200 dark:border-slate-700">
+                          <div className="flex items-center justify-between mb-4">
+                            <span className="text-lg font-semibold text-slate-600 dark:text-slate-400">Score global</span>
+                            <div className="flex items-center space-x-3">
+                              <Star className="h-6 w-6 text-yellow-500" />
+                              <span className="text-3xl font-bold text-slate-900 dark:text-slate-100">{currentFeedback.score}/100</span>
                             </div>
                           </div>
-                          <Progress value={currentFeedback.score} className="h-3" />
-                          <div className="flex justify-between text-xs text-gray-500 mt-2">
+                          <Progress value={currentFeedback.score} className="h-4 bg-slate-200 dark:bg-slate-700" />
+                          <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400 mt-3">
                             <span>0</span>
                             <span>50</span>
                             <span>100</span>
@@ -389,23 +438,39 @@ const SimpleClientFeedbacksPage: React.FC = () => {
                       )}
                       
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-green-600 font-medium">Voir les détails</span>
-                        <ArrowRight className="h-4 w-4 text-green-600" />
+                        <div className="flex space-x-3">
+                          <Button 
+                            onClick={() => setShowForm(true)} 
+                            variant="outline" 
+                            className="border-green-300 text-green-700 bg-green-50 hover:bg-green-100 hover:border-green-400 dark:border-green-600 dark:text-green-300 dark:bg-green-900/20 dark:hover:bg-green-900/30 shadow-md"
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Modifier
+                          </Button>
+                          <Button 
+                            onClick={() => handlePastFeedbackClick(currentFeedback)} 
+                            variant="outline"
+                            className="border-green-300 text-green-700 bg-green-50 hover:bg-green-100 hover:border-green-400 dark:border-green-600 dark:text-green-300 dark:bg-green-900/20 dark:hover:bg-green-900/30 shadow-md"
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Voir détails
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 dark:from-blue-900/20 dark:to-indigo-900/20 dark:border-blue-700/30 rounded-lg p-6">
-                      <div className="flex items-center space-x-4 mb-4">
-                        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 dark:from-blue-900/30 dark:to-indigo-900/30 dark:border-blue-700/50 rounded-xl p-6 shadow-lg">
+                      <div className="flex items-center space-x-4 mb-6">
+                        <div className="p-4 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 rounded-full shadow-md">
                           <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                          <h3 className="text-xl font-semibold text-blue-800 dark:text-blue-200">Feedback disponible</h3>
-                          <p className="text-blue-600 dark:text-blue-400">Partagez votre expérience de cette semaine</p>
+                          <h3 className="text-2xl font-bold text-blue-800 dark:text-blue-200">Feedback disponible</h3>
+                          <p className="text-blue-600 dark:text-blue-400 text-lg">Partagez votre expérience de cette semaine</p>
                         </div>
                       </div>
                       
-                      <Button onClick={() => setShowForm(true)} className="bg-blue-600 hover:bg-blue-700">
+                      <Button onClick={() => setShowForm(true)} variant="default" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg">
                         <Edit className="h-4 w-4 mr-2" />
                         Remplir le formulaire
                       </Button>
@@ -414,7 +479,7 @@ const SimpleClientFeedbacksPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <div className="p-4 bg-gray-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                  <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                     <Clock className="h-8 w-8 text-gray-400" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Aucun feedback cette semaine</h3>
@@ -518,7 +583,7 @@ const SimpleClientFeedbacksPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <div className="p-4 bg-gray-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                  <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                     <FileText className="h-8 w-8 text-gray-400" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Aucun historique</h3>
@@ -555,6 +620,24 @@ const SimpleClientFeedbacksPage: React.FC = () => {
             <div className="p-6 max-h-[calc(95vh-120px)] overflow-y-auto">
               <SimpleFeedbackForm
                 template={currentTemplate}
+                initialResponses={(() => {
+                  console.log('🔄 Conversion des réponses pour le formulaire:')
+                  console.log('📋 Réponses brutes:', currentFeedback.responses)
+                  
+                  if (!currentFeedback.responses || currentFeedback.responses.length === 0) {
+                    console.log('⚠️ Aucune réponse trouvée, formulaire vide')
+                    return {}
+                  }
+                  
+                  const convertedResponses = currentFeedback.responses.reduce((acc: Record<string, any>, response: any) => {
+                    console.log(`📝 Conversion réponse: ${response.question_id} = ${response.response}`)
+                    acc[response.question_id] = response.response
+                    return acc
+                  }, {})
+                  
+                  console.log('✅ Réponses converties:', convertedResponses)
+                  return convertedResponses
+                })()}
                 onSubmit={async (responses) => {
                   try {
                     const responsesArray = Object.entries(responses).map(([questionId, response]) => ({
@@ -564,12 +647,20 @@ const SimpleClientFeedbacksPage: React.FC = () => {
                       response
                     }))
                     
-                    await WeeklyFeedbackService.submitClientResponses(currentFeedback.id, responsesArray)
-                    
-                    toast({
-                      title: "Succès",
-                      description: "Feedback soumis avec succès !"
-                    })
+                    // Si le feedback existe déjà, on le met à jour, sinon on le crée
+                    if (currentFeedback.status === 'completed') {
+                      await WeeklyFeedbackService.updateClientResponses(currentFeedback.id, responsesArray)
+                      toast({
+                        title: "Succès",
+                        description: "Feedback modifié avec succès !"
+                      })
+                    } else {
+                      await WeeklyFeedbackService.submitClientResponses(currentFeedback.id, responsesArray)
+                      toast({
+                        title: "Succès",
+                        description: "Feedback soumis avec succès !"
+                      })
+                    }
                     
                     setShowForm(false)
                     await loadFeedbacks()
@@ -743,6 +834,7 @@ const SimpleClientFeedbacksPage: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

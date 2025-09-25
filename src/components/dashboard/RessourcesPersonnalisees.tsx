@@ -537,17 +537,16 @@ const RessourcesPersonnalisees: React.FC<RessourcesPersonnaliseesProps> = ({ cli
                               variant="outline"
                               size="sm"
                               onClick={() => handleDownloadResource(resource)}
-                              className="flex-1 border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300"
+                              className="flex-1"
                             >
                               <Download className="h-3 w-3 mr-1" />
                               Télécharger
                             </Button>
                             
                             <Button
-                              variant="outline"
+                              variant="destructive"
                               size="sm"
                               onClick={() => handleDeleteResource(resource.id)}
-                              className="border-red-300 text-red-600 bg-white hover:bg-red-50 hover:border-red-400 hover:text-red-700 dark:border-red-600 dark:text-red-400 dark:bg-gray-800 dark:hover:bg-red-900/20 dark:hover:border-red-500 dark:hover:text-red-300"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>

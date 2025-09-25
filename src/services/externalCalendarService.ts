@@ -306,7 +306,7 @@ class ExternalCalendarService {
 
       return response.ok;
     } catch (error) {
-      console.error('Erreur test Google:', error);
+
       return false;
     }
   }
@@ -327,7 +327,7 @@ class ExternalCalendarService {
 
       return response.ok;
     } catch (error) {
-      console.error('Erreur test Outlook:', error);
+
       return false;
     }
   }
@@ -338,7 +338,7 @@ class ExternalCalendarService {
       // Test basique de connectivité
       return !!(integration.api_key && integration.calendar_id);
     } catch (error) {
-      console.error('Erreur test Apple:', error);
+
       return false;
     }
   }
@@ -530,7 +530,7 @@ class ExternalCalendarService {
           });
       }
     } catch (error) {
-      console.error('Erreur import événement:', error);
+
       throw error;
     }
   }

@@ -103,7 +103,7 @@ export const ExternalCalendarModal: React.FC<ExternalCalendarModalProps> = ({
       const data = await externalCalendarService.getIntegrations(user.id);
       setIntegrations(data);
     } catch (error) {
-      console.error('Erreur chargement intégrations:', error);
+
     } finally {
       setLoading(false);
     }
@@ -132,7 +132,7 @@ export const ExternalCalendarModal: React.FC<ExternalCalendarModalProps> = ({
         setActiveTab('integrations');
       }
     } catch (error) {
-      console.error('Erreur création intégration:', error);
+
     } finally {
       setLoading(false);
     }
@@ -146,7 +146,7 @@ export const ExternalCalendarModal: React.FC<ExternalCalendarModalProps> = ({
       await externalCalendarService.deleteIntegration(id);
       await loadIntegrations();
     } catch (error) {
-      console.error('Erreur suppression:', error);
+
     } finally {
       setLoading(false);
     }
@@ -156,9 +156,9 @@ export const ExternalCalendarModal: React.FC<ExternalCalendarModalProps> = ({
     setTestingConnection(integration.id);
     try {
       const success = await externalCalendarService.testConnection(integration);
-      console.log(`Test connexion ${integration.provider}:`, success ? 'Succès' : 'Échec');
+
     } catch (error) {
-      console.error('Erreur test connexion:', error);
+
     } finally {
       setTestingConnection(null);
     }
@@ -168,10 +168,10 @@ export const ExternalCalendarModal: React.FC<ExternalCalendarModalProps> = ({
     setSyncing(integrationId);
     try {
       const result = await externalCalendarService.syncCalendar(integrationId);
-      console.log('Résultat sync:', result);
+
       await loadIntegrations();
     } catch (error) {
-      console.error('Erreur synchronisation:', error);
+
     } finally {
       setSyncing(null);
     }

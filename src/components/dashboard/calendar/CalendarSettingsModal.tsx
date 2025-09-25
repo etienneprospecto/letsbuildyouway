@@ -63,7 +63,7 @@ export const CalendarSettingsModal: React.FC<CalendarSettingsModalProps> = ({
         });
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des paramètres:', error);
+
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,7 @@ export const CalendarSettingsModal: React.FC<CalendarSettingsModalProps> = ({
 
       onClose();
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
+
       alert('Erreur lors de la sauvegarde des paramètres');
     } finally {
       setSaving(false);
@@ -331,7 +331,7 @@ export const CalendarSettingsModal: React.FC<CalendarSettingsModalProps> = ({
               Annuler
             </Button>
             
-            <Button onClick={handleSave} disabled={saving} className="gap-2">
+            <Button onClick={handleSave} disabled={saving} variant="default" className="gap-2">
               <Save className="w-4 h-4" />
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
             </Button>

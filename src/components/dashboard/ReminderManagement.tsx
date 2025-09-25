@@ -201,7 +201,7 @@ Cordialement,
           <p className="text-gray-600">Configurez et envoyez des relances automatiques</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleSendReminders} className="bg-orange-600 hover:bg-orange-700">
+          <Button onClick={handleSendReminders} variant="default">
             <Send className="w-4 h-4 mr-2" />
             Envoyer les relances
           </Button>

@@ -247,7 +247,7 @@ class TrophyService {
             const newTrophy = await this.unlockTrophy(userId, trophy.id);
             newTrophies.push(newTrophy);
           } catch (error) {
-            console.error(`Erreur lors du déverrouillage du trophée ${trophy.name}:`, error);
+
           }
         }
       }
@@ -300,7 +300,7 @@ class TrophyService {
         client: profile.clients
       };
     } catch (error) {
-      console.error('Erreur lors de la récupération des données utilisateur:', error);
+
       return {};
     }
   }
@@ -344,8 +344,6 @@ class TrophyService {
         if (!targetWeight || !actualWeight) return false;
         return Math.abs(targetWeight - actualWeight) <= 1; // Tolérance de 1kg
 
-      // TODO: Implémenter les autres types de critères (consecutive_days, nutrition_streak, etc.)
-      
       default:
         return false;
     }

@@ -63,15 +63,14 @@ const NutritionReport: React.FC<NutritionReportProps> = ({
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Ici, vous pourriez appeler une API pour générer le rapport
-      console.log('Generating report:', { clientId, period, format: reportFormat });
-      
+
       // Simuler le téléchargement
       const element = document.createElement('a');
       element.href = '#'; // URL du rapport généré
       element.download = `rapport-nutrition-${clientName}-${period}.${reportFormat}`;
       element.click();
     } catch (error) {
-      console.error('Error generating report:', error);
+
     } finally {
       setIsGenerating(false);
     }

@@ -112,7 +112,7 @@ const Header: React.FC = () => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut} className="hover:bg-orange-50 hover:text-orange-600">
+              <DropdownMenuItem onClick={signOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Se déconnecter</span>
               </DropdownMenuItem>

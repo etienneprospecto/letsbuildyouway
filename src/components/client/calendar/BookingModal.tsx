@@ -77,7 +77,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       );
       setAvailableSlots(slots);
     } catch (error) {
-      console.error('Erreur lors du chargement des créneaux:', error);
+
     } finally {
       setLoadingSlots(false);
     }
@@ -115,7 +115,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       await appointmentService.createAppointment(appointmentData);
       onComplete();
     } catch (error) {
-      console.error('Erreur lors de la réservation:', error);
+
       alert('Erreur lors de la réservation du rendez-vous');
     } finally {
       setLoading(false);

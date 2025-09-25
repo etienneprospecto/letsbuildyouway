@@ -39,7 +39,7 @@ class ThemeServiceImpl implements ThemeService {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         await supabase
-          .from('users')
+          .from('profiles')
           .update({ theme_preference: theme })
           .eq('id', user.id)
       }
@@ -79,7 +79,7 @@ class ThemeServiceImpl implements ThemeService {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data } = await supabase
-          .from('users')
+          .from('profiles')
           .select('theme_preference')
           .eq('id', user.id)
           .single()

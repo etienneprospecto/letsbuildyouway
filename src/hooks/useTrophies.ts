@@ -29,7 +29,7 @@ export const useTrophies = () => {
       setStats(statsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-      console.error('Erreur lors du chargement des trophées:', err);
+
     } finally {
       setLoading(false);
     }
@@ -46,7 +46,7 @@ export const useTrophies = () => {
       }
       return newTrophies;
     } catch (err) {
-      console.error('Erreur lors de la vérification des nouveaux trophées:', err);
+
       return [];
     }
   };

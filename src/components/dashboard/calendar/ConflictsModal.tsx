@@ -50,7 +50,7 @@ export const ConflictsModal: React.FC<ConflictsModalProps> = ({
       const data = await externalCalendarService.detectConflicts(user.id);
       setConflicts(data);
     } catch (error) {
-      console.error('Erreur lors du chargement des conflits:', error);
+
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ export const ConflictsModal: React.FC<ConflictsModalProps> = ({
       switch (action) {
         case 'reschedule':
           // Pour l'instant, on simule une reprogrammation
-          console.log('Reprogrammation du conflit:', conflict.conflict_id);
+
           break;
         
         case 'cancel':
@@ -75,14 +75,14 @@ export const ConflictsModal: React.FC<ConflictsModalProps> = ({
         
         case 'ignore':
           // Marquer le conflit comme ignoré (fonctionnalité future)
-          console.log('Conflit ignoré:', conflict.conflict_id);
+
           break;
       }
 
       await loadConflicts();
       onConflictResolved?.();
     } catch (error) {
-      console.error('Erreur lors de la résolution du conflit:', error);
+
     } finally {
       setResolving(null);
     }
@@ -344,7 +344,7 @@ export const ConflictsModal: React.FC<ConflictsModalProps> = ({
               {conflicts.length > 0 && (
                 <Button onClick={() => {
                   // Résoudre tous les conflits automatiquement (fonctionnalité future)
-                  console.log('Résolution automatique des conflits');
+
                 }}>
                   Résoudre automatiquement
                 </Button>

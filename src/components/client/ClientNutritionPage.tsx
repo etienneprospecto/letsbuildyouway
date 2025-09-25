@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
+import { AddButton, FloatingAddButton } from '../ui/standard-buttons';
 import { Card } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Plus, Droplets, Calendar, BarChart3 } from 'lucide-react';
@@ -82,7 +83,7 @@ const ClientNutritionPage: React.FC = () => {
       const stats = await NutritionService.getNutritionStats(clientId, dateStr);
       setNutritionStats(stats);
     } catch (error) {
-      console.error('Error loading nutrition data:', error);
+
       toast({
         title: "Erreur",
         description: "Erreur lors du chargement des données nutritionnelles",
@@ -105,7 +106,7 @@ const ClientNutritionPage: React.FC = () => {
         description: "Verre d'eau ajouté !"
       });
     } catch (error) {
-      console.error('Error adding water glass:', error);
+
       toast({
         title: "Erreur",
         description: "Erreur lors de l'ajout du verre d'eau",
@@ -123,7 +124,7 @@ const ClientNutritionPage: React.FC = () => {
         description: "Entrée supprimée avec succès"
       });
     } catch (error) {
-      console.error('Error deleting entry:', error);
+
       toast({
         title: "Erreur",
         description: "Erreur lors de la suppression de l'entrée",
@@ -192,21 +193,15 @@ const ClientNutritionPage: React.FC = () => {
           />
         </div>
         <div className="hidden md:block">
-          <Button onClick={() => setIsAddModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter un repas
-          </Button>
+          <AddButton onClick={() => setIsAddModalOpen(true)} label="Ajouter un repas" />
         </div>
       </div>
 
       {/* Bouton flottant pour mobile */}
-      <Button
+      <FloatingAddButton 
         onClick={() => setIsAddModalOpen(true)}
-        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg md:hidden hover:shadow-xl transition-shadow"
-        size="icon"
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
+        className="md:hidden"
+      />
 
       {/* Date Navigation avec raccourcis */}
       <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
@@ -326,7 +321,7 @@ const ClientNutritionPage: React.FC = () => {
                 </div>
               )}
 
-              <Button onClick={handleAddWaterGlass} className="w-full">
+              <Button onClick={handleAddWaterGlass} variant="default" className="w-full">
                 <Droplets className="h-4 w-4 mr-2" />
                 Ajouter un verre d'eau
               </Button>

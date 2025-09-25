@@ -51,7 +51,7 @@ export const ClientCalendarPage: React.FC = () => {
     if (client && !clientLoading) {
       loadCalendarData();
     } else if (!clientLoading && !client && profile?.role === 'client') {
-      console.error('Client profile loaded but no client data found. Profile client_id:', profile.client_id);
+
     }
   }, [client, clientLoading, currentWeekStart, profile]);
 
@@ -99,7 +99,7 @@ export const ClientCalendarPage: React.FC = () => {
       setAvailableSlots(slotsData);
       setStats(statsData);
     } catch (error) {
-      console.error('Erreur lors du chargement du calendrier:', error);
+
     } finally {
       setLoading(false);
     }
@@ -142,11 +142,11 @@ export const ClientCalendarPage: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'confirmed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+      case 'confirmed': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+      case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     }
   };
 
@@ -208,8 +208,8 @@ export const ClientCalendarPage: React.FC = () => {
       {/* Header avec navigation par semaine */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mes rendez-vous</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Mes rendez-vous</h1>
+          <p className="text-gray-600 dark:text-gray-400">
             Réservez vos séances et gérez vos rendez-vous
           </p>
         </div>
@@ -309,7 +309,6 @@ export const ClientCalendarPage: React.FC = () => {
         </Card>
       </div>
 
-
       {/* Sélecteur de semaine */}
       <Card>
         <CardHeader>
@@ -333,13 +332,13 @@ export const ClientCalendarPage: React.FC = () => {
                   className={`
                     p-3 rounded-lg border cursor-pointer transition-colors min-h-[120px]
                     ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
-                    ${isToday ? 'bg-blue-100 border-blue-300 ring-2 ring-blue-400' : 'bg-white hover:bg-gray-50'}
+                    ${isToday ? 'bg-blue-100 border-blue-300 ring-2 ring-blue-400 dark:bg-blue-900/20 dark:border-blue-600' : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'}
                     ${isPastDate ? 'opacity-60' : ''}
                   `}
                   onClick={() => setSelectedDate(date)}
                 >
                   <div className="text-center mb-2">
-                    <div className="text-xs text-gray-600 uppercase">
+                    <div className="text-xs text-gray-600 dark:text-gray-400 uppercase">
                       {format(date, 'EEE', { locale: fr })}
                     </div>
                     <div className={`text-lg font-semibold ${isToday ? 'text-blue-600' : ''}`}>
@@ -459,7 +458,7 @@ export const ClientCalendarPage: React.FC = () => {
               .map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   onClick={() => handleAppointmentClick(appointment)}
                 >
                   <div className="flex items-center gap-3">

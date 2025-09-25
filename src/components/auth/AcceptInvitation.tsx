@@ -49,7 +49,7 @@ const AcceptInvitation: React.FC = () => {
 
       setInvitation(invitationData);
     } catch (err) {
-      console.error('Error validating invitation:', err);
+
       setError('Erreur lors de la validation de l\'invitation');
     } finally {
       setLoading(false);
@@ -109,7 +109,7 @@ const AcceptInvitation: React.FC = () => {
         });
       }
     } catch (err) {
-      console.error('Error accepting invitation:', err);
+
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de la création du compte",

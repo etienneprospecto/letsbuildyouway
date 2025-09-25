@@ -91,7 +91,7 @@ export const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = (
       onUpdate();
       onClose();
     } catch (error) {
-      console.error('Erreur lors de l\'annulation:', error);
+
       alert('Erreur lors de l\'annulation du rendez-vous');
     } finally {
       setLoading(false);

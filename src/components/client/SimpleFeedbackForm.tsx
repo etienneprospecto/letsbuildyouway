@@ -61,27 +61,47 @@ const SimpleFeedbackForm: React.FC<SimpleFeedbackFormProps> = ({
   }
 
   const validateForm = (): boolean => {
+    console.log('🔍 Validation du formulaire...')
     const newErrors: Record<string, string> = {}
     
     template.questions.forEach(question => {
+      console.log(`📋 Validation question ${question.id}:`, {
+        question_text: question.question_text,
+        required: question.required,
+        question_type: question.question_type,
+        response: responses[question.id]
+      })
+      
       if (question.required) {
         const response = responses[question.id]
         
         if (response === undefined || response === null || response === '') {
+          console.log(`❌ Question ${question.id} manquante`)
           newErrors[question.id] = 'Cette question est obligatoire'
         } else if (question.question_type === 'multiple_choice' && Array.isArray(response) && response.length === 0) {
+          console.log(`❌ Question ${question.id} choix multiple vide`)
           newErrors[question.id] = 'Sélectionnez au moins une option'
+        } else {
+          console.log(`✅ Question ${question.id} valide`)
         }
       }
     })
     
+    console.log('📊 Erreurs trouvées:', newErrors)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = () => {
+    console.log('🔍 SimpleFeedbackForm - handleSubmit appelé')
+    console.log('📝 Réponses actuelles:', responses)
+    console.log('📋 Template questions:', template.questions)
+    
     if (validateForm()) {
+      console.log('✅ Validation réussie, soumission des réponses')
       onSubmit(responses)
+    } else {
+      console.log('❌ Validation échouée, erreurs:', errors)
     }
   }
 
@@ -436,6 +456,50 @@ const SimpleFeedbackForm: React.FC<SimpleFeedbackFormProps> = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Affichage des erreurs de validation */}
+      {Object.keys(errors).length > 0 && (
+        <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2 mb-2">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              <h4 className="font-semibold text-red-800 dark:text-red-200">Erreurs de validation</h4>
+            </div>
+            <ul className="space-y-1">
+              {Object.entries(errors).map(([questionId, error]) => {
+                const question = template.questions.find(q => q.id === questionId)
+                return (
+                  <li key={questionId} className="text-sm text-red-700 dark:text-red-300">
+                    • {question?.question_text}: {error}
+                  </li>
+                )
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Boutons d'action */}
+      <div className="flex justify-center space-x-3 pt-8 pb-4">
+        <Button
+          onClick={handleSubmit}
+          disabled={loading}
+          size="lg"
+          className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white shadow-xl text-lg px-8 py-3"
+        >
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+              Envoi en cours...
+            </>
+          ) : (
+            <>
+              <Send className="h-5 w-5 mr-3" />
+              Envoyer le feedback
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   )
 }

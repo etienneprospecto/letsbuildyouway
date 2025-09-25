@@ -122,7 +122,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   if (view === 'month') {
     return (
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
         {/* Header de navigation */}
         <div className="flex items-center justify-between p-4 border-b">
           <Button
@@ -170,9 +170,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   key={date.toISOString()}
                   className={`
                     min-h-[100px] p-2 border border-gray-200 rounded-lg
-                    ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'}
+                    ${!isCurrentMonth ? 'bg-gray-50 text-gray-400 dark:bg-gray-900 dark:text-gray-500' : 'bg-white dark:bg-gray-800'}
                     ${isToday ? 'ring-2 ring-blue-500' : ''}
-                    hover:bg-gray-50 cursor-pointer transition-colors
+                    hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors
                   `}
                   onClick={() => onDateChange(date)}
                 >
@@ -226,7 +226,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const timeSlots = Array.from({ length: 24 }, (_, i) => i); // 0-23 heures
 
     return (
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
         {/* Header de navigation */}
         <div className="flex items-center justify-between p-4 border-b">
           <Button
@@ -339,7 +339,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const timeSlots = Array.from({ length: 24 }, (_, i) => i);
 
     return (
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
         {/* Header de navigation */}
         <div className="flex items-center justify-between p-4 border-b">
           <Button
@@ -411,7 +411,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   }}
                   onClick={() => {
                     // Ici on pourrait ouvrir un modal pour créer un rendez-vous
-                    console.log('Créneau disponible cliqué:', slot);
+
                   }}
                 >
                   <div className="text-xs text-green-700">

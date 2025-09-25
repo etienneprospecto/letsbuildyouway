@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { AddButton, SecondaryActionButton } from '@/components/ui/standard-buttons'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -270,11 +271,11 @@ const ClientsPage: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      'active': 'bg-green-100 text-green-800',
-      'inactive': 'bg-gray-100 text-gray-800',
-      'paused': 'bg-yellow-100 text-yellow-800'
+      'active': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+      'inactive': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
+      'paused': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
     }
-    return colors[status] || 'bg-gray-100 text-gray-800'
+    return colors[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
   }
 
   const getStatusText = (status: string) => {
@@ -317,10 +318,7 @@ const ClientsPage: React.FC = () => {
             <RefreshCw className={`h-4 w-4 ${refreshingMetrics ? 'animate-spin' : ''}`} />
             {refreshingMetrics ? 'Mise à jour...' : 'Actualiser'}
           </Button>
-          <Button className="gap-2" onClick={() => setIsAddModalOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Ajouter un client
-          </Button>
+          <AddButton onClick={() => setIsAddModalOpen(true)} label="Ajouter un client" />
         </div>
       </div>
 

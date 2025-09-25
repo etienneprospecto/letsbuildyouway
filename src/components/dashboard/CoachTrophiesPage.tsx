@@ -58,10 +58,9 @@ export const CoachTrophiesPage: React.FC = () => {
       const recentTrophies = await trophyService.getCoachClientsTrophies(user.id);
       setClientsTrophies(recentTrophies);
 
-      // TODO: Charger les statistiques par client
       // setClientsStats(statsData);
     } catch (error) {
-      console.error('Erreur lors du chargement des données trophées:', error);
+
     } finally {
       setLoading(false);
     }
@@ -86,7 +85,7 @@ export const CoachTrophiesPage: React.FC = () => {
       
       await loadTrophyData();
     } catch (error) {
-      console.error('Erreur lors de la création du trophée:', error);
+
     }
   };
 
@@ -441,7 +440,7 @@ export const CoachTrophiesPage: React.FC = () => {
               <Button variant="outline" onClick={() => setShowCreateModal(false)} className="flex-1">
                 Annuler
               </Button>
-              <Button onClick={handleCreateTrophy} className="flex-1">
+              <Button onClick={handleCreateTrophy} variant="default" className="flex-1">
                 Créer
               </Button>
             </div>

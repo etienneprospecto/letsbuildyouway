@@ -124,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             variant="ghost"
             size="icon"
             onClick={onToggle}
-            className="h-8 w-8 text-sidebar-text hover:bg-orange-100 hover:text-orange-600 dark:hover:bg-orange-900/20 dark:hover:text-orange-300 transition-colors"
+            className="h-8 w-8 transition-colors"
             title={isCollapsed ? "Agrandir la sidebar" : "Réduire la sidebar"}
           >
             {isCollapsed ? (
@@ -199,7 +199,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                               "w-full justify-start h-11 transition-all duration-200 relative overflow-hidden",
                               isCollapsed ? "px-0" : "px-4",
                               isActive && "bg-orange-100 text-orange-700 shadow-sm border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-700",
-                              !isActive && "hover:bg-orange-50 hover:text-orange-600 hover:scale-[1.02] text-sidebar-text hover:border-orange-100 dark:hover:bg-orange-900/20 dark:hover:text-orange-300 dark:text-sidebar-text dark:hover:border-orange-800"
+                              !isActive && "hover:scale-[1.02] text-sidebar-text hover:bg-sidebar-hover"
                             )}
                             onClick={() => onTabChange(item.id)}
                             title={isCollapsed ? item.label : undefined}

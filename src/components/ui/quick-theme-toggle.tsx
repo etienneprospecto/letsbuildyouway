@@ -87,7 +87,7 @@ const QuickThemeToggle: React.FC<QuickThemeToggleProps> = ({
           variant="ghost"
           size="icon"
           onClick={() => setIsOpen(!isOpen)}
-          className="h-8 w-8 text-gray-700 hover:bg-orange-100 hover:text-orange-600 dark:text-gray-300 dark:hover:bg-orange-900/20 dark:hover:text-orange-300"
+          className="h-8 w-8"
           title={`Mode actuel: ${getModeLabel(getCurrentMode())}`}
         >
           {React.createElement(getModeIcon(getCurrentMode()), { className: "h-4 w-4" })}
@@ -117,7 +117,7 @@ const QuickThemeToggle: React.FC<QuickThemeToggleProps> = ({
                         setIsOpen(false)
                       }}
                       className={cn(
-                        "w-full justify-start text-gray-700 hover:bg-orange-100 hover:text-orange-600 dark:text-gray-300 dark:hover:bg-orange-900/20 dark:hover:text-orange-300",
+                        "w-full justify-start",
                         isActive && "bg-primary text-primary-foreground"
                       )}
                     >
@@ -168,7 +168,7 @@ const QuickThemeToggle: React.FC<QuickThemeToggleProps> = ({
                 size="sm"
                 onClick={() => handleModeChange(mode)}
                 className={cn(
-                  "h-8 px-3 text-gray-700 hover:bg-orange-100 hover:text-orange-600 transition-colors dark:text-gray-300 dark:hover:bg-orange-900/20 dark:hover:text-orange-300",
+                  "h-8 px-3 transition-colors",
                   isActive && "bg-orange-200 text-orange-700 shadow-sm dark:bg-orange-800/30 dark:text-orange-300"
                 )}
                 title={getModeLabel(mode)}
@@ -211,7 +211,7 @@ const QuickThemeToggle: React.FC<QuickThemeToggleProps> = ({
                 variant="ghost"
                 onClick={() => handleModeChange(mode)}
                 className={cn(
-                  "w-full justify-start h-9 text-sm text-sidebar-text hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/20 dark:hover:text-orange-300",
+                  "w-full justify-start h-9 text-sm",
                   isActive && "bg-sidebar-active-bg text-sidebar-active-text",
                   !isActive && "hover:bg-sidebar-hover text-sidebar-text"
                 )}

@@ -121,7 +121,7 @@ const AddNutritionEntryModal: React.FC<AddNutritionEntryModalProps> = ({
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Error creating nutrition entry:', error);
+
       toast({
         title: "Erreur",
         description: "Erreur lors de l'ajout de l'entrée nutritionnelle",

@@ -409,7 +409,7 @@ const ClientSettingsPage: React.FC = () => {
               <Button 
                 onClick={handleSaveProfile}
                 disabled={savingProfile}
-                className="w-full bg-orange-500 hover:bg-orange-600"
+                variant="default" className="w-full"
               >
                 {savingProfile ? (
                   <>
@@ -525,7 +525,7 @@ const ClientSettingsPage: React.FC = () => {
               <Button 
                 onClick={handleChangePassword}
                 disabled={changingPassword || !passwordData.newPassword || !passwordData.confirmPassword}
-                className="w-full bg-orange-500 hover:bg-orange-600"
+                variant="default" className="w-full"
               >
                 {changingPassword ? (
                   <>

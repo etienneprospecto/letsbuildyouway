@@ -297,14 +297,14 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
   }
 
   return (
-    <div className="h-[calc(100vh-200px)] flex bg-white">
+    <div className="h-[calc(100vh-200px)] flex bg-white dark:bg-gray-900">
       {/* Colonne de gauche - Liste des clients */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         {/* Header de la liste */}
         <div className="p-6 border-b border-gray-200">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Conversations</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Conversations</h3>
               <Badge variant="secondary" className="text-xs">
                 {conversations.length}
               </Badge>
@@ -317,7 +317,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
                 placeholder="Rechercher un client..."
                 value={searchQuery}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                className="pl-10 h-10 bg-gray-50 border-gray-200 focus:bg-white focus:border-primary focus:ring-primary/20"
+                className="pl-10 h-10 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 focus:bg-white dark:focus:bg-gray-600 focus:border-primary focus:ring-primary/20"
               />
             </div>
           </div>
@@ -327,11 +327,11 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
         <ScrollArea className="flex-1">
           {filteredConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-              <div className="p-4 bg-gray-100 rounded-full mb-4">
+              <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
                 <MessageCircle className="h-8 w-8 text-gray-400" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune conversation</h3>
-              <p className="text-sm text-gray-500 max-w-xs">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Aucune conversation</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
                 Les conversations se créent automatiquement quand vous ajoutez des clients
               </p>
             </div>
@@ -366,7 +366,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
                     {/* Informations de la conversation */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h4 className="font-semibold text-gray-900 truncate text-base">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate text-base">
                           {conversation.client_name}
                         </h4>
                         <span className="text-xs text-gray-500 font-medium">
@@ -409,7 +409,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
         {selectedConversation ? (
           <>
             {/* Header moderne */}
-            <div className="flex items-center justify-between p-6 border-b bg-white">
+            <div className="flex items-center justify-between p-6 border-b bg-white dark:bg-gray-800">
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <Avatar className="h-12 w-12">
@@ -423,7 +423,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
                   }`}></div>
                 </div>
                 <div>
-                  <h1 className="text-xl font-semibold text-gray-900">
+                  <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     {selectedConversation.client_name}
                   </h1>
                   <p className="text-sm text-muted-foreground">
@@ -440,7 +440,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
                   {selectedConversation.messages.length === 0 ? (
                     <div className="text-center py-12">
                       <MessageCircle className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Commencez la conversation</h3>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Commencez la conversation</h3>
                       <p className="text-muted-foreground">Envoyez votre premier message à {selectedConversation.client_name}</p>
                     </div>
                   ) : (
@@ -448,7 +448,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
                       <div key={date}>
                         {/* Séparateur de date */}
                         <div className="flex items-center justify-center my-6">
-                          <div className="bg-gray-100 text-gray-500 text-xs px-3 py-1 rounded-full">
+                          <div className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs px-3 py-1 rounded-full">
                             {formatMessageDate(messages[0].timestamp)}
                           </div>
                         </div>
@@ -471,7 +471,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
                                 className={`relative px-4 py-3 rounded-2xl ${
                                   message.sender_type === 'coach'
                                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-br-md'
-                                    : 'bg-gray-100 text-gray-900 rounded-bl-md'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-bl-md'
                                 }`}
                               >
                                 <p className="text-sm leading-relaxed">{message.content}</p>
@@ -479,7 +479,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
                                   message.sender_type === 'coach' ? 'justify-end' : 'justify-start'
                                 }`}>
                                   <span className={`text-xs ${
-                                    message.sender_type === 'coach' ? 'text-orange-100' : 'text-gray-500'
+                                    message.sender_type === 'coach' ? 'text-orange-100' : 'text-gray-500 dark:text-gray-400'
                                   }`}>
                                     {formatMessageTime(message.timestamp)}
                                   </span>
@@ -535,7 +535,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
                           {getInitials(selectedConversation.client_name)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
+                      <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl rounded-bl-md px-4 py-3">
                         <div className="flex space-x-1">
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -551,14 +551,14 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ coachId }) => {
             </div>
 
             {/* Zone de saisie moderne */}
-            <div className="border-t bg-white p-4">
+            <div className="border-t bg-white dark:bg-gray-800 p-4">
               {/* Message de réponse */}
               {replyingTo && (
                 <div className="mb-3 p-3 bg-gray-50 rounded-lg border-l-4 border-primary">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs text-muted-foreground">Répondre à</p>
-                      <p className="text-sm text-gray-900 truncate max-w-xs">{replyingTo.content}</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100 truncate max-w-xs">{replyingTo.content}</p>
                     </div>
                     <Button
                       variant="ghost"

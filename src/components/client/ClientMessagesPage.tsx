@@ -161,8 +161,6 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
     }
   }
 
-
-
   const loadConversationWithMessages = async (conversationId: string) => {
     try {
       const conversationData = await MessageService.getConversationWithMessages(conversationId)
@@ -193,7 +191,7 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
 
   // Fonction pour ajouter une réaction
   const handleReaction = (messageId: string, reaction: string) => {
-    // TODO: Implémenter l'ajout de réactions
+
     console.log('Réaction ajoutée:', reaction, 'au message:', messageId)
   }
 
@@ -290,8 +288,6 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
     return groups
   }
 
-
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -306,7 +302,7 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
   return (
     <div className="h-[calc(100vh-200px)] flex flex-col">
       {/* Header moderne */}
-      <div className="flex items-center justify-between p-6 border-b bg-white">
+      <div className="flex items-center justify-between p-6 border-b bg-white dark:bg-gray-800">
         <div className="flex items-center gap-4">
           <div className="relative">
             <Avatar className="h-12 w-12">
@@ -317,7 +313,7 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               {selectedConversation?.coach_name || 'Votre Coach'}
             </h1>
             <p className="text-sm text-muted-foreground">En ligne</p>
@@ -333,7 +329,7 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
               {selectedConversation.messages.length === 0 ? (
                 <div className="text-center py-12">
                   <MessageCircle className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Commencez la conversation</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Commencez la conversation</h3>
                   <p className="text-muted-foreground">Envoyez votre premier message à votre coach</p>
                 </div>
               ) : (
@@ -341,7 +337,7 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
                   <div key={date}>
                     {/* Séparateur de date */}
                     <div className="flex items-center justify-center my-6">
-                      <div className="bg-gray-100 text-gray-500 text-xs px-3 py-1 rounded-full">
+                      <div className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs px-3 py-1 rounded-full">
                         {formatMessageDate(messages[0].timestamp)}
                       </div>
                     </div>
@@ -364,7 +360,7 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
                             className={`relative px-4 py-3 rounded-2xl ${
                               message.sender_type === 'client'
                                 ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-md'
-                                : 'bg-gray-100 text-gray-900 rounded-bl-md'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-bl-md'
                             }`}
                           >
                             <p className="text-sm leading-relaxed">{message.content}</p>
@@ -372,7 +368,7 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
                               message.sender_type === 'client' ? 'justify-end' : 'justify-start'
                             }`}>
                               <span className={`text-xs ${
-                                message.sender_type === 'client' ? 'text-blue-100' : 'text-gray-500'
+                                message.sender_type === 'client' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
                               }`}>
                                 {formatMessageTime(message.timestamp)}
                               </span>
@@ -428,7 +424,7 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
                       {selectedConversation.coach_name?.split(' ').map(n => n[0]).join('') || 'C'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl rounded-bl-md px-4 py-3">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -453,14 +449,14 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
 
       {/* Zone de saisie moderne */}
       {selectedConversation && (
-        <div className="border-t bg-white p-4">
+        <div className="border-t bg-white dark:bg-gray-800 p-4">
           {/* Message de réponse */}
           {replyingTo && (
             <div className="mb-3 p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Répondre à</p>
-                  <p className="text-sm text-gray-900 truncate max-w-xs">{replyingTo.content}</p>
+                  <p className="text-sm text-gray-900 dark:text-gray-100 truncate max-w-xs">{replyingTo.content}</p>
                 </div>
                 <Button
                   variant="ghost"

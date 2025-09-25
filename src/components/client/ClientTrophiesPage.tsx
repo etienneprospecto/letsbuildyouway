@@ -51,7 +51,7 @@ export const ClientTrophiesPage: React.FC = () => {
       setCategories(categoriesData);
       setStats(statsData);
     } catch (error) {
-      console.error('Erreur lors du chargement des trophées:', error);
+
     } finally {
       setLoading(false);
     }
@@ -202,7 +202,7 @@ export const ClientTrophiesPage: React.FC = () => {
                     relative overflow-hidden transition-all duration-300 hover:scale-105
                     ${isUnlocked 
                       ? `border-2 ${getRarityBorder(rarity)} shadow-lg` 
-                      : 'border border-gray-200 opacity-60'
+                      : 'border border-gray-200 dark:border-gray-700 opacity-60'
                     }
                     ${isAnimating ? 'animate-pulse ring-4 ring-yellow-400' : ''}
                   `}

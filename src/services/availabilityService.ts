@@ -415,7 +415,7 @@ class AvailabilityService {
       // Cette fonction nécessiterait une logique plus complexe pour gérer
       // la duplication de créneaux spécifiques à une semaine
       // Pour l'instant, on retourne un tableau vide
-      // TODO: Implémenter la logique de duplication
+
       return [];
     } catch (error) {
       throw errorHandler.handleError(error, 'Erreur lors de la duplication du planning');

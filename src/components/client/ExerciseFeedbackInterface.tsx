@@ -512,7 +512,7 @@ export const ExerciseFeedbackInterface: React.FC<ExerciseFeedbackInterfaceProps>
                   <Button
                     onClick={completeExercise}
                     size="lg"
-                    className="bg-orange-500 hover:bg-orange-600 text-white px-8"
+                    variant="default" className="px-8"
                   >
                     <CheckCircle className="h-6 w-6 mr-2" />
                     Terminer

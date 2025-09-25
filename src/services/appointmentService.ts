@@ -317,7 +317,7 @@ class AppointmentService {
       if (error) throw error;
       return data as boolean;
     } catch (error) {
-      console.error('Erreur lors de la vérification des conflits:', error);
+
       return false; // En cas d'erreur, on permet la création (à améliorer)
     }
   }
@@ -372,7 +372,7 @@ class AppointmentService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Erreur lors de la création des notifications:', error);
+
     }
   }
 
@@ -401,7 +401,7 @@ class AppointmentService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Erreur lors de la création de la notification d\'annulation:', error);
+
     }
   }
 

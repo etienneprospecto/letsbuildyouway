@@ -90,7 +90,7 @@ export const CoachCalendarPage: React.FC = () => {
       setAvailability(availabilityData);
       setStats(statsData);
     } catch (error) {
-      console.error('Erreur lors du chargement du calendrier:', error);
+
     } finally {
       setLoading(false);
     }
@@ -146,7 +146,7 @@ export const CoachCalendarPage: React.FC = () => {
         occupancyRate: occupancy.occupancyRate
       };
     } catch (error) {
-      console.error('Erreur lors du chargement des statistiques:', error);
+
       return {
         todayAppointments: 0,
         weekAppointments: 0,
@@ -168,7 +168,7 @@ export const CoachCalendarPage: React.FC = () => {
       await loadCalendarData();
       setShowAppointmentModal(false);
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du rendez-vous:', error);
+
     }
   };
 
@@ -186,17 +186,17 @@ export const CoachCalendarPage: React.FC = () => {
 
       await loadCalendarData();
     } catch (error) {
-      console.error('Erreur lors de la synchronisation:', error);
+
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'confirmed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+      case 'confirmed': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+      case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     }
   };
 
@@ -222,8 +222,8 @@ export const CoachCalendarPage: React.FC = () => {
       {/* Header avec actions rapides */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Calendrier</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Calendrier</h1>
+          <p className="text-gray-600 dark:text-gray-400">
             Gérez vos rendez-vous et créneaux de disponibilité
           </p>
         </div>
@@ -403,7 +403,7 @@ export const CoachCalendarPage: React.FC = () => {
               .map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   onClick={() => handleAppointmentClick(appointment)}
                 >
                   <div className="flex items-center gap-3">

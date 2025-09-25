@@ -45,8 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Fonction simplifiée pour récupérer/créer un profil
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
-      console.log('Fetching profile for user:', userId);
-      
+
       // 1. Essayer de récupérer le profil existant
       const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
@@ -55,17 +54,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .maybeSingle();
 
       if (!fetchError && existingProfile) {
-        console.log('Existing profile found:', existingProfile);
+
         return existingProfile;
       }
 
       // 2. Si pas de profil, le créer avec un rôle par défaut
-      console.log('No profile found, creating default profile...');
+
       const { data: userRes } = await supabase.auth.getUser();
       const currentUser = userRes?.user;
       
       if (!currentUser) {
-        console.error('No current user found');
+
         return null;
       }
 
@@ -85,15 +84,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .single();
         
       if (createError) {
-        console.error('Error creating profile:', createError);
+
         return null;
       }
-      
-      console.log('Profile created successfully:', createdProfile);
+
       return createdProfile;
       
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+
       return null;
     }
   };
@@ -102,7 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const validateAndSetUser = async (session: Session | null) => {
     // Éviter les appels multiples simultanés
     if (isProcessingAuth.current || isSigningOut.current) {
-      console.log('Auth processing already in progress, skipping...');
+
       return;
     }
 
@@ -119,8 +117,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log('Processing user:', session.user.email);
-      
       // 1. Définir l'utilisateur et la session immédiatement
       setUser(session.user);
       setSession(session);
@@ -131,18 +127,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (profileData) {
         setProfile(profileData);
-        console.log('User authenticated successfully:', profileData.role);
-        
+
         // 3. Mettre à jour le rôle du profil de manière simple
         // Éviter les appels en arrière-plan qui peuvent causer des boucles
         setTimeout(() => {
           updateProfileRoleSimple(session.user.id, session.user.email || '').catch(error => {
-            console.error('Background role update failed:', error);
+
           });
         }, 1000); // Délai pour éviter les conflits
       } else {
         // En cas d'échec du profil, déconnecter
-        console.error('Failed to load/create profile, signing out');
+
         await signOut();
         return;
       }
@@ -150,7 +145,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
       
     } catch (error) {
-      console.error('Error in validateAndSetUser:', error);
+
       setError('Erreur lors de l\'authentification');
       // En cas d'erreur, déconnecter pour éviter un état incohérent
       await signOut();
@@ -166,7 +161,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Éviter les appels multiples
       if (isProcessingAuth.current) {
-        console.log('Auth processing in progress, skipping role update');
+
         return;
       }
       
@@ -184,7 +179,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .single();
           
         if (!updateError && updatedProfile) {
-          console.log('Profile updated to coach role:', updatedProfile);
+
           setProfile(updatedProfile);
           return;
         }
@@ -199,8 +194,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .maybeSingle();
       
       if (!clientError && clientRecord) {
-        console.log('Client found, updating profile to client role');
-        
+
         // Mettre à jour le profil en tant que client
         const { data: updatedProfile, error: updateError } = await supabase
           .from('profiles')
@@ -214,16 +208,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .single();
           
         if (!updateError && updatedProfile) {
-          console.log('Profile updated to client role:', updatedProfile);
+
           setProfile(updatedProfile);
           return;
         }
       }
-      
-      console.log('No role update needed or client not found');
-      
+
     } catch (error) {
-      console.error('Error in updateProfileRoleSimple:', error);
+
       // Ne pas échouer si la mise à jour du rôle échoue
     }
   };
@@ -236,7 +228,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Mettre à jour le rôle si nécessaire (version simplifiée)
         setTimeout(() => {
           updateProfileRoleSimple(user.id, user.email || '').catch(error => {
-            console.error('Profile role update failed:', error);
+
           });
         }, 500);
       }
@@ -247,7 +239,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (isSigningOut.current) return;
     
     try {
-      console.log('Signing out user:', user?.email);
+
       isSigningOut.current = true;
       
       // Nettoyer l'état local d'abord
@@ -258,10 +250,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Puis déconnecter de Supabase
       await supabase.auth.signOut();
-      console.log('User signed out successfully');
-      
+
     } catch (error) {
-      console.error('Error signing out:', error);
+
     } finally {
       isSigningOut.current = false;
     }
@@ -273,7 +264,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Timeout de sécurité pour éviter le chargement infini
     const safetyTimeout = setTimeout(() => {
       if (mounted && loading) {
-        console.warn('Safety timeout reached, forcing loading to false');
+
         setLoading(false);
         setError('Délai d\'authentification dépassé. Veuillez rafraîchir la page.');
       }
@@ -282,17 +273,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Fonction d'initialisation unique et sécurisée
     const initializeAuth = async () => {
       if (isInitialized.current) {
-        console.log('Auth already initialized, skipping...');
+
         return;
       }
       
       try {
-        console.log('Initializing authentication...');
-        
+
         // 1. Récupérer la session actuelle
         const { data: { session } } = await supabase.auth.getSession();
-        console.log('Initial session:', session);
-        
+
         if (!mounted) return;
         
         // 2. Traiter la session initiale
@@ -310,7 +299,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isInitialized.current = true;
         
       } catch (error) {
-        console.error('Error during initialization:', error);
+
         if (mounted) {
           setError('Erreur lors de l\'initialisation');
           setLoading(false);
@@ -326,18 +315,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       async (event, session) => {
         // Ignorer les événements pendant la déconnexion
         if (isSigningOut.current) {
-          console.log('Ignoring auth state change during sign out:', event);
+
           return;
         }
         
         // Ignorer les événements avant l'initialisation
         if (!isInitialized.current) {
-          console.log('Auth not yet initialized, ignoring event:', event);
+
           return;
         }
-        
-        console.log('Auth state change:', event, session?.user?.email);
-        
+
         if (mounted && !isProcessingAuth.current) {
           await validateAndSetUser(session);
         }

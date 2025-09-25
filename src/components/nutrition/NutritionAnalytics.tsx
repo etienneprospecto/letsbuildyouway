@@ -106,7 +106,7 @@ const NutritionAnalytics: React.FC<NutritionAnalyticsProps> = ({ clientId, coach
 
       setAnalyticsData(mockData);
     } catch (error) {
-      console.error('Error loading analytics data:', error);
+
     } finally {
       setIsLoading(false);
     }

@@ -6,6 +6,7 @@ import { ClientService } from '@/services/clientService'
 import { WeeklyFeedback, FeedbackTemplate } from '@/types/feedback'
 import { toast } from '@/hooks/use-toast'
 import FeedbackForm from './FeedbackForm'
+import FeedbackDeadlineAlert from './FeedbackDeadlineAlert'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -39,57 +40,71 @@ const ClientFeedbacksPage: React.FC = () => {
   const [selectedPastTemplate, setSelectedPastTemplate] = useState<FeedbackTemplate | null>(null)
 
   const loadFeedbacks = async () => {
-    if (!user) return
+    if (!user) {
+      console.log('❌ Pas d\'utilisateur connecté')
+      return
+    }
 
     try {
       setLoading(true)
       console.log('🔄 Chargement des feedbacks pour la semaine:', formatWeekRange(currentWeekStart))
+      console.log('👤 Utilisateur connecté:', user.email)
 
       // Récupérer le client par email
+      console.log('🔍 Recherche du client avec email:', user.email)
       const client = await ClientService.getClientByEmail(user.email || '')
       if (!client) {
-        console.error('❌ Client non trouvé')
+        console.error('❌ Client non trouvé pour email:', user.email)
+        
+        // Debug: Vérifier tous les clients disponibles
+        const { data: allClients, error: allClientsError } = await supabase
+          .from('clients')
+          .select('id, first_name, last_name, contact, email, status')
+          .limit(10)
+        
+        console.log('📋 Tous les clients disponibles:', { allClients, allClientsError })
+        setDebugInfo({ 
+          userEmail: user.email, 
+          allClients, 
+          error: 'Client non trouvé' 
+        })
         return
       }
 
-      console.log('👤 Client trouvé:', client.id)
+      console.log('👤 Client trouvé:', { id: client.id, name: `${client.first_name} ${client.last_name}`, contact: client.contact })
 
-      // Debug: Vérifier les tables disponibles
-      console.log('🔍 Vérification des tables...')
+      // Récupérer tous les feedbacks depuis feedbacks_hebdomadaires avec les templates
+      console.log('🔍 Récupération des feedbacks depuis feedbacks_hebdomadaires...')
       
-      // Test simple pour voir si weekly_feedbacks existe
-      const { data: testData, error: testError } = await supabase
-        .from('weekly_feedbacks')
-        .select('id, client_id, week_start, week_start_date, week_end, week_end_date, created_at')
-        .limit(5)
-      
-      console.log('📊 Test weekly_feedbacks:', { testData, testError })
-      
-      // Vérifier tous les feedbacks pour ce client
       const { data: allFeedbacks, error: allError } = await supabase
-        .from('weekly_feedbacks')
-        .select('*')
+        .from('feedbacks_hebdomadaires')
+        .select(`
+          *,
+          feedback_templates (
+            id,
+            name,
+            description
+          )
+        `)
         .eq('client_id', client.id)
+        .order('week_start', { ascending: false })
       
       console.log('📋 Tous les feedbacks pour ce client:', { allFeedbacks, allError })
       
-      // Vérifier aussi dans feedbacks_hebdomadaires
-      const { data: hebdoFeedbacks, error: hebdoError } = await supabase
-        .from('feedbacks_hebdomadaires')
-        .select('*')
-        .eq('client_id', client.id)
-      
-      console.log('📋 Feedbacks dans feedbacks_hebdomadaires:', { hebdoFeedbacks, hebdoError })
+      if (allError) {
+        console.error('❌ Erreur récupération feedbacks:', allError)
+        throw allError
+      }
 
-      // Vérifier spécifiquement les feedbacks de la semaine du 01/09
-      const { data: week01Feedbacks, error: week01Error } = await supabase
-        .from('feedbacks_hebdomadaires')
-        .select('*')
-        .eq('client_id', client.id)
-        .gte('week_start', '2025-09-01')
-        .lte('week_end', '2025-09-07')
-      
-      console.log('🎯 Feedbacks semaine 01/09:', { week01Feedbacks, week01Error })
+      // Debug: Stocker les informations de debug
+      setDebugInfo({
+        userEmail: user.email,
+        clientId: client.id,
+        clientName: `${client.first_name} ${client.last_name}`,
+        clientContact: client.contact,
+        totalFeedbacks: allFeedbacks?.length || 0,
+        feedbacks: allFeedbacks
+      })
 
       // Récupérer les feedbacks de la semaine courante
       const weekStart = currentWeekStart
@@ -98,118 +113,25 @@ const ClientFeedbacksPage: React.FC = () => {
       
       console.log('📅 Période recherchée:', {
         weekStart: weekStart.toISOString().split('T')[0],
-        weekEnd: weekEnd.toISOString().split('T')[0],
-        weekStartFull: weekStart.toISOString(),
-        weekEndFull: weekEnd.toISOString()
+        weekEnd: weekEnd.toISOString().split('T')[0]
       })
 
-      // Essayer différentes approches de filtrage
-      console.log('🔍 Tentative 1: Filtrage avec week_start et week_end')
-      const { data: currentFeedbacks1, error: currentError1 } = await supabase
-        .from('feedbacks_hebdomadaires')
-        .select(`
-          *,
-          feedback_templates (
-            id,
-            name,
-            description
-          )
-        `)
-        .eq('client_id', client.id)
-        .gte('week_start', weekStart.toISOString().split('T')[0])
-        .lte('week_end', weekEnd.toISOString().split('T')[0])
-
-      console.log('📊 Résultat tentative 1:', { currentFeedbacks1, currentError1 })
-
-      // Tentative 2: Filtrage avec week_start seulement
-      console.log('🔍 Tentative 2: Filtrage avec week_start seulement')
-      const { data: currentFeedbacks2, error: currentError2 } = await supabase
-        .from('feedbacks_hebdomadaires')
-        .select(`
-          *,
-          feedback_templates (
-            id,
-            name,
-            description
-          )
-        `)
-        .eq('client_id', client.id)
-        .eq('week_start', weekStart.toISOString().split('T')[0])
-
-      console.log('📊 Résultat tentative 2:', { currentFeedbacks2, currentError2 })
-
-      // Tentative 3: Récupérer tous les feedbacks et filtrer côté client
-      console.log('🔍 Tentative 3: Récupération de tous les feedbacks')
-      const { data: allFeedbacksForFiltering, error: allErrorForFiltering } = await supabase
-        .from('feedbacks_hebdomadaires')
-        .select(`
-          *,
-          feedback_templates (
-            id,
-            name,
-            description
-          )
-        `)
-        .eq('client_id', client.id)
-
-      console.log('📊 Tous les feedbacks récupérés:', { allFeedbacksForFiltering, allErrorForFiltering })
-
-      // Filtrer côté client
+      // Filtrer les feedbacks de la semaine courante
       const weekStartStr = weekStart.toISOString().split('T')[0]
       const weekEndStr = weekEnd.toISOString().split('T')[0]
       
-      const currentFeedbacks = allFeedbacksForFiltering?.filter((feedback: any) => {
+      const currentFeedbacks = allFeedbacks?.filter((feedback: any) => {
         const feedbackWeekStart = feedback.week_start
-        const feedbackWeekEnd = feedback.week_end
-        
-        console.log('🔍 Comparaison feedback:', {
-          feedbackId: feedback.id,
-          feedbackWeekStart,
-          feedbackWeekEnd,
-          searchWeekStart: weekStartStr,
-          searchWeekEnd: weekEndStr,
-          matches: feedbackWeekStart === weekStartStr || 
-                   (feedbackWeekStart <= weekStartStr && feedbackWeekEnd >= weekStartStr) ||
-                   (feedbackWeekStart <= weekEndStr && feedbackWeekEnd >= weekEndStr)
-        })
-        
-        return feedbackWeekStart === weekStartStr || 
-               (feedbackWeekStart <= weekStartStr && feedbackWeekEnd >= weekStartStr) ||
-               (feedbackWeekStart <= weekEndStr && feedbackWeekEnd >= weekEndStr)
+        return feedbackWeekStart === weekStartStr
       }) || []
 
-      console.log('📊 Feedbacks filtrés côté client:', currentFeedbacks)
-
-      if (allErrorForFiltering) {
-        console.error('❌ Erreur récupération feedbacks courants:', allErrorForFiltering)
-        throw allErrorForFiltering
-      }
-
       console.log('📊 Feedbacks courants trouvés:', currentFeedbacks?.length || 0)
-      if (currentFeedbacks && currentFeedbacks.length > 0) {
-        console.log('📋 Détails du feedback courant:', currentFeedbacks[0])
-      }
 
-      // Récupérer les feedbacks passés depuis feedbacks_hebdomadaires
-      const { data: pastFeedbacksData, error: pastError } = await supabase
-        .from('feedbacks_hebdomadaires')
-        .select(`
-          *,
-          feedback_templates (
-            id,
-            name,
-            description
-          )
-        `)
-        .eq('client_id', client.id)
-        .lt('week_start', weekStart.toISOString().split('T')[0])
-        .order('week_start', { ascending: false })
-        .limit(10)
-
-      if (pastError) {
-        console.error('❌ Erreur récupération feedbacks passés:', pastError)
-        throw pastError
-      }
+      // Filtrer les feedbacks passés
+      const pastFeedbacksData = allFeedbacks?.filter((feedback: any) => {
+        const feedbackWeekStart = feedback.week_start
+        return feedbackWeekStart < weekStartStr
+      }) || []
 
       console.log('📈 Feedbacks passés trouvés:', pastFeedbacksData?.length || 0)
 
@@ -262,10 +184,15 @@ const ClientFeedbacksPage: React.FC = () => {
                 })) || []
               }
               setCurrentTemplate(templateWithQuestions)
+              console.log('✅ Template courant chargé avec', templateWithQuestions.questions.length, 'questions')
+            } else {
+              console.error('❌ Erreur récupération template courant:', templateError)
             }
           } catch (error) {
             console.error('❌ Erreur récupération template courant:', error)
           }
+        } else {
+          console.log('⚠️ Aucun template_id pour le feedback courant')
         }
         
         console.log('✅ Feedback courant défini:', current.id)
@@ -277,9 +204,21 @@ const ClientFeedbacksPage: React.FC = () => {
 
     } catch (error) {
       console.error('❌ Erreur chargement feedbacks:', error)
+      console.error('❌ Détails de l\'erreur:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      })
+      
+      setDebugInfo({
+        userEmail: user?.email,
+        error: error.message,
+        errorDetails: error
+      })
+      
       toast({
         title: "Erreur",
-        description: "Impossible de charger les feedbacks",
+        description: `Impossible de charger les feedbacks: ${error.message}`,
         variant: "destructive"
       })
     } finally {
@@ -288,6 +227,20 @@ const ClientFeedbacksPage: React.FC = () => {
   }
 
   useEffect(() => {
+    console.log('🔄 useEffect déclenché - user:', user?.email, 'currentWeekStart:', currentWeekStart)
+    
+    // Test de connexion Supabase
+    const testSupabaseConnection = async () => {
+      try {
+        console.log('🔍 Test de connexion Supabase...')
+        const { data, error } = await supabase.from('clients').select('count').limit(1)
+        console.log('✅ Connexion Supabase OK:', { data, error })
+      } catch (err) {
+        console.error('❌ Erreur connexion Supabase:', err)
+      }
+    }
+    
+    testSupabaseConnection()
     loadFeedbacks()
   }, [user, currentWeekStart])
 
@@ -350,6 +303,7 @@ const ClientFeedbacksPage: React.FC = () => {
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
           <p className="text-muted-foreground">Chargement de vos feedbacks...</p>
+          <p className="text-sm text-muted-foreground mt-2">Utilisateur: {user?.email || 'Non connecté'}</p>
         </div>
       </div>
     )
@@ -364,6 +318,8 @@ const ClientFeedbacksPage: React.FC = () => {
           <p className="text-muted-foreground">Partagez votre expérience et suivez votre progression</p>
         </div>
       </div>
+
+
 
       {/* Navigation hebdomadaire */}
       <Card>
@@ -406,6 +362,13 @@ const ClientFeedbacksPage: React.FC = () => {
         <CardContent>
           {currentFeedback ? (
             <div className="space-y-4">
+              {/* Alerte de deadline */}
+              <FeedbackDeadlineAlert
+                deadline={currentFeedback.deadline}
+                status={currentFeedback.status}
+                onFillFeedback={() => setShowForm(true)}
+              />
+              
               {currentFeedback.status === 'completed' ? (
                 <div 
                   className="bg-green-50 border border-green-200 rounded-lg p-4 cursor-pointer hover:bg-green-100 transition-colors"
@@ -420,7 +383,7 @@ const ClientFeedbacksPage: React.FC = () => {
                   </div>
                   
                   {currentFeedback.score && (
-                    <div className="bg-white rounded-md p-3">
+                    <div className="bg-white dark:bg-gray-800 rounded-md p-3">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium">Score global</span>
                         <div className="flex items-center space-x-1">

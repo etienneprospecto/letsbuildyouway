@@ -1483,57 +1483,6 @@ export type Database = {
           },
         ]
       }
-      sessions: {
-        Row: {
-          client_id: string
-          created_at: string | null
-          duration_minutes: number | null
-          id: string
-          notes: string | null
-          rating: number | null
-          session_date: string
-          updated_at: string | null
-          workout_id: string | null
-        }
-        Insert: {
-          client_id: string
-          created_at?: string | null
-          duration_minutes?: number | null
-          id?: string
-          notes?: string | null
-          rating?: number | null
-          session_date: string
-          updated_at?: string | null
-          workout_id?: string | null
-        }
-        Update: {
-          client_id?: string
-          created_at?: string | null
-          duration_minutes?: number | null
-          id?: string
-          notes?: string | null
-          rating?: number | null
-          session_date?: string
-          updated_at?: string | null
-          workout_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sessions_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sessions_workout_id_fkey"
-            columns: ["workout_id"]
-            isOneToOne: false
-            referencedRelation: "workouts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       sync_events: {
         Row: {
           appointment_id: string | null

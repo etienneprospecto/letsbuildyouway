@@ -38,11 +38,11 @@ export const authService = {
           );
         
         if (profileError) {
-          console.error('Error creating profile:', profileError);
+
           // On continue même si le profil n'est pas créé
         }
       } catch (profileError) {
-        console.error('Error creating profile:', profileError);
+
         // On continue même si le profil n'est pas créé
       }
     }

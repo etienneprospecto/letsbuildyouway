@@ -69,7 +69,7 @@ const CoachNutritionPage: React.FC = () => {
       const clientsData = await ClientService.getClientsByCoach(coachId);
       setClients(clientsData);
     } catch (error) {
-      console.error('Error loading clients:', error);
+
       toast({
         title: "Erreur",
         description: "Erreur lors du chargement des clients",
@@ -102,7 +102,7 @@ const CoachNutritionPage: React.FC = () => {
       const goals = await NutritionService.getNutritionGoals(selectedClient);
       setNutritionGoals(goals);
     } catch (error) {
-      console.error('Error loading nutrition data:', error);
+
       toast({
         title: "Erreur",
         description: "Erreur lors du chargement des données nutritionnelles",
@@ -123,7 +123,7 @@ const CoachNutritionPage: React.FC = () => {
         description: "Objectifs nutritionnels mis à jour"
       });
     } catch (error) {
-      console.error('Error setting goals:', error);
+
       toast({
         title: "Erreur",
         description: "Erreur lors de la mise à jour des objectifs",
@@ -151,7 +151,7 @@ const CoachNutritionPage: React.FC = () => {
         description: "Commentaire ajouté avec succès"
       });
     } catch (error) {
-      console.error('Error adding comment:', error);
+
       toast({
         title: "Erreur",
         description: "Erreur lors de l'ajout du commentaire",

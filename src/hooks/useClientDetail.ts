@@ -83,8 +83,7 @@ export const useClientDetail = (clientId?: string) => {
       setSeances(seancesData)
       setFeedbacks(feedbacksData)
       setResources(resourcesData)
-      
-      // TODO: Remplacer par le vrai service de progression
+
       // Pour l'instant, on laisse un tableau vide
       setProgressData([])
 

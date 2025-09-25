@@ -1,24 +1,57 @@
 import { supabase } from '../lib/supabase';
 import { Exercise } from '../types';
+import { ErrorHandler, ApiError } from './errorHandler';
+import { PaginationService, PaginationParams, PaginatedResult } from './paginationService';
 
 export const exerciseService = {
-  async getExercises() {
+  async getExercises(pagination?: PaginationParams): Promise<PaginatedResult<Exercise> | Exercise[]> {
     try {
-      const { data, error } = await supabase
-        .from('exercises')
-        .select('*')
-        .order('name');
+      if (pagination) {
+        const validatedParams = PaginationService.validatePaginationParams(pagination)
+        const offset = PaginationService.getOffset(validatedParams.page, validatedParams.limit)
 
-      if (error) {
-        console.error('Erreur lors de la récupération des exercices:', error);
-        throw error;
+        // Compter le total
+        const { count, error: countError } = await supabase
+          .from('exercises')
+          .select('*', { count: 'exact', head: true })
+
+        if (countError) {
+          ErrorHandler.handleSupabaseError(countError, 'getExercises count')
+        }
+
+        // Récupérer les données
+        const { data, error } = await supabase
+          .from('exercises')
+          .select('*')
+          .order(validatedParams.sortBy, { ascending: validatedParams.sortOrder === 'asc' })
+          .range(offset, offset + validatedParams.limit - 1)
+
+        if (error) {
+          ErrorHandler.handleSupabaseError(error, 'getExercises')
+        }
+
+        return PaginationService.createPaginatedResult(
+          data || [],
+          count || 0,
+          validatedParams.page,
+          validatedParams.limit
+        )
+      } else {
+        // Mode non-paginé pour la compatibilité
+        const { data, error } = await supabase
+          .from('exercises')
+          .select('*')
+          .order('name')
+
+        if (error) {
+          ErrorHandler.handleSupabaseError(error, 'getExercises')
+        }
+        
+        return data || []
       }
-      
-      console.log('Exercices récupérés:', data);
-      return data || [];
     } catch (error) {
-      console.error('Erreur dans getExercises:', error);
-      throw error;
+      if (error instanceof ApiError) throw error
+      ErrorHandler.handleSupabaseError(error, 'getExercises')
     }
   },
 

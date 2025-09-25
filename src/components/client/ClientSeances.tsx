@@ -270,7 +270,6 @@ const ClientSeances: React.FC = () => {
             onClick={goToCurrentWeek}
             variant="outline"
             size="sm"
-            className="text-orange-600 border-orange-300 hover:bg-orange-50"
           >
             <Calendar className="h-4 w-4 mr-2" />
             Semaine actuelle

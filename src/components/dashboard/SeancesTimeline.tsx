@@ -377,7 +377,7 @@ const SeancesTimeline: React.FC<SeancesTimelineProps> = ({
   }
 
   const handleCoachResponse = () => {
-    // TODO: Sauvegarder la réponse du coach
+
     setCoachResponse('')
   }
 

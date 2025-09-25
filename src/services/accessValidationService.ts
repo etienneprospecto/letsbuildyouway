@@ -15,7 +15,7 @@ export class AccessValidationService {
    */
   static async validateUserAccess(email: string): Promise<AccessValidationResult> {
     try {
-      console.log('Validating access for email:', email);
+
       const normalizedEmail = email.trim().toLowerCase();
 
       // OPTIMISATION: Vérifier d'abord la whitelist (plus rapide)
@@ -29,18 +29,15 @@ export class AccessValidationService {
         };
       }
 
-      console.log('Not in whitelist, checking user metadata...');
       // OPTIMISATION: Récupérer l'utilisateur courant une seule fois
       const { data: userRes } = await supabase.auth.getUser();
       const currentUser = userRes?.user || null;
-      console.log('Current user retrieved:', currentUser?.email);
 
       // Vérifier les métadonnées auth
-      console.log('Checking auth metadata...');
+
       const isSameUser = currentUser?.email?.toLowerCase() === normalizedEmail;
       const metaRole = (currentUser?.user_metadata as any)?.role as string | undefined;
-      console.log('Auth metadata check:', { isSameUser, metaRole, normalizedEmail });
-      
+
       if (isSameUser && metaRole === 'coach') {
         console.log('Coach access granted (by auth metadata) for:', email);
         return {
@@ -50,7 +47,6 @@ export class AccessValidationService {
         };
       }
 
-      console.log('Not a coach by metadata, checking profiles table...');
       // 1.ter Fallback: vérifier la table profiles par email (désynchronisation possible avec auth)
       const { data: coachProfile, error: coachError } = await supabase
         .from('profiles')
@@ -58,8 +54,6 @@ export class AccessValidationService {
         .eq('email', normalizedEmail)
         .eq('role', 'coach')
         .maybeSingle();
-      
-      console.log('Profiles table check result:', { coachProfile, coachError });
 
       if (!coachError && coachProfile) {
         console.log('Coach access granted (by profiles) for:', email);
@@ -71,7 +65,7 @@ export class AccessValidationService {
       }
 
       // 2. Vérifier si c'est un client autorisé (dans clients)
-      console.log('Checking client access for email:', normalizedEmail);
+
       const { data: clientRecord, error: clientError } = await supabase
         .from('clients')
         .select('id, coach_id, first_name, last_name, status')
@@ -79,15 +73,13 @@ export class AccessValidationService {
         .eq('status', 'active')
         .maybeSingle();
 
-      console.log('Client query result:', { clientRecord, clientError });
-
       if (clientError) {
-        console.error('Error checking client record:', clientError);
+
         return { hasAccess: false, role: null, error: 'Erreur de validation' };
       }
 
       if (clientRecord) {
-        console.log('Client access granted for:', email, 'Coach ID:', clientRecord.coach_id);
+
         // C'est un client autorisé par un coach, accès autorisé
         return {
           hasAccess: true,
@@ -97,10 +89,8 @@ export class AccessValidationService {
         };
       }
 
-      console.log('No client record found for email:', normalizedEmail);
-
       // 3. Aucun accès trouvé - l'email n'a pas été autorisé par un coach
-      console.log('Access denied for email:', email, '- Not authorized by any coach');
+
       return {
         hasAccess: false,
         role: null,
@@ -108,7 +98,7 @@ export class AccessValidationService {
       };
 
     } catch (error) {
-      console.error('Error in validateUserAccess:', error);
+
       return {
         hasAccess: false,
         role: null,
@@ -133,7 +123,7 @@ export class AccessValidationService {
       return await this.validateUserAccess(user.email!);
 
     } catch (error) {
-      console.error('Error in canUserConnect:', error);
+
       return {
         hasAccess: false,
         role: null,

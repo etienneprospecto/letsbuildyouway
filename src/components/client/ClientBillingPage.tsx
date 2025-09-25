@@ -159,7 +159,7 @@ export const ClientBillingPage: React.FC = () => {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Mes factures</h1>
-        <p className="text-gray-600">Gérez vos factures et abonnements</p>
+        <p className="text-gray-600 dark:text-gray-400">Gérez vos factures et abonnements</p>
       </div>
 
       {/* Quick Stats */}
@@ -369,7 +369,7 @@ export const ClientBillingPage: React.FC = () => {
                           <Button variant="outline" size="sm">
                             Pause
                           </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                          <Button variant="destructive" size="sm">
                             Annuler
                           </Button>
                         </div>

@@ -177,8 +177,8 @@ const ProgressGauge: React.FC<{ data: ProgressData[] }> = ({ data }) => {
       {/* En-tête avec objectif */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Objectif de progression</h3>
-          <p className="text-sm text-gray-600">Perdre 5kg • {progressPercentage.toFixed(0)}% atteint</p>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Objectif de progression</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Perdre 5kg • {progressPercentage.toFixed(0)}% atteint</p>
         </div>
         <Badge variant="outline" className="text-sm">
           {Math.abs(totalChange).toFixed(1)}kg / 5kg
@@ -623,7 +623,7 @@ const ProgressionDashboard: React.FC = () => {
           <Button
             onClick={() => fileInputRef.current?.click()}
             variant="outline"
-            className="flex items-center gap-2 border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300"
+            className="flex items-center gap-2"
             disabled={uploadingPhotos}
           >
             <Camera className="h-4 w-4" />
@@ -652,7 +652,7 @@ const ProgressionDashboard: React.FC = () => {
               <Button 
                 onClick={handleAddWeight} 
                 disabled={saving || (!newWeight && !newWaist)}
-                className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white border-orange-600 hover:border-orange-700"
+                variant="default" className="flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
               {saving ? 'Ajout...' : 'Mesure'}
@@ -686,7 +686,7 @@ const ProgressionDashboard: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <Trophy className="h-6 w-6 text-orange-500" />
                 <div>
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-gray-900 dark:text-gray-100">
                       {totalWeightChange < 0 ? 'Excellent travail !' : totalWeightChange > 0 ? 'Continuez vos efforts !' : 'Bonne régularité !'}
                     </p>
                     <p className="text-sm text-gray-600">
@@ -704,7 +704,7 @@ const ProgressionDashboard: React.FC = () => {
           ) : (
             <div className="text-center py-12">
               <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Commencez votre suivi</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Commencez votre suivi</h3>
               <p className="text-muted-foreground mb-6">
                 Ajoutez votre première pesée pour voir votre progression
               </p>
@@ -721,7 +721,7 @@ const ProgressionDashboard: React.FC = () => {
                 <Button 
                   onClick={handleAddWeight} 
                   disabled={saving || !newWeight}
-                  className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white border-orange-600 hover:border-orange-700"
+                  variant="default" className="flex items-center gap-2"
                 >
                   <Plus className="h-4 w-4" />
                   {saving ? 'Ajout...' : 'Commencer'}
@@ -944,7 +944,7 @@ const ProgressionDashboard: React.FC = () => {
                 <Button
                   onClick={() => fileInputRef.current?.click()}
                   variant="outline"
-                  className="flex items-center gap-2 mx-auto border-gray-300 text-gray-700 bg-white hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-orange-900/20 dark:hover:border-orange-600 dark:hover:text-orange-300"
+                  className="flex items-center gap-2 mx-auto"
                   disabled={uploadingPhotos}
                 >
                   <Upload className="h-4 w-4" />
@@ -974,7 +974,7 @@ const ProgressionDashboard: React.FC = () => {
                   <Button
                     onClick={handleUploadPhotos}
                     disabled={uploadingPhotos}
-                    className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white border-orange-600 hover:border-orange-700"
+                    variant="default" className="flex items-center gap-2"
                   >
                     <Upload className="h-4 w-4" />
                     {uploadingPhotos ? 'Upload en cours...' : `Uploader ${selectedFiles.length} photo(s)`}

@@ -104,7 +104,7 @@ export const AvailabilityManager: React.FC<AvailabilityManagerProps> = ({
       const data = await availabilityService.getCoachAvailability(coachId);
       setAvailability(data);
     } catch (error) {
-      console.error('Erreur lors du chargement des disponibilités:', error);
+
     } finally {
       setLoading(false);
     }
@@ -154,7 +154,7 @@ export const AvailabilityManager: React.FC<AvailabilityManagerProps> = ({
       onUpdate();
       resetForm();
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
+
       alert('Erreur lors de la sauvegarde du créneau');
     } finally {
       setLoading(false);
@@ -172,7 +172,7 @@ export const AvailabilityManager: React.FC<AvailabilityManagerProps> = ({
       await loadAvailability();
       onUpdate();
     } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
+
       alert('Erreur lors de la suppression du créneau');
     } finally {
       setLoading(false);
@@ -185,7 +185,7 @@ export const AvailabilityManager: React.FC<AvailabilityManagerProps> = ({
       await loadAvailability();
       onUpdate();
     } catch (error) {
-      console.error('Erreur lors de la mise à jour:', error);
+
     }
   };
 
@@ -231,7 +231,7 @@ export const AvailabilityManager: React.FC<AvailabilityManagerProps> = ({
       await loadAvailability();
       onUpdate();
     } catch (error) {
-      console.error('Erreur lors de l\'application du modèle:', error);
+
       alert('Erreur lors de l\'application du modèle');
     } finally {
       setLoading(false);

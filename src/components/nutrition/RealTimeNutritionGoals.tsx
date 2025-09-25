@@ -378,7 +378,7 @@ const RealTimeNutritionGoals: React.FC<RealTimeNutritionGoalsProps> = ({
         <h3 className="text-lg font-semibold mb-4">Actions rapides</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Button className="flex items-center space-x-2">
+          <Button variant="default" className="flex items-center space-x-2">
             <Target className="h-4 w-4" />
             <span>Ajouter un repas</span>
           </Button>

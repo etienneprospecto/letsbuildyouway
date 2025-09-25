@@ -133,8 +133,6 @@ class InvitationService {
         throw new Error('Format d\'email invalide');
       }
 
-      console.log('Tentative de création du compte avec l\'email:', invitation.client_email);
-
       // Créer le compte utilisateur dans Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: invitation.client_email,
@@ -149,15 +147,13 @@ class InvitationService {
       });
 
       if (authError) {
-        console.error('Erreur auth:', authError);
+
         throw new Error(`Erreur lors de la création du compte: ${authError.message}`);
       }
 
       if (!authData.user) {
         throw new Error('Aucun utilisateur créé');
       }
-
-      console.log('Utilisateur créé avec succès:', authData.user.id);
 
       // Attendre que le trigger crée le profil
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -170,7 +166,7 @@ class InvitationService {
         .single();
 
       if (profileError || !profile) {
-        console.log('Profil non créé par le trigger, création manuelle...');
+
         // Si le profil n'existe pas, le créer manuellement
         const { error: createProfileError } = await supabase
           .from('profiles')
@@ -183,11 +179,11 @@ class InvitationService {
           });
 
         if (createProfileError) {
-          console.error('Erreur lors de la création du profil:', createProfileError);
+
           throw new Error(`Erreur lors de la création du profil: ${createProfileError.message}`);
         }
       } else {
-        console.log('Profil créé par le trigger:', profile);
+
       }
 
       // Créer la fiche client avec des valeurs par défaut pour les champs obligatoires
@@ -222,7 +218,7 @@ class InvitationService {
         });
 
       if (clientError) {
-        console.error('Erreur lors de la création de la fiche client:', clientError);
+
         throw new Error(`Erreur lors de la création de la fiche client: ${clientError.message}`);
       }
 
@@ -238,7 +234,7 @@ class InvitationService {
       return { success: true, message: 'Compte créé avec succès ! Vous pouvez maintenant vous connecter.' };
 
     } catch (error) {
-      console.error('Erreur lors de l\'acceptation de l\'invitation:', error);
+
       return { 
         success: false, 
         message: error instanceof Error ? error.message : 'Erreur lors de la création du compte' 
@@ -251,17 +247,11 @@ class InvitationService {
    */
   private async sendInvitationEmail(invitation: InvitationData): Promise<void> {
     const invitationUrl = `${window.location.origin}/?token=${invitation.token}`;
-    
-    console.log('📧 Tentative d\'envoi d\'email d\'invitation...');
-    console.log('Invitation data:', invitation);
-    
+
     // Pour l'instant, on simule l'envoi d'email pour éviter les problèmes
-    // TODO: Réactiver l'Edge Function une fois les problèmes résolus
+
     console.log('📧 Email d\'invitation simulé (Edge Function temporairement désactivée):');
-    console.log(`À: ${invitation.client_email}`);
-    console.log(`Sujet: Invitation à rejoindre votre coach`);
-    console.log(`Lien: ${invitationUrl}`);
-    
+
     // Code commenté pour l'Edge Function (à réactiver plus tard)
     /*
     try {
@@ -273,16 +263,13 @@ class InvitationService {
         .single();
 
       if (coachError) {
-        console.error('Erreur lors de la récupération du coach:', coachError);
+
       }
 
       const coachName = coach ? `${coach.first_name} ${coach.last_name}` : 'Votre coach';
 
-      console.log('Coach name:', coachName);
-
       // Appeler l'Edge Function pour envoyer l'email avec timeout
-      console.log('Appel de l\'Edge Function...');
-      
+
       const functionPromise = supabase.functions.invoke('send-invitation-email', {
         body: {
           client_email: invitation.client_email,
@@ -299,25 +286,19 @@ class InvitationService {
 
       const { data, error } = await Promise.race([functionPromise, timeoutPromise]) as any;
 
-      console.log('Réponse Edge Function:', { data, error });
-
       if (error) {
-        console.error('Erreur lors de l\'envoi de l\'email:', error);
+
         // Ne pas faire échouer la création de l'invitation si l'email échoue
         console.log('📧 Email d\'invitation simulé (service indisponible):');
-        console.log(`À: ${invitation.client_email}`);
-        console.log(`Sujet: Invitation à rejoindre votre coach`);
-        console.log(`Lien: ${invitationUrl}`);
+
       } else {
-        console.log('📧 Email d\'invitation envoyé avec succès:', data);
+
       }
     } catch (error) {
-      console.error('Erreur lors de l\'envoi de l\'email:', error);
+
       // Fallback : afficher l'URL dans la console
       console.log('📧 Email d\'invitation simulé (erreur de service):');
-      console.log(`À: ${invitation.client_email}`);
-      console.log(`Sujet: Invitation à rejoindre votre coach`);
-      console.log(`Lien: ${invitationUrl}`);
+
     }
     */
   }

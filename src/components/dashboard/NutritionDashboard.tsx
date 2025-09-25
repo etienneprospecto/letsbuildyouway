@@ -56,7 +56,7 @@ const NutritionDashboard: React.FC<NutritionDashboardProps> = ({ coachId }) => {
       const clientsData = await ClientService.getClientsByCoach(coachId);
       setClients(clientsData);
     } catch (error) {
-      console.error('Error loading clients:', error);
+
       toast({
         title: "Erreur",
         description: "Erreur lors du chargement des clients",
@@ -110,7 +110,7 @@ const NutritionDashboard: React.FC<NutritionDashboardProps> = ({ coachId }) => {
 
       setClientSummaries(summaries);
     } catch (error) {
-      console.error('Error loading client summaries:', error);
+
       toast({
         title: "Erreur",
         description: "Erreur lors du chargement des données nutritionnelles",
