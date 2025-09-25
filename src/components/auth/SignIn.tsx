@@ -82,59 +82,80 @@ export const SignIn: React.FC<SignInProps> = ({ onSwitchToSignUp, onSignInSucces
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Se connecter</CardTitle>
-        <CardDescription>
-          Accédez à votre espace BYW
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            type="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
-            required
-          />
-          
-          <Input
-            type="password"
-            placeholder="Mot de passe"
-            value={formData.password}
-            onChange={(e) => handleInputChange('password', e.target.value)}
-            required
-          />
+    <div className="w-full max-w-md mx-auto">
+      <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-8 shadow-2xl">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bebas text-white mb-2 tracking-wider">
+            CONNEXION
+          </h2>
+          <p className="text-gray-300 text-sm">
+            Accédez à votre espace BYW
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <Input
+                type="email"
+                placeholder="Votre email"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                required
+                className="bg-white/10 border-white/20 text-white placeholder-gray-400 focus:border-[#fa7315] focus:ring-[#fa7315]/20 h-12 rounded-xl"
+              />
+            </div>
+            
+            <div>
+              <Input
+                type="password"
+                placeholder="Votre mot de passe"
+                value={formData.password}
+                onChange={(e) => handleInputChange('password', e.target.value)}
+                required
+                className="bg-white/10 border-white/20 text-white placeholder-gray-400 focus:border-[#fa7315] focus:ring-[#fa7315]/20 h-12 rounded-xl"
+              />
+            </div>
+          </div>
           
           <Button 
             type="submit" 
-            className="w-full" 
+            className="w-full h-12 bg-gradient-to-r from-[#fa7315] to-orange-600 hover:from-orange-600 hover:to-[#fa7315] text-white font-bebas text-lg tracking-wider rounded-xl shadow-lg hover:shadow-xl hover:shadow-[#fa7315]/40 transition-all duration-300 transform hover:scale-105" 
             disabled={isLoading}
           >
-            {isLoading ? "Connexion..." : "Se connecter"}
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Connexion...
+              </div>
+            ) : (
+              "SE CONNECTER"
+            )}
           </Button>
         </form>
         
-        <div className="mt-4 space-y-2 text-center text-sm">
+        {/* Footer Links */}
+        <div className="mt-8 space-y-4 text-center">
           <button
             onClick={handleForgotPassword}
-            className="text-blue-600 hover:underline block"
+            className="text-[#fa7315] hover:text-orange-400 transition-colors duration-300 text-sm font-medium block w-full"
           >
             Mot de passe oublié ?
           </button>
           
-          <div>
+          <div className="text-gray-300 text-sm">
             Pas encore de compte ?{' '}
             <button
               onClick={onSwitchToSignUp}
-              className="text-blue-600 hover:underline"
+              className="text-[#fa7315] hover:text-orange-400 font-semibold transition-colors duration-300"
             >
-              S'inscrire
+              Créer un compte
             </button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

@@ -86,86 +86,112 @@ export const SignUp: React.FC<SignUpProps> = ({ onSwitchToSignIn }) => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Créer un compte</CardTitle>
-        <CardDescription>
-          Rejoignez BYW en tant que coach ou client
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+    <div className="w-full max-w-md mx-auto">
+      <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-8 shadow-2xl">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bebas text-white mb-2 tracking-wider">
+            INSCRIPTION
+          </h2>
+          <p className="text-gray-300 text-sm">
+            Rejoignez BYW en tant que coach ou client
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            {/* Name Fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                placeholder="Prénom"
+                value={formData.firstName}
+                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                required
+                className="bg-white/10 border-white/20 text-white placeholder-gray-400 focus:border-[#fa7315] focus:ring-[#fa7315]/20 h-12 rounded-xl"
+              />
+              <Input
+                placeholder="Nom"
+                value={formData.lastName}
+                onChange={(e) => handleInputChange('lastName', e.target.value)}
+                required
+                className="bg-white/10 border-white/20 text-white placeholder-gray-400 focus:border-[#fa7315] focus:ring-[#fa7315]/20 h-12 rounded-xl"
+              />
+            </div>
+            
+            {/* Email */}
             <Input
-              placeholder="Prénom"
-              value={formData.firstName}
-              onChange={(e) => handleInputChange('firstName', e.target.value)}
+              type="email"
+              placeholder="Votre email"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
               required
+              className="bg-white/10 border-white/20 text-white placeholder-gray-400 focus:border-[#fa7315] focus:ring-[#fa7315]/20 h-12 rounded-xl"
             />
+            
+            {/* Role Selection */}
+            <Select
+              value={formData.role}
+              onValueChange={(value: 'coach' | 'client') => handleInputChange('role', value)}
+            >
+              <SelectTrigger className="bg-white/10 border-white/20 text-white focus:border-[#fa7315] focus:ring-[#fa7315]/20 h-12 rounded-xl">
+                <SelectValue placeholder="Choisir un rôle" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-900 border-gray-700">
+                <SelectItem value="coach" className="text-white hover:bg-gray-800">🏋️ Coach BYW</SelectItem>
+                <SelectItem value="client" className="text-white hover:bg-gray-800">👤 Client</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {/* Password Fields */}
             <Input
-              placeholder="Nom"
-              value={formData.lastName}
-              onChange={(e) => handleInputChange('lastName', e.target.value)}
+              type="password"
+              placeholder="Mot de passe (min. 6 caractères)"
+              value={formData.password}
+              onChange={(e) => handleInputChange('password', e.target.value)}
               required
+              className="bg-white/10 border-white/20 text-white placeholder-gray-400 focus:border-[#fa7315] focus:ring-[#fa7315]/20 h-12 rounded-xl"
+            />
+            
+            <Input
+              type="password"
+              placeholder="Confirmer le mot de passe"
+              value={formData.confirmPassword}
+              onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+              required
+              className="bg-white/10 border-white/20 text-white placeholder-gray-400 focus:border-[#fa7315] focus:ring-[#fa7315]/20 h-12 rounded-xl"
             />
           </div>
           
-          <Input
-            type="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
-            required
-          />
-          
-          <Select
-            value={formData.role}
-            onValueChange={(value: 'coach' | 'client') => handleInputChange('role', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Choisir un rôle" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="coach">Coach BYW</SelectItem>
-              <SelectItem value="client">Client</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Input
-            type="password"
-            placeholder="Mot de passe"
-            value={formData.password}
-            onChange={(e) => handleInputChange('password', e.target.value)}
-            required
-          />
-          
-          <Input
-            type="password"
-            placeholder="Confirmer le mot de passe"
-            value={formData.confirmPassword}
-            onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-            required
-          />
-          
           <Button 
             type="submit" 
-            className="w-full" 
+            className="w-full h-12 bg-gradient-to-r from-[#fa7315] to-orange-600 hover:from-orange-600 hover:to-[#fa7315] text-white font-bebas text-lg tracking-wider rounded-xl shadow-lg hover:shadow-xl hover:shadow-[#fa7315]/40 transition-all duration-300 transform hover:scale-105" 
             disabled={isLoading}
           >
-            {isLoading ? "Création..." : "Créer le compte"}
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Création...
+              </div>
+            ) : (
+              "CRÉER MON COMPTE"
+            )}
           </Button>
         </form>
         
-        <div className="mt-4 text-center text-sm">
-          Déjà un compte ?{' '}
-          <button
-            onClick={onSwitchToSignIn}
-            className="text-blue-600 hover:underline"
-          >
-            Se connecter
-          </button>
+        {/* Footer Links */}
+        <div className="mt-8 text-center">
+          <div className="text-gray-300 text-sm">
+            Déjà un compte ?{' '}
+            <button
+              onClick={onSwitchToSignIn}
+              className="text-[#fa7315] hover:text-orange-400 font-semibold transition-colors duration-300"
+            >
+              Se connecter
+            </button>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

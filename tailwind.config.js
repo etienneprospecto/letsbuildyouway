@@ -17,6 +17,11 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        'bebas': ['Bebas Neue', 'cursive'],
+        'body': ['Poppins', 'Inter', 'system-ui', 'sans-serif'],
+        'h6': ['Poppins', 'Inter', 'system-ui', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
