@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { QueryProvider } from '@/providers/QueryProvider'
 import { Toaster } from '@/components/ui/toaster'
-import { AuthProvider, useAuth } from '@/providers/AuthProvider'
+import { AuthProvider, useAuth } from '@/providers/OptimizedAuthProvider'
 import { WeekProvider } from '@/providers/WeekProvider'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { AuthPage } from '@/components/auth/AuthPage'
@@ -14,8 +14,26 @@ function AppContent() {
   const { user, profile, loading } = useAuth()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [authLoading, setAuthLoading] = useState(true)
 
   console.log('AppContent render - user:', user?.email, 'profile:', profile?.role, 'loading:', loading)
+
+  // SOLUTION RADICALE : Timeout pour éviter le chargement infini
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (authLoading) {
+        console.log('⏰ Auth timeout reached, stopping loading');
+        setAuthLoading(false);
+      }
+    }, 3000); // 3 secondes max
+
+    // Arrêter le loading si on a les données ou si on n'a pas d'utilisateur
+    if (!loading) {
+      setAuthLoading(false);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [loading, authLoading]);
 
   // Vérifier si on est sur la page d'acceptation d'invitation
   const isAcceptInvitationPage = window.location.pathname === '/accept-invitation' || 
@@ -25,7 +43,7 @@ function AppContent() {
     return <AcceptInvitation />
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return <div className="min-h-screen flex items-center justify-center">Chargement...</div>
   }
 

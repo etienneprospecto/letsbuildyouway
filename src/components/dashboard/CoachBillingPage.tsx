@@ -15,7 +15,7 @@ import {
   Download
 } from 'lucide-react'
 import { BillingService } from '../../services/billingService'
-import { useAuth } from '../../providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 import { PricingPlanModal } from './PricingPlanModal'
 import { InvoiceModal } from './InvoiceModal'
 import { StripeSettingsModal } from './StripeSettingsModal'

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚨 Debug Invitations Coach</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fee2e2;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 2px solid #ef4444;
+        }
+        .urgent {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        .success { background: #d1fae5; border: 1px solid #10b981; color: #065f46; }
+        .error { background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; }
+        .warning { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; }
+        .info { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
+        button {
+            background: #ef4444;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 5px;
+        }
+        button:hover { background: #dc2626; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .test-section {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 DEBUG INVITATIONS COACH</h1>
+        <div class="urgent">
+            ⚠️ PROBLÈME : Envoi d'invitations en chargement infini "envoi..."
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 Test Edge Functions</h3>
+            <button onclick="testEdgeFunctions()">🚀 TESTER TOUTES LES EDGE FUNCTIONS</button>
+            <div id="edgeFunctionsStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📧 Test Envoi d'Invitation Complet</h3>
+            <div>
+                <label>Email Client:</label>
+                <input type="email" id="clientEmail" value="test@byw.app">
+            </div>
+            <div>
+                <label>Nom Client:</label>
+                <input type="text" id="clientName" value="Test Client">
+            </div>
+            <button onclick="testFullInvitation()">🚨 TESTER INVITATION COMPLÈTE</button>
+            <div id="invitationStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Test Service d'Invitation</h3>
+            <button onclick="testInvitationService()">📋 TESTER SERVICE INVITATION</button>
+            <div id="serviceStatus"></div>
+        </div>
+
+        <div>
+            <h3>📊 Logs de Debug</h3>
+            <button onclick="clearLogs()">Effacer</button>
+            <div id="debugLogs" class="log"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        let supabase;
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logs.push(logEntry);
+            
+            const logDiv = document.getElementById('debugLogs');
+            logDiv.textContent = logs.join('\n');
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function clearLogs() {
+            logs = [];
+            document.getElementById('debugLogs').textContent = '';
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function initSupabase() {
+            const url = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+            const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+            
+            supabase = window.supabase.createClient(url, key);
+            log('Client Supabase initialisé', 'success');
+            return true;
+        }
+
+        async function testEdgeFunctions() {
+            log('🚀 === TEST EDGE FUNCTIONS ===');
+            
+            if (!initSupabase()) return;
+
+            const functions = [
+                'send-invitation-email',
+                'send-email-reliable',
+                'send-stripe-email',
+                'stripe-webhook'
+            ];
+
+            for (const funcName of functions) {
+                try {
+                    log(`Test de ${funcName}...`);
+                    
+                    const { data, error } = await supabase.functions.invoke(funcName, {
+                        body: {
+                            client_email: 'test@byw.app',
+                            client_name: 'Test User',
+                            invitation_url: 'https://byw.app/?token=test123',
+                            coach_name: 'Test Coach',
+                            type: 'client_invitation'
+                        }
+                    });
+
+                    if (error) {
+                        log(`❌ ${funcName}: ${error.message}`, 'error');
+                    } else {
+                        log(`✅ ${funcName}: Fonctionne`, 'success');
+                        log(`   Réponse: ${JSON.stringify(data, null, 2)}`, 'info');
+                    }
+
+                } catch (err) {
+                    log(`❌ ${funcName}: ${err.message}`, 'error');
+                }
+            }
+
+            showStatus('edgeFunctionsStatus', 'Test des Edge Functions terminé - voir logs', 'info');
+        }
+
+        async function testFullInvitation() {
+            log('📧 === TEST INVITATION COMPLÈTE ===');
+            
+            if (!initSupabase()) return;
+
+            const clientEmail = document.getElementById('clientEmail').value;
+            const clientName = document.getElementById('clientName').value;
+
+            try {
+                log(`Création invitation pour: ${clientEmail}`);
+
+                // 1. Créer l'invitation
+                const invitationData = {
+                    coach_id: '0bab0e3a-5ccc-4018-a9e7-e5fffbf4a7c8', // ID de Henri
+                    client_email: clientEmail,
+                    client_first_name: clientName.split(' ')[0] || 'Test',
+                    client_last_name: clientName.split(' ')[1] || 'User',
+                    client_primary_goal: 'Perte de poids',
+                    client_fitness_level: 'Débutant'
+                };
+
+                const { data: invitation, error: invitationError } = await supabase
+                    .from('client_invitations')
+                    .insert(invitationData)
+                    .select()
+                    .single();
+
+                if (invitationError) {
+                    log(`❌ Erreur création invitation: ${invitationError.message}`, 'error');
+                    showStatus('invitationStatus', `❌ Erreur: ${invitationError.message}`, 'error');
+                    return;
+                }
+
+                log(`✅ Invitation créée: ${invitation.id}`, 'success');
+
+                // 2. Tester l'envoi d'email
+                const invitationUrl = `https://byw.app/?token=${invitation.token}`;
+                const emailData = {
+                    client_email: clientEmail,
+                    client_name: clientName,
+                    invitation_url: invitationUrl,
+                    coach_name: 'BYW Team',
+                    type: 'client_invitation'
+                };
+
+                log('Test envoi email via send-email-reliable...');
+                
+                const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-email-reliable', {
+                    body: emailData
+                });
+
+                if (emailError) {
+                    log(`❌ Erreur envoi email: ${emailError.message}`, 'error');
+                    showStatus('invitationStatus', `❌ Erreur email: ${emailError.message}`, 'error');
+                } else {
+                    log(`✅ Email envoyé:`, 'success');
+                    log(`   Success: ${emailResult.success}`, 'info');
+                    log(`   Message: ${emailResult.message}`, 'info');
+                    log(`   Provider: ${emailResult.provider}`, 'info');
+                    showStatus('invitationStatus', `✅ Invitation envoyée ! Provider: ${emailResult.provider}`, 'success');
+                }
+
+                // 3. Nettoyer
+                await supabase.from('client_invitations').delete().eq('id', invitation.id);
+                log('Invitation de test supprimée', 'info');
+
+            } catch (error) {
+                log(`❌ Erreur générale: ${error.message}`, 'error');
+                showStatus('invitationStatus', `❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        async function testInvitationService() {
+            log('📋 === TEST SERVICE INVITATION ===');
+            
+            if (!initSupabase()) return;
+
+            try {
+                // Simuler l'appel du service d'invitation
+                const invitationData = {
+                    coach_id: '0bab0e3a-5ccc-4018-a9e7-e5fffbf4a7c8',
+                    client_email: 'test-service@byw.app',
+                    client_first_name: 'Service',
+                    client_last_name: 'Test',
+                    client_primary_goal: 'Musculation',
+                    client_fitness_level: 'Intermédiaire'
+                };
+
+                log('Création invitation via service...');
+
+                const { data: invitation, error: invitationError } = await supabase
+                    .from('client_invitations')
+                    .insert(invitationData)
+                    .select()
+                    .single();
+
+                if (invitationError) {
+                    log(`❌ Erreur service: ${invitationError.message}`, 'error');
+                    showStatus('serviceStatus', `❌ Erreur: ${invitationError.message}`, 'error');
+                    return;
+                }
+
+                log(`✅ Service fonctionne: ${invitation.id}`, 'success');
+                showStatus('serviceStatus', `✅ Service d'invitation fonctionne`, 'success');
+
+                // Nettoyer
+                await supabase.from('client_invitations').delete().eq('id', invitation.id);
+
+            } catch (error) {
+                log(`❌ Erreur service: ${error.message}`, 'error');
+                showStatus('serviceStatus', `❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialisation
+        window.addEventListener('load', () => {
+            log('🚨 DEBUG INVITATIONS COACH INITIALISÉ', 'error');
+            log('🔍 Testez les Edge Functions et l\'envoi d\'invitations', 'warning');
+        });
+    </script>
+</body>
+</html>

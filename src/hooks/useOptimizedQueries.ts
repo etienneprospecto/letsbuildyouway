@@ -1,113 +1,135 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ClientService } from '@/services/clientService'
-import { progressService } from '@/services/progressService'
-import { SeanceService } from '@/services/seanceService'
-import { NutritionService } from '@/services/nutritionService'
+import { useQuery } from '@tanstack/react-query';
+import { OptimizedQueriesService } from '../services/optimizedQueriesService';
+import { logger } from '../lib/logger';
 
-// Query keys constants
-export const QUERY_KEYS = {
-  clients: ['clients'] as const,
-  client: (id: string) => ['clients', id] as const,
-  clientProgress: (id: string) => ['clients', id, 'progress'] as const,
-  clientSeances: (id: string) => ['clients', id, 'seances'] as const,
-  clientNutrition: (id: string) => ['clients', id, 'nutrition'] as const,
-  coachClients: (coachId: string) => ['coaches', coachId, 'clients'] as const,
-} as const
-
-// Optimized hooks for client data
-export const useClientData = (clientId: string) => {
+/**
+ * Hook pour récupérer les données du dashboard coach avec cache intelligent
+ */
+export const useCoachDashboardData = (coachId: string | undefined) => {
   return useQuery({
-    queryKey: QUERY_KEYS.client(clientId),
-    queryFn: () => ClientService.getClientById(clientId),
-    enabled: !!clientId,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  })
-}
+    queryKey: ['coach-dashboard', coachId],
+    queryFn: () => OptimizedQueriesService.getCoachDashboardData(coachId!),
+    enabled: !!coachId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error: any) => {
+      if (error?.status === 401 || error?.status === 403) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    onError: (error: any) => {
+      logger.error('Erreur useCoachDashboardData', error);
+    }
+  });
+};
 
-export const useClientProgress = (clientId: string) => {
+/**
+ * Hook pour récupérer les données du dashboard client avec cache intelligent
+ */
+export const useClientDashboardData = (clientId: string | undefined) => {
   return useQuery({
-    queryKey: QUERY_KEYS.clientProgress(clientId),
-    queryFn: () => progressService.getClientProgress(clientId),
-    enabled: !!clientId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  })
-}
-
-export const useClientSeances = (clientId: string) => {
-  return useQuery({
-    queryKey: QUERY_KEYS.clientSeances(clientId),
-    queryFn: () => SeanceService.getSeancesByClient(clientId),
+    queryKey: ['client-dashboard', clientId],
+    queryFn: () => OptimizedQueriesService.getClientDashboardData(clientId!),
     enabled: !!clientId,
     staleTime: 2 * 60 * 1000, // 2 minutes
-  })
-}
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error: any) => {
+      if (error?.status === 401 || error?.status === 403) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    onError: (error: any) => {
+      logger.error('Erreur useClientDashboardData', error);
+    }
+  });
+};
 
-export const useClientNutrition = (clientId: string) => {
+/**
+ * Hook pour récupérer les messages avec cache intelligent
+ */
+export const useMessagesWithDetails = (relationId: string | undefined, limit: number = 50) => {
   return useQuery({
-    queryKey: QUERY_KEYS.clientNutrition(clientId),
-    queryFn: () => NutritionService.getClientNutritionStats(clientId),
+    queryKey: ['messages', relationId, limit],
+    queryFn: () => OptimizedQueriesService.getMessagesWithDetails(relationId!, limit),
+    enabled: !!relationId,
+    staleTime: 30 * 1000, // 30 secondes (messages plus dynamiques)
+    gcTime: 2 * 60 * 1000, // 2 minutes
+    retry: (failureCount, error: any) => {
+      if (error?.status === 401 || error?.status === 403) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    onError: (error: any) => {
+      logger.error('Erreur useMessagesWithDetails', error);
+    }
+  });
+};
+
+/**
+ * Hook pour récupérer les séances avec cache intelligent
+ */
+export const useSessionsWithDetails = (clientId: string | undefined, limit: number = 20) => {
+  return useQuery({
+    queryKey: ['sessions', clientId, limit],
+    queryFn: () => OptimizedQueriesService.getSessionsWithDetails(clientId!, limit),
     enabled: !!clientId,
-    staleTime: 15 * 60 * 1000, // 15 minutes
-  })
-}
-
-export const useCoachClients = (coachId: string) => {
-  return useQuery({
-    queryKey: QUERY_KEYS.coachClients(coachId),
-    queryFn: () => ClientService.getClientsByCoach(coachId),
-    enabled: !!coachId,
     staleTime: 5 * 60 * 1000, // 5 minutes
-  })
-}
-
-// Mutation hooks with optimistic updates
-export const useUpdateClient = () => {
-  const queryClient = useQueryClient()
-  
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => 
-      ClientService.updateClient(id, data),
-    onSuccess: (_, { id }) => {
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.client(id) })
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.clients })
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error: any) => {
+      if (error?.status === 401 || error?.status === 403) {
+        return false;
+      }
+      return failureCount < 2;
     },
-  })
-}
+    onError: (error: any) => {
+      logger.error('Erreur useSessionsWithDetails', error);
+    }
+  });
+};
 
-export const useCreateProgress = () => {
-  const queryClient = useQueryClient()
-  
-  return useMutation({
-    mutationFn: (data: any) => progressService.createProgress(data),
-    onSuccess: (_, variables) => {
-      // Invalidate progress queries for the client
-      queryClient.invalidateQueries({ 
-        queryKey: QUERY_KEYS.clientProgress(variables.client_id) 
-      })
+/**
+ * Hook pour récupérer les données de facturation avec cache intelligent
+ */
+export const useBillingDataWithClients = (coachId: string | undefined) => {
+  return useQuery({
+    queryKey: ['billing-data', coachId],
+    queryFn: () => OptimizedQueriesService.getBillingDataWithClients(coachId!),
+    enabled: !!coachId,
+    staleTime: 10 * 60 * 1000, // 10 minutes (données de facturation plus stables)
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    retry: (failureCount, error: any) => {
+      if (error?.status === 401 || error?.status === 403) {
+        return false;
+      }
+      return failureCount < 2;
     },
-  })
-}
+    onError: (error: any) => {
+      logger.error('Erreur useBillingDataWithClients', error);
+    }
+  });
+};
 
-// Prefetch utilities
-export const usePrefetchClientData = () => {
-  const queryClient = useQueryClient()
-  
-  const prefetchClient = (clientId: string) => {
-    queryClient.prefetchQuery({
-      queryKey: QUERY_KEYS.client(clientId),
-      queryFn: () => ClientService.getClientById(clientId),
-      staleTime: 10 * 60 * 1000,
-    })
-  }
-  
-  const prefetchClientProgress = (clientId: string) => {
-    queryClient.prefetchQuery({
-      queryKey: QUERY_KEYS.clientProgress(clientId),
-      queryFn: () => progressService.getClientProgress(clientId),
-      staleTime: 5 * 60 * 1000,
-    })
-  }
-  
-  return { prefetchClient, prefetchClientProgress }
-}
+/**
+ * Hook pour récupérer les données de progression avec cache intelligent
+ */
+export const useProgressDataWithDetails = (clientId: string | undefined) => {
+  return useQuery({
+    queryKey: ['progress-data', clientId],
+    queryFn: () => OptimizedQueriesService.getProgressDataWithDetails(clientId!),
+    enabled: !!clientId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
+    retry: (failureCount, error: any) => {
+      if (error?.status === 401 || error?.status === 403) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    onError: (error: any) => {
+      logger.error('Erreur useProgressDataWithDetails', error);
+    }
+  });
+};

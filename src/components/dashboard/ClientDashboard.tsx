@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { useAuth } from '@/providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 import { ClientService, Client } from '@/services/clientService'
 import { NutritionService, NutritionStats } from '@/services/nutritionService'
 import { SeanceService, SeanceWithExercices } from '@/services/seanceService'

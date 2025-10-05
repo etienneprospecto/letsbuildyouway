@@ -33,7 +33,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAuth } from '@/providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 import ClientService, { Client } from '@/services/clientService'
 import SeanceService from '@/services/seanceService'
 import { supabase } from '@/lib/supabase'

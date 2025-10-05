@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { LogOut, Clock, Calendar } from 'lucide-react'
-import { useAuth } from '@/providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 import { getInitials } from '@/lib/utils'
 import QuickThemeToggle from '@/components/ui/quick-theme-toggle'
 

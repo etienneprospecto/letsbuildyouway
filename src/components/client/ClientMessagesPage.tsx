@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useAuth } from '@/providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 import { MessageService, Conversation, ConversationWithMessages } from '@/services/messageService'
 import { ClientService } from '@/services/clientService'
 import { Button } from '@/components/ui/button'
@@ -20,8 +20,13 @@ import {
   CheckCheck,
   Reply,
   ThumbsUp,
-  MoreHorizontal
+  MoreHorizontal,
+  Mic,
+  MicOff
 } from 'lucide-react'
+import { SimpleVoiceService } from '@/services/simpleVoiceService'
+import { VoiceRecorder } from '@/components/ui/voice-recorder'
+import { VoiceMessage } from '@/components/ui/voice-message'
 import { useToast } from '@/hooks/use-toast'
 import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -41,6 +46,8 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
   const [isTyping, setIsTyping] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [replyingTo, setReplyingTo] = useState<any>(null)
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false)
+  const [sendingVoiceMessage, setSendingVoiceMessage] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { toast } = useToast()
@@ -273,6 +280,81 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
     }
   }
 
+  // Fonction pour gérer l'envoi de messages vocaux
+  const handleSendVoiceMessage = async (audioBlob: Blob, duration: number) => {
+    if (!selectedConversation || !clientRecord?.id) return
+
+    try {
+      setSendingVoiceMessage(true)
+      
+      // Envoyer le message vocal via le service simple
+      const message = await SimpleVoiceService.sendVoiceMessage(
+        audioBlob,
+        selectedConversation.id,
+        clientRecord.id,
+        'client'
+      )
+
+      // Mettre à jour la conversation sélectionnée
+      setSelectedConversation(prev => prev ? {
+        ...prev,
+        messages: [...prev.messages, message],
+        last_message: '🎤 Message vocal',
+        last_message_time: message.timestamp
+      } : null)
+
+      // Mettre à jour la liste des conversations
+      setConversations(prev => prev.map(conv => 
+        conv.id === selectedConversation.id 
+          ? {
+              ...conv,
+              last_message: '🎤 Message vocal',
+              last_message_time: message.timestamp,
+              updated_at: new Date().toISOString()
+            }
+          : conv
+      ))
+
+      // Fermer l'enregistreur vocal
+      setShowVoiceRecorder(false)
+
+      // Scroller vers le bas après l'envoi du message
+      setTimeout(() => {
+        scrollToBottom()
+      }, 200)
+      
+      toast({
+        title: "Message vocal envoyé",
+        description: "Votre message vocal a été envoyé avec succès.",
+      })
+    } catch (error) {
+      console.error('Error sending voice message:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible d'envoyer le message vocal.",
+        variant: "destructive",
+      })
+    } finally {
+      setSendingVoiceMessage(false)
+    }
+  }
+
+  // Fonction pour gérer l'enregistrement vocal terminé
+  const handleVoiceRecordingComplete = (audioBlob: Blob, duration: number) => {
+    // Cette fonction est appelée quand l'enregistrement est terminé
+    console.log('Voice recording completed:', { duration, size: audioBlob.size })
+  }
+
+  // Fonction pour télécharger un message vocal
+  const handleDownloadVoiceMessage = (url: string, filename: string) => {
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   // Fonction pour grouper les messages par date
   const groupMessagesByDate = (messages: any[]) => {
     const groups: { [key: string]: any[] } = {}
@@ -356,29 +438,42 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
                         )}
                         
                         <div className={`flex flex-col max-w-[70%] ${message.sender_type === 'client' ? 'items-end' : 'items-start'}`}>
-                          <div
-                            className={`relative px-4 py-3 rounded-2xl ${
-                              message.sender_type === 'client'
-                                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-md'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-bl-md'
-                            }`}
-                          >
-                            <p className="text-sm leading-relaxed">{message.content}</p>
-                            <div className={`flex items-center gap-1 mt-1 ${
-                              message.sender_type === 'client' ? 'justify-end' : 'justify-start'
-                            }`}>
-                              <span className={`text-xs ${
-                                message.sender_type === 'client' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+                          {/* Message vocal */}
+                          {(message as any).message_type === 'voice' ? (
+                            <VoiceMessage
+                              voiceUrl={(message as any).voice_url}
+                              duration={(message as any).voice_duration}
+                              timestamp={message.timestamp}
+                              senderName={message.sender_type === 'client' ? 'Vous' : selectedConversation.coach_name || 'Coach'}
+                              isOwn={message.sender_type === 'client'}
+                              onDownload={handleDownloadVoiceMessage}
+                            />
+                          ) : (
+                            /* Message texte */
+                            <div
+                              className={`relative px-4 py-3 rounded-2xl ${
+                                message.sender_type === 'client'
+                                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-md'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-bl-md'
+                              }`}
+                            >
+                              <p className="text-sm leading-relaxed">{message.content}</p>
+                              <div className={`flex items-center gap-1 mt-1 ${
+                                message.sender_type === 'client' ? 'justify-end' : 'justify-start'
                               }`}>
-                                {formatMessageTime(message.timestamp)}
-                              </span>
-                              {message.sender_type === 'client' && (
-                                <div className="flex items-center">
-                                  <CheckCheck className="h-3 w-3 text-blue-200" />
-                                </div>
-                              )}
+                                <span className={`text-xs ${
+                                  message.sender_type === 'client' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+                                }`}>
+                                  {formatMessageTime(message.timestamp)}
+                                </span>
+                                {message.sender_type === 'client' && (
+                                  <div className="flex items-center">
+                                    <CheckCheck className="h-3 w-3 text-blue-200" />
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          )}
                           
                           {/* Actions sur les messages */}
                           <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 mt-1 ${
@@ -494,6 +589,15 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0"
+                  onClick={() => setShowVoiceRecorder(!showVoiceRecorder)}
+                  title="Enregistrer un message vocal"
+                >
+                  {showVoiceRecorder ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
                 >
                   <Paperclip className="h-4 w-4" />
                 </Button>
@@ -512,6 +616,18 @@ const ClientMessagesPage: React.FC<ClientMessagesPageProps> = ({ clientId }) => 
               )}
             </Button>
           </div>
+          
+          {/* Enregistreur vocal */}
+          {showVoiceRecorder && (
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border">
+              <VoiceRecorder
+                onRecordingComplete={handleVoiceRecordingComplete}
+                onSendVoiceMessage={handleSendVoiceMessage}
+                disabled={sendingVoiceMessage}
+                maxDuration={300} // 5 minutes max
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

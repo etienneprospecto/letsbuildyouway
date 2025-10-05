@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer Henri avec API REST</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #1a1a2e; color: #e0e0e0; }
+        .container { max-width: 600px; margin: auto; background-color: #1f283e; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); }
+        h1 { color: #e94560; text-align: center; margin-bottom: 25px; }
+        button { background-color: #e94560; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
+        button:hover { background-color: #b83a50; }
+        button:disabled { background-color: #5a5a5a; cursor: not-allowed; }
+        .message { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background-color: #28a745; color: white; }
+        .error { background-color: #dc3545; color: white; }
+        .info { background-color: #007bff; color: white; }
+        .code { background-color: #2d3748; padding: 10px; border-radius: 4px; font-family: monospace; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Créer Henri avec API REST</h1>
+        <p>Cet outil crée le compte Henri en utilisant l'API REST de Supabase.</p>
+        
+        <button id="createHenriBtn">Créer le compte Henri</button>
+        <div id="message" class="message"></div>
+        <div id="result" class="code" style="display: none;"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+
+        const createHenriBtn = document.getElementById('createHenriBtn');
+        const messageDiv = document.getElementById('message');
+        const resultDiv = document.getElementById('result');
+
+        createHenriBtn.addEventListener('click', async () => {
+            createHenriBtn.disabled = true;
+            messageDiv.className = 'message info';
+            messageDiv.textContent = 'Création du compte Henri en cours...';
+            resultDiv.style.display = 'none';
+
+            try {
+                const email = 'henriprospecto123@gmail.com';
+                const password = 'password123';
+
+                // 1. Créer l'utilisateur avec l'API REST
+                console.log('Création de l\'utilisateur...');
+                const signupResponse = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        data: {
+                            name: 'Henri Prospecto',
+                            role: 'coach'
+                        }
+                    })
+                });
+
+                const signupData = await signupResponse.json();
+                console.log('Réponse signup:', signupData);
+
+                if (!signupResponse.ok) {
+                    throw new Error(`Erreur signup: ${signupData.msg || signupData.message || 'Erreur inconnue'}`);
+                }
+
+                if (!signupData.user) {
+                    throw new Error('Aucun utilisateur créé');
+                }
+
+                messageDiv.textContent = 'Utilisateur créé ! Création du profil...';
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = `Utilisateur créé: ${signupData.user.id}`;
+
+                // 2. Créer le profil
+                const profileData = {
+                    id: signupData.user.id,
+                    email: email,
+                    name: 'Henri Prospecto',
+                    role: 'coach',
+                    subscription_plan: 'transformationnel',
+                    stripe_customer_id: 'cus_test_henri',
+                    stripe_subscription_id: 'sub_test_henri',
+                    subscription_status: 'trialing',
+                    subscription_start_date: new Date().toISOString(),
+                    subscription_end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                    plan_limits: {
+                        max_clients: 50,
+                        timeline_weeks: 4,
+                        max_workouts: 50,
+                        max_exercises: 100,
+                        features: ['advanced_dashboard', 'voice_messaging', 'nutrition_tracking', 'advanced_feedbacks', 'progress_photos_history', 'trophies', 'shared_resources', 'payment_retries']
+                    }
+                };
+
+                const profileResponse = await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify(profileData)
+                });
+
+                const profileResult = await profileResponse.json();
+                console.log('Réponse profil:', profileResult);
+
+                if (!profileResponse.ok) {
+                    console.error('Erreur profil:', profileResult);
+                }
+
+                messageDiv.textContent = 'Profil créé ! Test de connexion...';
+                resultDiv.textContent += `\nProfil créé: ${profileResponse.ok ? 'OK' : 'Erreur'}`;
+
+                // 3. Tester la connexion
+                const loginResponse = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const loginData = await loginResponse.json();
+                console.log('Réponse login:', loginData);
+
+                if (loginResponse.ok && loginData.access_token) {
+                    messageDiv.className = 'message success';
+                    messageDiv.textContent = '✅ Compte créé et connexion testée avec succès !';
+                    resultDiv.textContent += `\nConnexion: OK\nToken: ${loginData.access_token.substring(0, 20)}...`;
+                    
+                    // Stocker le token pour la session
+                    localStorage.setItem('supabase.auth.token', loginData.access_token);
+                    localStorage.setItem('supabase.auth.refresh_token', loginData.refresh_token);
+                    
+                    // Rediriger vers le dashboard
+                    setTimeout(() => {
+                        window.location.href = 'http://localhost:5173/app/dashboard';
+                    }, 2000);
+                } else {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = '❌ Erreur de connexion';
+                    resultDiv.textContent += `\nConnexion: Erreur - ${loginData.msg || loginData.message || 'Erreur inconnue'}`;
+                }
+
+            } catch (error) {
+                console.error('Erreur:', error);
+                messageDiv.className = 'message error';
+                messageDiv.textContent = `❌ Erreur: ${error.message}`;
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = `Erreur: ${error.message}`;
+            } finally {
+                createHenriBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

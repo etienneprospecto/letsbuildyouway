@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { trophyService, TrophyWithProgress, TrophyStats } from '../services/trophyService';
-import { useAuth } from '../providers/AuthProvider';
+import { useAuth } from '@/providers/OptimizedAuthProvider';
 
 export const useTrophies = () => {
   const { user } = useAuth();

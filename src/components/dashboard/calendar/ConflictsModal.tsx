@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../ui/dialo
 import { Button } from '../../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
-import { useAuth } from '../../../providers/AuthProvider';
+import { useAuth } from '@/providers/OptimizedAuthProvider';
 import { externalCalendarService } from '../../../services/externalCalendarService';
 import { appointmentService } from '../../../services/appointmentService';
 import { AlertTriangle, Clock, Calendar, Users, CheckCircle, XCircle } from 'lucide-react';

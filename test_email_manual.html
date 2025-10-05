@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Email Manuel - BYW</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        .log { background: #000; color: #0f0; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; }
+        .step { margin: 20px 0; padding: 15px; border-left: 4px solid #007bff; background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Email Manuel - BYW</h1>
+    
+    <div class="container info">
+        <h3>📋 Instructions</h3>
+        <p><strong>IMPORTANT:</strong> L'Edge Function doit être déployée avant de tester !</p>
+        <p>1. Suivez le guide dans <code>DEPLOY_EDGE_FUNCTION_GUIDE.md</code></p>
+        <p>2. Remplissez les informations ci-dessous</p>
+        <p>3. Cliquez sur "Tester l'email"</p>
+        <p>4. Vérifiez votre boîte email</p>
+    </div>
+
+    <div class="step">
+        <h3>🔧 Configuration</h3>
+        <p><strong>Supabase URL:</strong> https://chrhxkcppvigxqlsxgqo.supabase.co</p>
+        <p><strong>Edge Function:</strong> send-email-reliable</p>
+        <p><strong>Status:</strong> <span id="functionStatus">Vérification en cours...</span></p>
+    </div>
+
+    <div class="container">
+        <h3>👤 Informations Client</h3>
+        <input type="text" id="firstName" placeholder="Prénom" value="Jean">
+        <input type="text" id="lastName" placeholder="Nom" value="Dupont">
+        <input type="email" id="email" placeholder="Email" value="votre-email@example.com">
+        <input type="tel" id="phone" placeholder="Téléphone" value="+33123456789">
+        <select id="goal">
+            <option value="weight_loss">Perte de poids</option>
+            <option value="muscle_gain">Prise de masse</option>
+            <option value="general_fitness">Forme générale</option>
+        </select>
+        <select id="level">
+            <option value="beginner">Débutant</option>
+            <option value="intermediate">Intermédiaire</option>
+            <option value="advanced">Avancé</option>
+        </select>
+        <button onclick="testEmail()">📧 Tester l'email</button>
+        <button onclick="checkFunctionStatus()">🔍 Vérifier le statut</button>
+    </div>
+
+    <div class="container">
+        <h3>📊 Résultats</h3>
+        <div id="results"></div>
+        <div class="log" id="logs"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toISOString();
+            const logElement = document.getElementById('logs');
+            const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : '#0ff';
+            logElement.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function showResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            resultsDiv.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+
+        async function checkFunctionStatus() {
+            log('🔍 Vérification du statut de l\'Edge Function...');
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email-reliable`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        client_email: 'test@example.com',
+                        client_name: 'Test',
+                        invitation_url: 'https://byw.app/?token=test',
+                        coach_name: 'Coach Test',
+                        type: 'client_invitation'
+                    })
+                });
+
+                if (response.status === 404) {
+                    log('❌ Edge Function non trouvée (404)', 'error');
+                    showResult('❌ Edge Function non déployée. Suivez le guide DEPLOY_EDGE_FUNCTION_GUIDE.md', 'error');
+                    document.getElementById('functionStatus').textContent = '❌ Non déployée';
+                } else if (response.status === 200) {
+                    log('✅ Edge Function accessible (200)', 'success');
+                    showResult('✅ Edge Function déployée et accessible !', 'success');
+                    document.getElementById('functionStatus').textContent = '✅ Déployée';
+                } else {
+                    log(`⚠️ Status inattendu: ${response.status}`, 'error');
+                    showResult(`⚠️ Status: ${response.status}. Vérifiez la configuration.`, 'error');
+                    document.getElementById('functionStatus').textContent = `⚠️ ${response.status}`;
+                }
+            } catch (error) {
+                log(`❌ Erreur de connexion: ${error.message}`, 'error');
+                showResult(`❌ Erreur: ${error.message}`, 'error');
+                document.getElementById('functionStatus').textContent = '❌ Erreur';
+            }
+        }
+
+        async function testEmail() {
+            log('📧 Test d\'envoi d\'email...');
+            
+            const clientData = {
+                first_name: document.getElementById('firstName').value,
+                last_name: document.getElementById('lastName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                primary_goal: document.getElementById('goal').value,
+                fitness_level: document.getElementById('level').value
+            };
+
+            log(`📝 Données client: ${JSON.stringify(clientData, null, 2)}`);
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email-reliable`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        client_email: clientData.email,
+                        client_name: `${clientData.first_name} ${clientData.last_name}`,
+                        invitation_url: `${window.location.origin}/?token=test-token-123`,
+                        coach_name: 'Coach Test',
+                        type: 'client_invitation'
+                    })
+                });
+
+                log(`📧 Réponse: ${response.status} ${response.statusText}`);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    log(`✅ Email envoyé: ${JSON.stringify(result, null, 2)}`, 'success');
+                    showResult(`✅ Email envoyé avec succès à ${clientData.email} ! Vérifiez votre boîte de réception.`, 'success');
+                } else {
+                    const error = await response.text();
+                    log(`❌ Erreur: ${error}`, 'error');
+                    showResult(`❌ Erreur ${response.status}: ${error}`, 'error');
+                }
+
+            } catch (error) {
+                log(`❌ Erreur générale: ${error.message}`, 'error');
+                showResult(`❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        // Vérifier le statut au chargement
+        window.onload = function() {
+            log('🔧 Page de test chargée');
+            checkFunctionStatus();
+        };
+    </script>
+</body>
+</html>

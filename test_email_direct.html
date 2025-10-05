@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Email Direct BYW</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .container { background: #f5f5f5; padding: 30px; border-radius: 8px; }
+        button { background: #f97316; color: white; padding: 15px 30px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        .result { margin-top: 20px; padding: 15px; background: white; border-radius: 4px; }
+        .success { border-left: 4px solid #10b981; }
+        .error { border-left: 4px solid #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Email Direct BYW</h1>
+        <p>Ce test envoie un email directement via Resend sans passer par Supabase.</p>
+        
+        <button onclick="testDirectEmail()">Envoyer Email de Test</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function testDirectEmail() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>📧 Envoi en cours...</p>';
+            
+            try {
+                // Test direct avec Resend (sans Supabase)
+                const response = await fetch('https://api.resend.com/emails', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer re_FJzQiko6_3kNowwWrRBFXSggQXW9Kt5Ni',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        from: 'noreply@byw.app',
+                        to: ['test@byw.app'],
+                        subject: 'Test Email BYW - ' + new Date().toLocaleString(),
+                        html: `
+                            <h1>🎉 Test Email BYW</h1>
+                            <p>Cet email a été envoyé directement via Resend !</p>
+                            <p>Date: ${new Date().toLocaleString()}</p>
+                            <p>Si vous recevez cet email, Resend fonctionne parfaitement !</p>
+                        `,
+                        text: `Test Email BYW - ${new Date().toLocaleString()}\n\nCet email a été envoyé directement via Resend !`
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <h3>✅ Email envoyé avec succès !</h3>
+                            <p><strong>Email ID:</strong> ${data.id}</p>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p>Vérifiez votre boîte email (test@byw.app)</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>❌ Erreur lors de l'envoi</h3>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Erreur:</strong> ${data.message || 'Erreur inconnue'}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Erreur de connexion</h3>
+                        <p>${error.message}</p>
+                        <p>Vérifiez votre connexion internet et la clé API Resend.</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

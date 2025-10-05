@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Connexion Henri</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/main.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #1a1a2e; color: #e0e0e0; }
+        .container { max-width: 600px; margin: auto; background-color: #1f283e; padding: 30px; border-radius: 8px; }
+        h1 { color: #e94560; text-align: center; }
+        button { background-color: #e94560; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; margin: 10px 0; }
+        .message { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background-color: #28a745; color: white; }
+        .error { background-color: #dc3545; color: white; }
+        .info { background-color: #007bff; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Test Connexion Henri</h1>
+        <button id="loginBtn">Se connecter en tant qu'Henri</button>
+        <button id="checkBtn">Vérifier le profil</button>
+        <button id="logoutBtn">Se déconnecter</button>
+        <div id="message" class="message"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const loginBtn = document.getElementById('loginBtn');
+        const checkBtn = document.getElementById('checkBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const messageDiv = document.getElementById('message');
+
+        function showMessage(text, type = 'info') {
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+        }
+
+        loginBtn.addEventListener('click', async () => {
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: 'henriprospecto123@gmail.com',
+                    password: 'password123'
+                });
+
+                if (error) throw error;
+
+                showMessage('✅ Connexion réussie !', 'success');
+                console.log('Utilisateur connecté:', data.user);
+            } catch (error) {
+                showMessage(`❌ Erreur: ${error.message}`, 'error');
+            }
+        });
+
+        checkBtn.addEventListener('click', async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                    showMessage('❌ Aucun utilisateur connecté', 'error');
+                    return;
+                }
+
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (error) throw error;
+
+                showMessage(`✅ Profil trouvé: ${profile.first_name} ${profile.last_name} (${profile.role})`, 'success');
+                console.log('Profil:', profile);
+            } catch (error) {
+                showMessage(`❌ Erreur: ${error.message}`, 'error');
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await supabase.auth.signOut();
+                showMessage('✅ Déconnexion réussie', 'success');
+            } catch (error) {
+                showMessage(`❌ Erreur: ${error.message}`, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

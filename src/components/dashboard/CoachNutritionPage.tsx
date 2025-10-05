@@ -24,7 +24,7 @@ import {
   NutritionGoals,
   NutritionStats 
 } from '../../services/nutritionService';
-import { useAuth } from '../../providers/AuthProvider';
+import { useAuth } from '@/providers/OptimizedAuthProvider';
 import { ClientService } from '../../services/clientService';
 import NutritionGauges from '../nutrition/NutritionGauges';
 import NutritionEntryCard from '../nutrition/NutritionEntryCard';

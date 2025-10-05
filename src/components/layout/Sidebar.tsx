@@ -19,7 +19,7 @@ import {
   Palette
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 import { Button } from '@/components/ui/button'
 
 interface SidebarProps {
@@ -96,7 +96,22 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'settings', label: 'Paramètres', icon: Settings, badge: null, description: 'Gérez votre profil', category: 'settings' }
   ]
 
-  const navItems = profile?.role === 'coach' ? coachNavItems : clientNavItems
+  // Fonction pour filtrer les éléments de navigation selon le plan d'abonnement
+  const getFilteredNavItems = (items: any[], subscriptionPlan: string | null) => {
+    if (!subscriptionPlan) return items
+    
+    const planLimits = {
+      warm_up: ['dashboard', 'clients', 'messages', 'feedbacks-hebdomadaires', 'workouts', 'exercices'],
+      transformationnel: ['dashboard', 'clients', 'messages', 'feedbacks-hebdomadaires', 'workouts', 'exercices', 'calendar', 'nutrition', 'trophies', 'billing'],
+      elite: ['dashboard', 'clients', 'messages', 'feedbacks-hebdomadaires', 'workouts', 'exercices', 'calendar', 'nutrition', 'trophies', 'billing', 'color-customizer', 'settings']
+    }
+    
+    const allowedItems = planLimits[subscriptionPlan as keyof typeof planLimits] || planLimits.warm_up
+    return items.filter(item => allowedItems.includes(item.id))
+  }
+
+  const baseNavItems = profile?.role === 'coach' ? coachNavItems : clientNavItems
+  const navItems = getFilteredNavItems(baseNavItems, profile?.subscription_plan)
 
   return (
     <motion.aside
@@ -116,6 +131,21 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div>
                 <h1 className="font-bold text-lg text-sidebar-text">BYW</h1>
                 <p className="text-xs text-sidebar-text-muted">Build Your Way</p>
+                {profile?.subscription_plan && (
+                  <div className="mt-1">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      profile.subscription_plan === 'warm_up' ? 'bg-gray-600 text-gray-200' :
+                      profile.subscription_plan === 'transformationnel' ? 'bg-orange-600 text-white' :
+                      profile.subscription_plan === 'elite' ? 'bg-purple-600 text-white' :
+                      'bg-gray-500 text-gray-200'
+                    }`}>
+                      {profile.subscription_plan === 'warm_up' ? 'Warm-Up' :
+                       profile.subscription_plan === 'transformationnel' ? 'Transformationnel' :
+                       profile.subscription_plan === 'elite' ? 'Elite' :
+                       profile.subscription_plan}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { appointmentService, AppointmentWithDetails } from '../../services/appointmentService';
 import { availabilityService, AvailableSlot } from '../../services/availabilityService';
-import { useAuth } from '../../providers/AuthProvider';
+import { useAuth } from '@/providers/OptimizedAuthProvider';
 import { useClientDetail } from '../../hooks/useClientDetail';
 import { useWeek } from '../../providers/WeekProvider';
 import { BookingModal } from './calendar/BookingModal';

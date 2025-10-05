@@ -16,8 +16,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onAuthSuccess }) => {
   const handleSwitchToSignIn = () => setIsSignUp(false);
 
   const handleAuthSuccess = async () => {
-    // Attendre un peu pour que le profil soit créé
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Attendre un peu pour que la session et le profil soient prêts
+    await new Promise(resolve => setTimeout(resolve, 600));
     onAuthSuccess();
   };
 

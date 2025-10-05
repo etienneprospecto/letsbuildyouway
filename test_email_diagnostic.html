@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Diagnostic Email BYW</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        .success { background: #d1fae5; border: 1px solid #10b981; color: #065f46; }
+        .error { background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; }
+        .warning { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; }
+        .info { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
+        .config-section {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .test-section {
+            border: 2px solid #e5e7eb;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        button {
+            background: #f97316;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 5px;
+        }
+        button:hover { background: #ea580c; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #f97316;
+            background: #fef7f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Diagnostic Email BYW</h1>
+        <p>Outil de diagnostic complet pour le système d'invitations</p>
+        
+        <div class="config-section">
+            <h3>⚙️ Configuration</h3>
+            <div>
+                <label>URL Supabase:</label>
+                <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co" 
+                       value="https://chrhxkcppvigxqlsxgqo.supabase.co" style="width: 100%; padding: 8px; margin: 5px 0;">
+            </div>
+            <div>
+                <label>Clé Supabase:</label>
+                <input type="text" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." 
+                       value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg" 
+                       style="width: 100%; padding: 8px; margin: 5px 0;">
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Tests de Diagnostic</h3>
+            
+            <div class="step">
+                <h4>1. Test de Connectivité Supabase</h4>
+                <button onclick="testSupabaseConnection()">Tester la connexion</button>
+                <div id="supabaseStatus"></div>
+            </div>
+
+            <div class="step">
+                <h4>2. Test de l'Edge Function</h4>
+                <button onclick="testEdgeFunction()">Tester send-invitation-email</button>
+                <div id="edgeFunctionStatus"></div>
+            </div>
+
+            <div class="step">
+                <h4>3. Test d'Envoi d'Email Complet</h4>
+                <div>
+                    <input type="email" id="testEmail" placeholder="test@example.com" value="test@byw.app" 
+                           style="padding: 8px; margin: 5px; width: 200px;">
+                    <button onclick="testFullEmailFlow()">Envoyer Email Test</button>
+                </div>
+                <div id="emailTestStatus"></div>
+            </div>
+
+            <div class="step">
+                <h4>4. Vérification des Secrets Supabase</h4>
+                <button onclick="checkSupabaseSecrets()">Vérifier les secrets</button>
+                <div id="secretsStatus"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Logs de Diagnostic</h3>
+            <button onclick="clearLogs()">Effacer les logs</button>
+            <div id="diagnosticLogs" class="log"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        let supabase;
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logs.push(logEntry);
+            
+            const logDiv = document.getElementById('diagnosticLogs');
+            logDiv.textContent = logs.join('\n');
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function clearLogs() {
+            logs = [];
+            document.getElementById('diagnosticLogs').textContent = '';
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function initSupabase() {
+            const url = document.getElementById('supabaseUrl').value;
+            const key = document.getElementById('supabaseKey').value;
+            
+            if (url.includes('your-project') || key.includes('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')) {
+                log('Configuration Supabase manquante', 'error');
+                return false;
+            }
+            
+            supabase = window.supabase.createClient(url, key);
+            log('Client Supabase initialisé', 'success');
+            return true;
+        }
+
+        async function testSupabaseConnection() {
+            log('=== TEST CONNEXION SUPABASE ===');
+            
+            if (!initSupabase()) {
+                showStatus('supabaseStatus', '❌ Configuration manquante', 'error');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.from('profiles').select('count').limit(1);
+                
+                if (error) {
+                    log(`Erreur Supabase: ${error.message}`, 'error');
+                    showStatus('supabaseStatus', `❌ Erreur: ${error.message}`, 'error');
+                } else {
+                    log('Connexion Supabase OK', 'success');
+                    showStatus('supabaseStatus', '✅ Connexion Supabase réussie', 'success');
+                }
+            } catch (err) {
+                log(`Erreur de connexion: ${err.message}`, 'error');
+                showStatus('supabaseStatus', `❌ Erreur: ${err.message}`, 'error');
+            }
+        }
+
+        async function testEdgeFunction() {
+            log('=== TEST EDGE FUNCTION ===');
+            
+            if (!supabase) {
+                if (!initSupabase()) return;
+            }
+
+            try {
+                const testData = {
+                    client_email: 'test@byw.app',
+                    client_name: 'Test User',
+                    invitation_url: 'https://byw.app/?token=test123',
+                    coach_name: 'BYW Team',
+                    type: 'client_invitation'
+                };
+
+                log('Envoi des données de test...', 'info');
+                log(`Données: ${JSON.stringify(testData, null, 2)}`, 'info');
+
+                const { data, error } = await supabase.functions.invoke('send-invitation-email', {
+                    body: testData
+                });
+
+                if (error) {
+                    log(`Erreur Edge Function: ${JSON.stringify(error, null, 2)}`, 'error');
+                    showStatus('edgeFunctionStatus', `❌ Erreur: ${error.message || 'Inconnue'}`, 'error');
+                } else {
+                    log(`Réponse Edge Function: ${JSON.stringify(data, null, 2)}`, 'success');
+                    if (data.success) {
+                        showStatus('edgeFunctionStatus', '✅ Edge Function fonctionne', 'success');
+                    } else {
+                        showStatus('edgeFunctionStatus', `⚠️ Edge Function répond mais erreur: ${data.error}`, 'warning');
+                    }
+                }
+            } catch (err) {
+                log(`Erreur de test: ${err.message}`, 'error');
+                showStatus('edgeFunctionStatus', `❌ Erreur: ${err.message}`, 'error');
+            }
+        }
+
+        async function testFullEmailFlow() {
+            log('=== TEST ENVOI EMAIL COMPLET ===');
+            
+            if (!supabase) {
+                if (!initSupabase()) return;
+            }
+
+            const testEmail = document.getElementById('testEmail').value;
+            if (!testEmail) {
+                showStatus('emailTestStatus', '❌ Veuillez saisir un email', 'error');
+                return;
+            }
+
+            try {
+                // 1. Créer une invitation de test
+                log('Création d\'une invitation de test...', 'info');
+                const invitationData = {
+                    coach_id: '0bab0e3a-5ccc-4018-a9e7-e5fffbf4a7c8', // ID de Henri
+                    client_email: testEmail,
+                    client_first_name: 'Test',
+                    client_last_name: 'User',
+                    client_primary_goal: 'Perte de poids',
+                    client_fitness_level: 'Débutant'
+                };
+
+                const { data: invitation, error: invitationError } = await supabase
+                    .from('client_invitations')
+                    .insert(invitationData)
+                    .select()
+                    .single();
+
+                if (invitationError) {
+                    log(`Erreur création invitation: ${invitationError.message}`, 'error');
+                    showStatus('emailTestStatus', `❌ Erreur création invitation: ${invitationError.message}`, 'error');
+                    return;
+                }
+
+                log(`Invitation créée: ${invitation.id}`, 'success');
+
+                // 2. Tester l'envoi d'email
+                const emailData = {
+                    client_email: testEmail,
+                    client_name: 'Test User',
+                    invitation_url: `https://byw.app/?token=${invitation.token}`,
+                    coach_name: 'BYW Team',
+                    type: 'client_invitation'
+                };
+
+                log('Envoi de l\'email...', 'info');
+                const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-invitation-email', {
+                    body: emailData
+                });
+
+                if (emailError) {
+                    log(`Erreur envoi email: ${JSON.stringify(emailError, null, 2)}`, 'error');
+                    showStatus('emailTestStatus', `❌ Erreur envoi: ${emailError.message}`, 'error');
+                } else {
+                    log(`Résultat email: ${JSON.stringify(emailResult, null, 2)}`, 'success');
+                    if (emailResult.success) {
+                        showStatus('emailTestStatus', `✅ Email envoyé ! ID: ${emailResult.email_id}`, 'success');
+                    } else {
+                        showStatus('emailTestStatus', `⚠️ Email échoué: ${emailResult.error}`, 'warning');
+                    }
+                }
+
+                // 3. Nettoyer l'invitation de test
+                await supabase.from('client_invitations').delete().eq('id', invitation.id);
+                log('Invitation de test supprimée', 'info');
+
+            } catch (err) {
+                log(`Erreur générale: ${err.message}`, 'error');
+                showStatus('emailTestStatus', `❌ Erreur: ${err.message}`, 'error');
+            }
+        }
+
+        async function checkSupabaseSecrets() {
+            log('=== VÉRIFICATION SECRETS SUPABASE ===');
+            log('⚠️ Cette fonction nécessite l\'accès aux secrets Supabase', 'warning');
+            log('💡 Exécutez: supabase secrets list', 'info');
+            showStatus('secretsStatus', '⚠️ Vérifiez manuellement avec: supabase secrets list', 'warning');
+        }
+
+        // Initialisation
+        window.addEventListener('load', () => {
+            log('🔧 Diagnostic Email BYW initialisé', 'info');
+            log('📋 Étapes recommandées:', 'info');
+            log('1. Vérifiez la configuration Supabase', 'info');
+            log('2. Testez la connexion Supabase', 'info');
+            log('3. Testez l\'Edge Function', 'info');
+            log('4. Testez l\'envoi d\'email complet', 'info');
+            log('5. Vérifiez les secrets: supabase secrets list', 'info');
+        });
+    </script>
+</body>
+</html>

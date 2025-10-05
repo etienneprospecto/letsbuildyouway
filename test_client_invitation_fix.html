@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Invitation Client - BYW</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        .log { background: #000; color: #0f0; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Invitation Client - BYW</h1>
+    
+    <div class="container info">
+        <h3>📋 Instructions</h3>
+        <p>1. Remplissez les informations du client</p>
+        <p>2. Cliquez sur "Tester l'invitation"</p>
+        <p>3. Vérifiez les logs dans la console</p>
+        <p>4. Vérifiez que l'email est reçu</p>
+    </div>
+
+    <div class="container">
+        <h3>👤 Informations Client</h3>
+        <input type="text" id="firstName" placeholder="Prénom" value="Jean">
+        <input type="text" id="lastName" placeholder="Nom" value="Dupont">
+        <input type="email" id="email" placeholder="Email" value="jean.dupont@test.com">
+        <input type="tel" id="phone" placeholder="Téléphone" value="+33123456789">
+        <select id="goal">
+            <option value="weight_loss">Perte de poids</option>
+            <option value="muscle_gain">Prise de masse</option>
+            <option value="general_fitness">Forme générale</option>
+        </select>
+        <select id="level">
+            <option value="beginner">Débutant</option>
+            <option value="intermediate">Intermédiaire</option>
+            <option value="advanced">Avancé</option>
+        </select>
+        <button onclick="testInvitation()">🧪 Tester l'invitation</button>
+    </div>
+
+    <div class="container">
+        <h3>📊 Résultats</h3>
+        <div id="results"></div>
+        <div class="log" id="logs"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://votre-projet.supabase.co';
+        const SUPABASE_ANON_KEY = 'votre_anon_key';
+        
+        // Simuler l'ID du coach (en production, récupérer depuis la session)
+        const COACH_ID = 'coach-test-id';
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toISOString();
+            const logElement = document.getElementById('logs');
+            const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : '#0ff';
+            logElement.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function showResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            resultsDiv.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+
+        async function testInvitation() {
+            log('🚀 Début du test d\'invitation client');
+            
+            const clientData = {
+                first_name: document.getElementById('firstName').value,
+                last_name: document.getElementById('lastName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                primary_goal: document.getElementById('goal').value,
+                fitness_level: document.getElementById('level').value
+            };
+
+            log(`📝 Données client: ${JSON.stringify(clientData, null, 2)}`);
+
+            try {
+                // 1. Créer l'invitation
+                log('📧 Création de l\'invitation...');
+                const invitationResponse = await fetch(`${SUPABASE_URL}/functions/v1/send-email-reliable`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify({
+                        client_email: clientData.email,
+                        client_name: `${clientData.first_name} ${clientData.last_name}`,
+                        invitation_url: `${window.location.origin}/?token=test-token-123`,
+                        coach_name: 'Coach Test',
+                        type: 'client_invitation'
+                    })
+                });
+
+                log(`📧 Réponse invitation: ${invitationResponse.status}`);
+                
+                if (invitationResponse.ok) {
+                    const result = await invitationResponse.json();
+                    log(`✅ Invitation créée: ${JSON.stringify(result, null, 2)}`);
+                    showResult('✅ Invitation créée avec succès ! Vérifiez votre email.', 'success');
+                } else {
+                    const error = await invitationResponse.text();
+                    log(`❌ Erreur invitation: ${error}`, 'error');
+                    showResult(`❌ Erreur: ${error}`, 'error');
+                }
+
+            } catch (error) {
+                log(`❌ Erreur générale: ${error.message}`, 'error');
+                showResult(`❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        // Test automatique au chargement
+        window.onload = function() {
+            log('🔧 Page de test chargée');
+            log('⚠️ Assurez-vous de configurer SUPABASE_URL et SUPABASE_ANON_KEY');
+        };
+    </script>
+</body>
+</html>

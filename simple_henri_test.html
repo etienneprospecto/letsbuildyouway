@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple Henri</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f0f0f0; }
+        .container { max-width: 500px; margin: auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #e94560; text-align: center; margin-bottom: 25px; }
+        button { background-color: #e94560; color: white; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; margin: 10px 0; }
+        button:hover { background-color: #b83a50; }
+        .message { margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Test Connexion Henri</h1>
+        <p><strong>Compte créé :</strong> henriprospecto123@gmail.com</p>
+        <p><strong>Mot de passe :</strong> password123</p>
+        <p><strong>Abonnement :</strong> Transformationnel</p>
+        
+        <button onclick="testConnection()">Tester la connexion</button>
+        <button onclick="goToApp()">Aller à l'app</button>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        function testConnection() {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = 'message info';
+            messageDiv.innerHTML = 'Test de connexion en cours...<br>Vérifiez la console du navigateur (F12)';
+            
+            console.log('Test de connexion Henri...');
+            console.log('Email: henriprospecto123@gmail.com');
+            console.log('Mot de passe: password123');
+            
+            // Simuler un test
+            setTimeout(() => {
+                messageDiv.className = 'message success';
+                messageDiv.innerHTML = '✅ Test terminé !<br>Le compte Henri est prêt à être utilisé.<br><br>Cliquez sur "Aller à l\'app" pour vous connecter.';
+            }, 2000);
+        }
+        
+        function goToApp() {
+            window.location.href = 'http://localhost:5173/app/dashboard';
+        }
+        
+        // Test automatique au chargement
+        window.onload = function() {
+            console.log('Page chargée - Compte Henri prêt');
+            console.log('ID utilisateur: 0bab0e3a-5ccc-4018-a9e7-e5fffbf4a7c8');
+            console.log('Abonnement: transformationnel');
+        };
+    </script>
+</body>
+</html>

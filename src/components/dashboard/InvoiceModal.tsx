@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Plus, Trash2 } from 'lucide-react'
 import { BillingService } from '../../services/billingService'
-import { useAuth } from '../../providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 import { supabase } from '../../lib/supabase'
 
 interface InvoiceModalProps {

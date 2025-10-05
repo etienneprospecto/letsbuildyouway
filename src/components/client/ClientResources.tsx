@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { FileText, Video, Link, Image, Download, Eye, Heart, Search } from 'lucide-react'
-import { useAuth } from '@/providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/hooks/use-toast'
 

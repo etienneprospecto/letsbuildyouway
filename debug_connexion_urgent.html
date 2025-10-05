@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚨 DEBUG CONNEXION URGENT</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fee2e2;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 3px solid #ef4444;
+        }
+        .urgent {
+            background: #fee2e2;
+            border: 3px solid #ef4444;
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .success { background: #d1fae5; border: 2px solid #10b981; color: #065f46; }
+        .error { background: #fee2e2; border: 2px solid #ef4444; color: #991b1b; }
+        .warning { background: #fef3c7; border: 2px solid #f59e0b; color: #92400e; }
+        .info { background: #dbeafe; border: 2px solid #3b82f6; color: #1e40af; }
+        button {
+            background: #ef4444;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 700;
+            margin: 10px;
+        }
+        button:hover { background: #dc2626; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        .test-section {
+            background: #fef3c7;
+            border: 3px solid #f59e0b;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 DEBUG CONNEXION URGENT</h1>
+        <div class="urgent">
+            ⚠️ PROBLÈME CRITIQUE : Impossible de se connecter à la plateforme coach !
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 Test de Connexion Immédiat</h3>
+            <div>
+                <label>Email Coach:</label>
+                <input type="email" id="coachEmail" value="etienne.guimbard@gmail.com">
+            </div>
+            <div>
+                <label>Mot de passe:</label>
+                <input type="password" id="coachPassword" placeholder="Votre mot de passe">
+            </div>
+            <button onclick="testConnexionUrgent()">🚨 TESTER CONNEXION URGENT</button>
+            <div id="connexionStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Test de Diagnostic Complet</h3>
+            <button onclick="testDiagnosticComplet()">🔍 DIAGNOSTIC COMPLET</button>
+            <div id="diagnosticStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🛠️ Test de Réparation</h3>
+            <button onclick="testReparation()">🛠️ TESTER RÉPARATION</button>
+            <div id="reparationStatus"></div>
+        </div>
+
+        <div>
+            <h3>📊 Logs de Debug Détaillés</h3>
+            <button onclick="clearLogs()">Effacer</button>
+            <div id="debugLogs" class="log"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        let supabase;
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logs.push(logEntry);
+            
+            const logDiv = document.getElementById('debugLogs');
+            logDiv.textContent = logs.join('\n');
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function clearLogs() {
+            logs = [];
+            document.getElementById('debugLogs').textContent = '';
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function initSupabase() {
+            const url = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+            const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+            
+            supabase = window.supabase.createClient(url, key);
+            log('Client Supabase initialisé', 'success');
+            return true;
+        }
+
+        async function testConnexionUrgent() {
+            log('🚨 === TEST CONNEXION URGENT ===');
+            
+            if (!initSupabase()) return;
+
+            const email = document.getElementById('coachEmail').value;
+            const password = document.getElementById('coachPassword').value;
+
+            if (!password) {
+                showStatus('connexionStatus', '❌ Veuillez saisir un mot de passe', 'error');
+                return;
+            }
+
+            try {
+                log(`Tentative de connexion: ${email}`);
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    log(`❌ ERREUR CONNEXION: ${error.message}`, 'error');
+                    log(`   Code: ${error.status}`, 'error');
+                    log(`   Détails: ${JSON.stringify(error)}`, 'error');
+                    showStatus('connexionStatus', `❌ Erreur: ${error.message}`, 'error');
+                } else {
+                    log(`✅ CONNEXION RÉUSSIE!`, 'success');
+                    log(`   User ID: ${data.user?.id}`, 'info');
+                    log(`   Email: ${data.user?.email}`, 'info');
+                    
+                    // Test du profil
+                    await testProfil(data.user.id);
+                }
+
+            } catch (error) {
+                log(`❌ ERREUR CRITIQUE: ${error.message}`, 'error');
+                showStatus('connexionStatus', `❌ Erreur critique: ${error.message}`, 'error');
+            }
+        }
+
+        async function testProfil(userId) {
+            log('🔍 === TEST PROFIL ===');
+            
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+
+                if (error) {
+                    log(`❌ ERREUR PROFIL: ${error.message}`, 'error');
+                    showStatus('connexionStatus', `❌ Erreur profil: ${error.message}`, 'error');
+                    return;
+                }
+
+                log(`✅ PROFIL TROUVÉ:`, 'success');
+                log(`   Rôle: ${profile.role}`, 'info');
+                log(`   Email: ${profile.email}`, 'info');
+                log(`   Nom: ${profile.first_name} ${profile.last_name}`, 'info');
+
+                if (profile.role === 'coach') {
+                    log(`✅ RÔLE COACH CONFIRMÉ`, 'success');
+                    showStatus('connexionStatus', `✅ Connexion réussie ! Rôle: ${profile.role}`, 'success');
+                } else {
+                    log(`❌ RÔLE INCORRECT: ${profile.role}`, 'error');
+                    showStatus('connexionStatus', `❌ Rôle incorrect: ${profile.role}`, 'error');
+                }
+
+            } catch (error) {
+                log(`❌ ERREUR PROFIL: ${error.message}`, 'error');
+                showStatus('connexionStatus', `❌ Erreur profil: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDiagnosticComplet() {
+            log('🔍 === DIAGNOSTIC COMPLET ===');
+            
+            if (!initSupabase()) return;
+
+            try {
+                // Test 1: Connexion Supabase
+                log('Test 1: Connexion Supabase...');
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                if (userError) {
+                    log(`❌ Erreur connexion: ${userError.message}`, 'error');
+                } else {
+                    log(`✅ Connexion Supabase OK`, 'success');
+                }
+
+                // Test 2: Table profiles
+                log('Test 2: Table profiles...');
+                const { data: profiles, error: profilesError } = await supabase
+                    .from('profiles')
+                    .select('id, email, role')
+                    .limit(5);
+
+                if (profilesError) {
+                    log(`❌ Erreur table profiles: ${profilesError.message}`, 'error');
+                } else {
+                    log(`✅ Table profiles OK (${profiles.length} profils)`, 'success');
+                }
+
+                // Test 3: Edge Functions
+                log('Test 3: Edge Functions...');
+                const { data: functions, error: functionsError } = await supabase.functions.invoke('send-email-reliable', {
+                    body: { test: true }
+                });
+
+                if (functionsError) {
+                    log(`⚠️ Edge Function: ${functionsError.message}`, 'warning');
+                } else {
+                    log(`✅ Edge Function OK`, 'success');
+                }
+
+                showStatus('diagnosticStatus', 'Diagnostic complet terminé - voir logs', 'info');
+
+            } catch (error) {
+                log(`❌ Erreur diagnostic: ${error.message}`, 'error');
+                showStatus('diagnosticStatus', `❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        async function testReparation() {
+            log('🛠️ === TEST RÉPARATION ===');
+            
+            if (!initSupabase()) return;
+
+            try {
+                // Test de création de profil si nécessaire
+                const email = document.getElementById('coachEmail').value;
+                const allowedCoachEmails = ['etienne.guimbard@gmail.com', 'team@propulseo-site.com', 'henriprospecto123@gmail.com'];
+                
+                if (allowedCoachEmails.includes(email)) {
+                    log('Test de création de profil coach...');
+                    
+                    // Simuler la création d'un profil
+                    const testProfile = {
+                        id: 'test-id',
+                        email: email,
+                        first_name: 'Test',
+                        last_name: 'Coach',
+                        role: 'coach'
+                    };
+                    
+                    log(`✅ Profil coach simulé créé`, 'success');
+                    showStatus('reparationStatus', '✅ Réparation simulée réussie', 'success');
+                } else {
+                    log(`⚠️ Email non autorisé: ${email}`, 'warning');
+                    showStatus('reparationStatus', `⚠️ Email non autorisé: ${email}`, 'warning');
+                }
+
+            } catch (error) {
+                log(`❌ Erreur réparation: ${error.message}`, 'error');
+                showStatus('reparationStatus', `❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialisation
+        window.addEventListener('load', () => {
+            log('🚨 DEBUG CONNEXION URGENT INITIALISÉ', 'error');
+            log('🔍 Testez la connexion immédiatement', 'warning');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer Henri Directement</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/main.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #1a1a2e; color: #e0e0e0; }
+        .container { max-width: 600px; margin: auto; background-color: #1f283e; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); }
+        h1 { color: #e94560; text-align: center; margin-bottom: 25px; }
+        button { background-color: #e94560; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
+        button:hover { background-color: #b83a50; }
+        button:disabled { background-color: #5a5a5a; cursor: not-allowed; }
+        .message { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background-color: #28a745; color: white; }
+        .error { background-color: #dc3545; color: white; }
+        .info { background-color: #007bff; color: white; }
+        .loading { background-color: #ffc107; color: #000; }
+        .step { margin: 10px 0; padding: 10px; background-color: #2a2a3e; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Créer Henri Directement</h1>
+        <p>Cet outil crée directement le compte Henri avec l'abonnement Transformationnel et le connecte automatiquement.</p>
+        
+        <button id="createHenriBtn">Créer le compte Henri et se connecter</button>
+        <div id="message" class="message"></div>
+        <div id="steps"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const createHenriBtn = document.getElementById('createHenriBtn');
+        const messageDiv = document.getElementById('message');
+        const stepsDiv = document.getElementById('steps');
+
+        function addStep(message, status = 'info') {
+            const stepDiv = document.createElement('div');
+            stepDiv.className = `step ${status}`;
+            stepDiv.textContent = message;
+            stepsDiv.appendChild(stepDiv);
+        }
+
+        function clearSteps() {
+            stepsDiv.innerHTML = '';
+        }
+
+        createHenriBtn.addEventListener('click', async () => {
+            createHenriBtn.disabled = true;
+            clearSteps();
+            messageDiv.className = 'message loading';
+            messageDiv.textContent = 'Création du compte Henri en cours...';
+
+            try {
+                const email = 'henriprospecto123@gmail.com';
+                const password = 'password123';
+
+                // 1. Vérifier si l'utilisateur existe déjà
+                addStep('Vérification de l\'existence du compte...', 'info');
+                const { data: existingUser } = await supabase.auth.getUser();
+                
+                if (existingUser.user) {
+                    addStep('Utilisateur déjà connecté, déconnexion...', 'info');
+                    await supabase.auth.signOut();
+                }
+
+                // 2. Créer l'utilisateur
+                addStep('Création de l\'utilisateur...', 'info');
+                const { data: signupData, error: signupError } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            name: 'Henri Prospecto',
+                            role: 'coach'
+                        }
+                    }
+                });
+
+                if (signupError) {
+                    if (signupError.message.includes('already registered')) {
+                        addStep('Utilisateur déjà existant, connexion...', 'info');
+                        // Se connecter si l'utilisateur existe déjà
+                        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+                            email: email,
+                            password: password,
+                        });
+                        
+                        if (loginError) {
+                            throw loginError;
+                        }
+                        
+                        addStep('Connexion réussie !', 'success');
+                        messageDiv.className = 'message success';
+                        messageDiv.textContent = '✅ Connexion réussie ! Redirection...';
+                        
+                        // Redirection locale ou vers une page existante
+                        setTimeout(() => {
+                            // Essayer d'abord une redirection locale
+                            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                                window.location.href = '/dashboard';
+                            } else {
+                                // Ou afficher un message de succès
+                                messageDiv.textContent = '✅ Compte trouvé et connexion réussie !';
+                            }
+                        }, 2000);
+                        return;
+                    } else {
+                        throw signupError;
+                    }
+                }
+
+                if (!signupData.user) {
+                    throw new Error('Aucun utilisateur créé');
+                }
+
+                addStep('Utilisateur créé !', 'success');
+                messageDiv.textContent = 'Utilisateur créé ! Création du profil...';
+
+                // 3. Créer le profil
+                addStep('Création du profil coach...', 'info');
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: signupData.user.id,
+                        email: email,
+                        first_name: 'Henri',
+                        last_name: 'Prospecto',
+                        role: 'coach',
+                        subscription_plan: 'transformationnel',
+                        stripe_customer_id: 'cus_test_henri',
+                        stripe_subscription_id: 'sub_test_henri',
+                        subscription_status: 'trialing',
+                        subscription_start_date: new Date().toISOString(),
+                        subscription_end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                        plan_limits: {
+                            max_clients: 50,
+                            timeline_weeks: 4,
+                            max_workouts: 50,
+                            max_exercises: 100,
+                            features: ['advanced_dashboard', 'voice_messaging', 'nutrition_tracking', 'advanced_feedbacks', 'progress_photos_history', 'trophies', 'shared_resources', 'payment_retries']
+                        },
+                        current_clients_count: 0,
+                        current_workouts_count: 0,
+                        current_exercises_count: 0
+                    });
+
+                if (profileError) {
+                    console.error('Erreur profil:', profileError);
+                    addStep('Erreur lors de la création du profil: ' + profileError.message, 'error');
+                } else {
+                    addStep('Profil créé !', 'success');
+                }
+
+                messageDiv.textContent = 'Profil créé ! Connexion en cours...';
+
+                // 4. Se connecter
+                addStep('Connexion en cours...', 'info');
+                const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (loginError) {
+                    throw loginError;
+                }
+
+                addStep('Connexion réussie !', 'success');
+                console.log('Connexion réussie:', loginData.user.email);
+                messageDiv.className = 'message success';
+                messageDiv.textContent = '✅ Compte créé et connexion réussie !';
+                
+                // Redirection locale ou message de succès
+                setTimeout(() => {
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        window.location.href = '/dashboard';
+                    } else {
+                        messageDiv.textContent = '✅ Compte créé et connexion réussie ! Vous pouvez maintenant accéder à l\'application.';
+                    }
+                }, 2000);
+
+            } catch (error) {
+                console.error('Erreur:', error);
+                addStep('Erreur: ' + error.message, 'error');
+                messageDiv.className = 'message error';
+                messageDiv.textContent = `❌ Erreur: ${error.message}`;
+            } finally {
+                createHenriBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

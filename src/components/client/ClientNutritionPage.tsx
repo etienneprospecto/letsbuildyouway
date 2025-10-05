@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Plus, Droplets, Calendar, BarChart3 } from 'lucide-react';
 import HelpTooltip from '../ui/help-tooltip';
 import { NutritionService, NutritionEntry, NutritionStats } from '../../services/nutritionService';
-import { useAuth } from '../../providers/AuthProvider';
+import { useAuth } from '@/providers/OptimizedAuthProvider';
 // Removed useClientStore - using useAuth directly
 import NutritionGauges from '../nutrition/NutritionGauges';
 import AddNutritionEntryModal from '../nutrition/AddNutritionEntryModal';

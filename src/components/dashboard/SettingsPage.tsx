@@ -12,7 +12,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react'
-import { useAuth } from '@/providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
 

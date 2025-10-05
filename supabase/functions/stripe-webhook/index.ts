@@ -52,11 +52,16 @@ serve(async (req) => {
     }
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || Deno.env.get('PROJECT_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_ROLE_KEY')
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing')
+    }
 
-    // Log webhook event
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    // Store webhook event
     await supabase
       .from('stripe_webhooks')
       .insert({
@@ -66,20 +71,21 @@ serve(async (req) => {
         data: event.data.object,
         created_at: new Date(event.created * 1000).toISOString()
       })
+      .catch(err => console.log('Webhook already processed or table does not exist:', err.message))
 
-    // Process webhook event
+    // Process the event
     await processWebhookEvent(event, supabase)
 
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
+      status: 200
     })
 
   } catch (error) {
     console.error('Webhook error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 500
     })
   }
 })
@@ -92,12 +98,8 @@ async function processWebhookEvent(event: WebhookEvent, supabase: any) {
 
   try {
     switch (type) {
-      case 'invoice.payment_succeeded':
-        await handleInvoicePaymentSucceeded(object, supabase)
-        break
-
-      case 'invoice.payment_failed':
-        await handleInvoicePaymentFailed(object, supabase)
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(object, supabase)
         break
 
       case 'customer.subscription.created':
@@ -112,20 +114,8 @@ async function processWebhookEvent(event: WebhookEvent, supabase: any) {
         await handleSubscriptionDeleted(object, supabase)
         break
 
-      case 'payment_intent.succeeded':
-        await handlePaymentIntentSucceeded(object, supabase)
-        break
-
-      case 'payment_intent.payment_failed':
-        await handlePaymentIntentFailed(object, supabase)
-        break
-
-      case 'customer.created':
-        await handleCustomerCreated(object, supabase)
-        break
-
-      case 'customer.updated':
-        await handleCustomerUpdated(object, supabase)
+      case 'invoice.payment_failed':
+        await handleInvoicePaymentFailed(object, supabase)
         break
 
       default:
@@ -155,242 +145,380 @@ async function processWebhookEvent(event: WebhookEvent, supabase: any) {
 
 async function handleInvoicePaymentSucceeded(invoice: any, supabase: any) {
   console.log('Processing invoice payment succeeded:', invoice.id)
-
-  // Find the corresponding invoice in our database
-  const { data: dbInvoice, error } = await supabase
-    .from('invoices')
-    .select('*')
-    .eq('stripe_invoice_id', invoice.id)
-    .single()
-
-  if (error || !dbInvoice) {
-    console.error('Invoice not found in database:', invoice.id)
-    return
+  
+  try {
+    const customerId = invoice.customer
+    
+    // Mettre à jour le statut de l'abonnement
+    const { error } = await supabase
+      .from('profiles')
+      .update({ 
+        subscription_status: 'active',
+        subscription_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 jours
+      })
+      .eq('stripe_customer_id', customerId)
+    
+    if (error) {
+      console.error('Error updating subscription status:', error)
+    } else {
+      console.log('Subscription status updated to active')
+    }
+  } catch (error) {
+    console.error('Error in handleInvoicePaymentSucceeded:', error)
   }
-
-  // Update invoice status
-  await supabase
-    .from('invoices')
-    .update({
-      status: 'paid',
-      amount_paid: invoice.amount_paid / 100, // Convert from cents
-      paid_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', dbInvoice.id)
-
-  // Create payment record
-  await supabase
-    .from('payments')
-    .insert({
-      invoice_id: dbInvoice.id,
-      stripe_payment_intent_id: invoice.payment_intent,
-      amount: invoice.amount_paid / 100,
-      currency: invoice.currency,
-      payment_method: 'card', // Default, could be determined from payment intent
-      status: 'succeeded',
-      processed_at: new Date().toISOString(),
-      metadata: {
-        stripe_invoice_id: invoice.id,
-        stripe_payment_intent_id: invoice.payment_intent
-      }
-    })
-
-  console.log('Invoice payment processed successfully')
 }
 
 async function handleInvoicePaymentFailed(invoice: any, supabase: any) {
   console.log('Processing invoice payment failed:', invoice.id)
-
-  // Find the corresponding invoice in our database
-  const { data: dbInvoice, error } = await supabase
-    .from('invoices')
-    .select('*')
-    .eq('stripe_invoice_id', invoice.id)
-    .single()
-
-  if (error || !dbInvoice) {
-    console.error('Invoice not found in database:', invoice.id)
-    return
+  
+  try {
+    const customerId = invoice.customer
+    
+    // Mettre à jour le statut de l'abonnement
+    const { error } = await supabase
+      .from('profiles')
+      .update({ 
+        subscription_status: 'past_due',
+        subscription_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 jours de grâce
+      })
+      .eq('stripe_customer_id', customerId)
+    
+    if (error) {
+      console.error('Error updating subscription status:', error)
+    } else {
+      console.log('Subscription status updated to past_due')
+    }
+  } catch (error) {
+    console.error('Error in handleInvoicePaymentFailed:', error)
   }
-
-  // Update invoice status to overdue
-  await supabase
-    .from('invoices')
-    .update({
-      status: 'overdue',
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', dbInvoice.id)
-
-  console.log('Invoice marked as overdue due to payment failure')
 }
 
 async function handleSubscriptionCreated(subscription: any, supabase: any) {
   console.log('Processing subscription created:', subscription.id)
-
-  // Find the corresponding subscription in our database
-  const { data: dbSubscription, error } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .eq('stripe_subscription_id', subscription.id)
-    .single()
-
-  if (error || !dbSubscription) {
-    console.error('Subscription not found in database:', subscription.id)
-    return
+  
+  try {
+    const customerId = subscription.customer
+    const priceId = subscription.items.data[0]?.price?.id
+    
+    if (!priceId) {
+      console.error('No price ID found in subscription')
+      return
+    }
+    
+    const plan = getPlanFromPriceId(priceId)
+    const limits = getPlanLimits(plan)
+    
+    // Mettre à jour le profil avec les détails de l'abonnement
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        subscription_plan: plan,
+        stripe_subscription_id: subscription.id,
+        subscription_status: subscription.status,
+        subscription_start_date: new Date(subscription.created * 1000).toISOString(),
+        subscription_end_date: new Date(subscription.current_period_end * 1000).toISOString(),
+        plan_limits: limits
+      })
+      .eq('stripe_customer_id', customerId)
+    
+    if (error) {
+      console.error('Error updating subscription:', error)
+    } else {
+      console.log('Subscription created and profile updated')
+    }
+  } catch (error) {
+    console.error('Error in handleSubscriptionCreated:', error)
   }
-
-  // Update subscription status
-  await supabase
-    .from('subscriptions')
-    .update({
-      status: subscription.status,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', dbSubscription.id)
-
-  console.log('Subscription created successfully')
 }
 
 async function handleSubscriptionUpdated(subscription: any, supabase: any) {
   console.log('Processing subscription updated:', subscription.id)
-
-  // Find the corresponding subscription in our database
-  const { data: dbSubscription, error } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .eq('stripe_subscription_id', subscription.id)
-    .single()
-
-  if (error || !dbSubscription) {
-    console.error('Subscription not found in database:', subscription.id)
-    return
+  
+  try {
+    const customerId = subscription.customer
+    const priceId = subscription.items.data[0]?.price?.id
+    
+    if (!priceId) {
+      console.error('No price ID found in subscription')
+      return
+    }
+    
+    const plan = getPlanFromPriceId(priceId)
+    const limits = getPlanLimits(plan)
+    
+    // Mettre à jour le profil avec les détails de l'abonnement
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        subscription_plan: plan,
+        subscription_status: subscription.status,
+        subscription_end_date: new Date(subscription.current_period_end * 1000).toISOString(),
+        plan_limits: limits
+      })
+      .eq('stripe_subscription_id', subscription.id)
+    
+    if (error) {
+      console.error('Error updating subscription:', error)
+    } else {
+      console.log('Subscription updated and profile updated')
+    }
+  } catch (error) {
+    console.error('Error in handleSubscriptionUpdated:', error)
   }
-
-  // Update subscription status and dates
-  await supabase
-    .from('subscriptions')
-    .update({
-      status: subscription.status,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', dbSubscription.id)
-
-  console.log('Subscription updated successfully')
 }
 
 async function handleSubscriptionDeleted(subscription: any, supabase: any) {
   console.log('Processing subscription deleted:', subscription.id)
-
-  // Find the corresponding subscription in our database
-  const { data: dbSubscription, error } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .eq('stripe_subscription_id', subscription.id)
-    .single()
-
-  if (error || !dbSubscription) {
-    console.error('Subscription not found in database:', subscription.id)
-    return
+  
+  try {
+    // Marquer l'abonnement comme annulé
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        subscription_status: 'canceled',
+        subscription_end_date: new Date().toISOString()
+      })
+      .eq('stripe_subscription_id', subscription.id)
+    
+    if (error) {
+      console.error('Error updating subscription:', error)
+    } else {
+      console.log('Subscription marked as canceled')
+    }
+  } catch (error) {
+    console.error('Error in handleSubscriptionDeleted:', error)
   }
-
-  // Update subscription status to cancelled
-  await supabase
-    .from('subscriptions')
-    .update({
-      status: 'cancelled',
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', dbSubscription.id)
-
-  console.log('Subscription cancelled successfully')
 }
 
-async function handlePaymentIntentSucceeded(paymentIntent: any, supabase: any) {
-  console.log('Processing payment intent succeeded:', paymentIntent.id)
-
-  // Find the corresponding invoice in our database
-  const { data: dbInvoice, error } = await supabase
-    .from('invoices')
-    .select('*')
-    .eq('stripe_invoice_id', paymentIntent.invoice)
-    .single()
-
-  if (error || !dbInvoice) {
-    console.error('Invoice not found in database for payment intent:', paymentIntent.id)
-    return
-  }
-
-  // Create payment record
-  await supabase
-    .from('payments')
-    .insert({
-      invoice_id: dbInvoice.id,
-      stripe_payment_intent_id: paymentIntent.id,
-      amount: paymentIntent.amount / 100,
-      currency: paymentIntent.currency,
-      payment_method: paymentIntent.payment_method?.type || 'card',
-      status: 'succeeded',
-      processed_at: new Date().toISOString(),
-      metadata: {
-        stripe_payment_intent_id: paymentIntent.id,
-        payment_method_details: paymentIntent.payment_method
+async function handleCheckoutSessionCompleted(session: any, supabase: any) {
+  console.log('🛒 Processing checkout session completed:', session.id)
+  
+  try {
+    // Récupérer les détails de la session Stripe
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+      apiVersion: '2024-06-20',
+    })
+    
+    console.log('📋 Retrieving full session details...')
+    const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ['line_items', 'customer', 'subscription']
+    })
+    
+    const customerEmail = fullSession.customer_details?.email
+    const customerName = fullSession.customer_details?.name || 'Coach'
+    const planId = fullSession.line_items?.data[0]?.price?.id
+    
+    console.log('👤 Customer details:', { email: customerEmail, name: customerName, planId })
+    
+    if (!customerEmail) {
+      console.error('❌ No customer email found in checkout session')
+      throw new Error('Customer email is required for account creation')
+    }
+    
+    // Vérifier si l'utilisateur existe déjà
+    console.log('🔍 Checking if user already exists...')
+    const { data: existingUser, error: userError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('email', customerEmail)
+      .single()
+    
+    if (userError && userError.code !== 'PGRST116') {
+      console.error('❌ Error checking existing user:', userError)
+      throw new Error(`Failed to check existing user: ${userError.message}`)
+    }
+    
+    if (existingUser) {
+      console.log('👤 User already exists, updating subscription')
+      // Mettre à jour l'abonnement existant
+      await updateUserSubscription(existingUser.id, fullSession, supabase)
+      return
+    }
+    
+    // Générer un mot de passe provisoire sécurisé
+    const tempPassword = generateSecurePassword()
+    
+    // Créer un nouvel utilisateur avec mot de passe provisoire
+    console.log('👤 Creating new user account...')
+    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+      email: customerEmail,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        name: customerName,
+        role: 'coach'
       }
     })
-
-  console.log('Payment intent processed successfully')
-}
-
-async function handlePaymentIntentFailed(paymentIntent: any, supabase: any) {
-  console.log('Processing payment intent failed:', paymentIntent.id)
-
-  // Find the corresponding invoice in our database
-  const { data: dbInvoice, error } = await supabase
-    .from('invoices')
-    .select('*')
-    .eq('stripe_invoice_id', paymentIntent.invoice)
-    .single()
-
-  if (error || !dbInvoice) {
-    console.error('Invoice not found in database for payment intent:', paymentIntent.id)
-    return
-  }
-
-  // Create payment record with failed status
-  await supabase
-    .from('payments')
-    .insert({
-      invoice_id: dbInvoice.id,
-      stripe_payment_intent_id: paymentIntent.id,
-      amount: paymentIntent.amount / 100,
-      currency: paymentIntent.currency,
-      payment_method: paymentIntent.payment_method?.type || 'card',
-      status: 'failed',
-      failure_reason: paymentIntent.last_payment_error?.message || 'Payment failed',
-      processed_at: new Date().toISOString(),
-      metadata: {
-        stripe_payment_intent_id: paymentIntent.id,
-        payment_method_details: paymentIntent.payment_method,
-        failure_details: paymentIntent.last_payment_error
+    
+    if (createError || !newUser.user) {
+      console.error('❌ Error creating user:', createError)
+      throw new Error(`Failed to create user: ${createError?.message || 'Unknown error'}`)
+    }
+    
+    console.log('✅ User created successfully:', newUser.user.id)
+    
+    // Créer le profil utilisateur
+    console.log('👤 Creating user profile...')
+    const plan = getPlanFromPriceId(planId)
+    const limits = getPlanLimits(plan)
+    
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: newUser.user.id,
+        email: customerEmail,
+        name: customerName,
+        role: 'coach',
+        subscription_plan: plan,
+        stripe_customer_id: fullSession.customer,
+        stripe_subscription_id: fullSession.subscription,
+        subscription_status: 'trialing',
+        subscription_start_date: new Date().toISOString(),
+        subscription_end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 jours d'essai
+        plan_limits: limits
+      })
+    
+    if (profileError) {
+      console.error('❌ Error creating profile:', profileError)
+      throw new Error(`Failed to create profile: ${profileError.message}`)
+    }
+    
+    console.log('✅ Profile created successfully for plan:', plan)
+    
+    // Envoyer l'email de bienvenue avec mot de passe provisoire
+    console.log('📧 Sending welcome email with credentials...')
+    try {
+      const baseUrl = Deno.env.get('BASE_URL') || 'https://byw.app'
+      const loginUrl = `${baseUrl}/login`
+      
+      const emailPayload = {
+        client_email: customerEmail,
+        client_name: customerName,
+        temp_password: tempPassword,
+        login_url: loginUrl,
+        plan_name: plan,
+        coach_name: 'BYW Team',
+        type: 'coach_welcome_with_password'
       }
-    })
+      
+      console.log('📤 Sending email payload:', JSON.stringify(emailPayload, null, 2))
+      
+      const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-email-reliable', {
+        body: emailPayload
+      })
 
-  console.log('Payment intent failure processed')
+      if (emailError) {
+        console.error('❌ Error sending welcome email:', emailError)
+        console.log('📋 Email error details:', JSON.stringify(emailError, null, 2))
+        // Ne pas faire échouer le processus si l'email échoue
+        console.log('⚠️ Continuing without email notification')
+      } else {
+        console.log('✅ Welcome email sent successfully to:', customerEmail)
+        console.log('📧 Email ID:', emailResult?.email_id)
+        console.log('📋 Email result:', JSON.stringify(emailResult, null, 2))
+      }
+    } catch (emailError) {
+      console.error('❌ Error calling email service:', emailError)
+      console.log('📋 Email error stack:', emailError.stack)
+      // Ne pas faire échouer le processus si l'email échoue
+      console.log('⚠️ Continuing without email notification')
+    }
+    
+    console.log('🎉 User onboarding completed successfully!')
+    
+  } catch (error) {
+    console.error('Error in handleCheckoutSessionCompleted:', error)
+  }
 }
 
-async function handleCustomerCreated(customer: any, supabase: any) {
-  console.log('Processing customer created:', customer.id)
-  // Customer creation is typically handled by the application, not webhooks
-  // This is here for completeness
+function getPlanFromPriceId(priceId: string): string {
+  const planMapping: { [key: string]: string } = {
+    'price_1SCJ9WPyYNBRhOhApONh7U6A': 'warm_up',
+    'price_1SCJEXPyYNBRhOhAb64UZYVo': 'transformationnel', 
+    'price_1SCJEoPyYNBRhOhA0tN68xOU': 'elite'
+  }
+  return planMapping[priceId] || 'warm_up'
 }
 
-async function handleCustomerUpdated(customer: any, supabase: any) {
-  console.log('Processing customer updated:', customer.id)
-  // Customer updates are typically handled by the application, not webhooks
-  // This is here for completeness
+function getPlanLimits(plan: string): any {
+  const limits = {
+    warm_up: {
+      max_clients: 15,
+      timeline_weeks: 1,
+      max_workouts: 15,
+      max_exercises: 30,
+      features: ['basic_dashboard', 'basic_messaging', 'simple_calendar', 'basic_client_dashboard', 'basic_settings_notifications']
+    },
+    transformationnel: {
+      max_clients: 50,
+      timeline_weeks: 4,
+      max_workouts: 50,
+      max_exercises: 100,
+      features: ['advanced_dashboard', 'voice_messaging', 'nutrition_tracking', 'advanced_feedbacks', 'progress_photos_history', 'trophies', 'shared_resources', 'payment_retries']
+    },
+    elite: {
+      max_clients: 100,
+      timeline_weeks: 52,
+      max_workouts: -1, // illimité
+      max_exercises: -1,
+      features: ['ai_nutrition', 'financial_dashboard', 'advanced_automation', 'full_calendar_integration', 'premium_resources_exports', 'priority_support', 'advanced_gamification', 'theme_customization']
+    }
+  }
+  return limits[plan] || limits.warm_up
+}
+
+// ====================================
+// FONCTION : Générer mot de passe sécurisé
+// ====================================
+function generateSecurePassword(): string {
+  const length = 12
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz'
+  const numbers = '0123456789'
+  const symbols = '!@#$%^&*'
+  
+  const allChars = uppercase + lowercase + numbers + symbols
+  let password = ''
+  
+  // Assurer au moins 1 de chaque type
+  password += uppercase[Math.floor(Math.random() * uppercase.length)]
+  password += lowercase[Math.floor(Math.random() * lowercase.length)]
+  password += numbers[Math.floor(Math.random() * numbers.length)]
+  password += symbols[Math.floor(Math.random() * symbols.length)]
+  
+  // Compléter avec des caractères aléatoires
+  for (let i = password.length; i < length; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)]
+  }
+  
+  // Mélanger le mot de passe
+  return password.split('').sort(() => Math.random() - 0.5).join('')
+}
+
+async function updateUserSubscription(userId: string, session: any, supabase: any) {
+  try {
+    const plan = getPlanFromPriceId(session.line_items?.data[0]?.price?.id)
+    const limits = getPlanLimits(plan)
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        subscription_plan: plan,
+        stripe_customer_id: session.customer,
+        stripe_subscription_id: session.subscription,
+        subscription_status: 'trialing',
+        subscription_start_date: new Date().toISOString(),
+        subscription_end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        plan_limits: limits
+      })
+      .eq('id', userId)
+    
+    if (error) {
+      console.error('Error updating user subscription:', error)
+    } else {
+      console.log('User subscription updated successfully')
+    }
+  } catch (error) {
+    console.error('Error in updateUserSubscription:', error)
+  }
 }

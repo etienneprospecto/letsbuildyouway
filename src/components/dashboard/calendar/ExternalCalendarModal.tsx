@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { Switch } from '../../ui/switch';
 import { Textarea } from '../../ui/textarea';
 import { HelpTooltip } from '../../ui/help-tooltip';
-import { useAuth } from '../../../providers/AuthProvider';
+import { useAuth } from '@/providers/OptimizedAuthProvider';
 import { externalCalendarService } from '../../../services/externalCalendarService';
 import { Calendar, Plus, Settings, Trash2, TestTube, RefreshCw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { Database } from '../../../lib/database.types';

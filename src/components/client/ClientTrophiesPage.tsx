@@ -5,7 +5,7 @@ import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Button } from '../ui/button';
-import { useAuth } from '../../providers/AuthProvider';
+import { useAuth } from '@/providers/OptimizedAuthProvider';
 import { trophyService, TrophyWithProgress, TrophyStats, TrophyCategory } from '../../services/trophyService';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';

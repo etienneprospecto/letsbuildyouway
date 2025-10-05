@@ -5,7 +5,7 @@ import ClientService from '@/services/clientService'
 import SeanceService from '@/services/seanceService'
 import HebdoFeedbackService from '@/services/hebdoFeedbackService'
 import ResourceService from '@/services/resourceService'
-import { useAuth } from '../providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 
 export const useClientDetail = (clientId?: string) => {
   const { profile } = useAuth();

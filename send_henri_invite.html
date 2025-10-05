@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Envoyer Invitation Henri - BYW</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #1a1a2e; color: #e0e0e0; }
+        .container { max-width: 600px; margin: auto; background-color: #1f283e; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); }
+        h1 { color: #e94560; text-align: center; margin-bottom: 25px; }
+        button { background-color: #e94560; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
+        button:hover { background-color: #b83a50; }
+        button:disabled { background-color: #5a5a5a; cursor: not-allowed; }
+        .message { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background-color: #28a745; color: white; }
+        .error { background-color: #dc3545; color: white; }
+        .info { background-color: #007bff; color: white; }
+        .step { margin: 20px 0; padding: 15px; background-color: rgba(255,255,255,0.05); border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📧 Envoyer Invitation à Henri</h1>
+        <p>Cet outil envoie un email d'invitation à henriprospecto123@gmail.com pour qu'il puisse configurer son mot de passe après son abonnement Transformationnel.</p>
+        
+        <div class="step">
+            <h3>Étape 1: Créer l'utilisateur</h3>
+            <button id="createUserBtn">Créer l'utilisateur Henri</button>
+            <div id="userMessage" class="message"></div>
+        </div>
+
+        <div class="step">
+            <h3>Étape 2: Créer le profil</h3>
+            <button id="createProfileBtn" disabled>Créer le profil avec abonnement Transformationnel</button>
+            <div id="profileMessage" class="message"></div>
+        </div>
+
+        <div class="step">
+            <h3>Étape 3: Envoyer l'invitation</h3>
+            <button id="sendInviteBtn" disabled>Envoyer l'email d'invitation</button>
+            <div id="inviteMessage" class="message"></div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let userId = null;
+
+        const createUserBtn = document.getElementById('createUserBtn');
+        const createProfileBtn = document.getElementById('createProfileBtn');
+        const sendInviteBtn = document.getElementById('sendInviteBtn');
+        const userMessage = document.getElementById('userMessage');
+        const profileMessage = document.getElementById('profileMessage');
+        const inviteMessage = document.getElementById('inviteMessage');
+
+        createUserBtn.addEventListener('click', async () => {
+            createUserBtn.disabled = true;
+            userMessage.className = 'message info';
+            userMessage.textContent = 'Création de l\'utilisateur en cours...';
+
+            try {
+                // Utiliser l'API Supabase pour créer un utilisateur
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({
+                        email: 'henriprospecto123@gmail.com',
+                        password: 'temp_password_123',
+                        options: {
+                            data: {
+                                name: 'Henri Prospecto',
+                                role: 'coach'
+                            }
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.user) {
+                    userId = data.user.id;
+                    userMessage.className = 'message success';
+                    userMessage.textContent = '✅ Utilisateur créé avec succès !';
+                    createProfileBtn.disabled = false;
+                } else {
+                    userMessage.className = 'message error';
+                    userMessage.textContent = `❌ Erreur: ${data.msg || 'Impossible de créer l\'utilisateur'}`;
+                    console.error('Error creating user:', data);
+                }
+
+            } catch (error) {
+                userMessage.className = 'message error';
+                userMessage.textContent = `❌ Erreur: ${error.message}`;
+                console.error('Unexpected error:', error);
+            } finally {
+                createUserBtn.disabled = false;
+            }
+        });
+
+        createProfileBtn.addEventListener('click', async () => {
+            if (!userId) {
+                profileMessage.className = 'message error';
+                profileMessage.textContent = '❌ Aucun utilisateur créé';
+                return;
+            }
+
+            createProfileBtn.disabled = true;
+            profileMessage.className = 'message info';
+            profileMessage.textContent = 'Création du profil en cours...';
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        id: userId,
+                        email: 'henriprospecto123@gmail.com',
+                        name: 'Henri Prospecto',
+                        role: 'coach',
+                        subscription_plan: 'transformationnel',
+                        stripe_customer_id: 'cus_test_henri',
+                        stripe_subscription_id: 'sub_test_henri',
+                        subscription_status: 'trialing',
+                        subscription_start_date: new Date().toISOString(),
+                        subscription_end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                        plan_limits: {
+                            max_clients: 50,
+                            timeline_weeks: 4,
+                            max_workouts: 50,
+                            max_exercises: 100,
+                            features: ['advanced_dashboard', 'voice_messaging', 'nutrition_tracking', 'advanced_feedbacks', 'progress_photos_history', 'trophies', 'shared_resources', 'payment_retries']
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    profileMessage.className = 'message success';
+                    profileMessage.textContent = '✅ Profil créé avec abonnement Transformationnel !';
+                    sendInviteBtn.disabled = false;
+                } else {
+                    const errorData = await response.text();
+                    profileMessage.className = 'message error';
+                    profileMessage.textContent = `❌ Erreur: ${errorData}`;
+                    console.error('Error creating profile:', errorData);
+                }
+
+            } catch (error) {
+                profileMessage.className = 'message error';
+                profileMessage.textContent = `❌ Erreur: ${error.message}`;
+                console.error('Unexpected error:', error);
+            } finally {
+                createProfileBtn.disabled = false;
+            }
+        });
+
+        sendInviteBtn.addEventListener('click', async () => {
+            sendInviteBtn.disabled = true;
+            inviteMessage.className = 'message info';
+            inviteMessage.textContent = 'Envoi de l\'email d\'invitation...';
+
+            try {
+                // Utiliser l'API Supabase pour envoyer un email d'invitation
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/invite`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify({
+                        email: 'henriprospecto123@gmail.com',
+                        options: {
+                            redirectTo: 'http://localhost:5173/auth/accept-invitation'
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    inviteMessage.className = 'message success';
+                    inviteMessage.textContent = '✅ Email d\'invitation envoyé avec succès ! Vérifiez la boîte mail de henriprospecto123@gmail.com';
+                } else {
+                    inviteMessage.className = 'message error';
+                    inviteMessage.textContent = `❌ Erreur: ${data.msg || 'Impossible d\'envoyer l\'email'}`;
+                    console.error('Error sending invitation:', data);
+                }
+
+            } catch (error) {
+                inviteMessage.className = 'message error';
+                inviteMessage.textContent = `❌ Erreur: ${error.message}`;
+                console.error('Unexpected error:', error);
+            } finally {
+                sendInviteBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

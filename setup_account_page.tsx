@@ -1,0 +1,230 @@
+// ========================================
+// PAGE DE CONFIGURATION COMPTE COACH
+// ========================================
+// Fichier: app/setup-account/page.tsx
+// Description: Page pour configurer le mot de passe après paiement Stripe
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+
+export default function SetupAccountPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const supabase = createClientComponentClient();
+  const token = searchParams.get('token');
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [profileId, setProfileId] = useState('');
+  const [planName, setPlanName] = useState('');
+
+  useEffect(() => {
+    verifyToken();
+  }, [token]);
+
+  async function verifyToken() {
+    if (!token) {
+      setError('Token invalide');
+      setLoading(false);
+      return;
+    }
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('id, email, subscription_plan, account_setup_token_expires')
+      .eq('account_setup_token', token)
+      .single();
+
+    if (error || !profile) {
+      setError('Token invalide ou expiré');
+      setLoading(false);
+      return;
+    }
+
+    if (new Date(profile.account_setup_token_expires) < new Date()) {
+      setError('Token expiré. Contactez le support.');
+      setLoading(false);
+      return;
+    }
+
+    setEmail(profile.email);
+    setProfileId(profile.id);
+    setPlanName(profile.subscription_plan);
+    setLoading(false);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Le mot de passe doit contenir au moins 8 caractères');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // 1. Créer l'utilisateur dans Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            profile_id: profileId,
+          }
+        }
+      });
+
+      if (authError) throw authError;
+
+      // 2. Mettre à jour le profil avec l'ID Supabase Auth
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          id: authData.user!.id,
+          account_setup_token: null,
+          account_setup_token_expires: null,
+        })
+        .eq('account_setup_token', token);
+
+      if (updateError) throw updateError;
+
+      // 3. Connexion automatique
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (signInError) throw signInError;
+
+      // 4. Redirection
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message);
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="text-lg text-gray-600">Chargement...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !email) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-lg text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Erreur</h1>
+          <p className="text-red-600 mb-6">{error}</p>
+          <a 
+            href="mailto:support@byw-fitness.com" 
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            Contacter le support
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Configurer votre compte coach
+          </h1>
+          <p className="text-gray-600">
+            Pack <span className="font-semibold text-blue-600 capitalize">
+              {planName.replace('_', ' ')}
+            </span> activé
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                disabled
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Minimum 8 caractères"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirmer le mot de passe
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Répétez votre mot de passe"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+          >
+            {loading ? 'Configuration...' : 'Créer mon compte'}
+          </button>
+        </form>
+
+        <div className="text-center text-sm text-gray-500">
+          <p>En créant votre compte, vous acceptez nos</p>
+          <a href="/terms" className="text-blue-600 hover:text-blue-800 underline">
+            conditions d'utilisation
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}

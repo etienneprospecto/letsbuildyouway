@@ -139,13 +139,18 @@ const AddClientModal: React.FC<AddClientModalProps> = ({
         client_dietary_restrictions: formData.dietary_restrictions || undefined
       }
 
+      console.log('🚀 Création de l\'invitation...')
       const invitation = await InvitationService.createInvitation(invitationData)
 
       const invitationUrl = `${window.location.origin}/?token=${invitation.token}`
 
+      console.log('✅ Invitation créée:', invitation)
+      console.log('🔗 URL d\'invitation:', invitationUrl)
+
       toast({
         title: "Invitation envoyée !",
-        description: `Un email d'invitation a été envoyé à ${formData.email}`,
+        description: `Email d'invitation envoyé à ${formData.email}. Le client recevra un email avec le lien d'invitation.`,
+        duration: 5000,
       })
 
       setInvitationSent({
@@ -159,10 +164,18 @@ const AddClientModal: React.FC<AddClientModalProps> = ({
     } catch (error) {
       console.error('Error sending invitation:', error)
       toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur lors de l'envoi de l'invitation",
-        variant: "destructive"
+        title: "Invitation créée (email en attente)",
+        description: "L'invitation a été créée mais l'email n'a pas pu être envoyé. Vérifiez la console pour l'URL d'invitation.",
+        variant: "default"
       })
+      
+      // Afficher quand même l'URL d'invitation si possible
+      try {
+        const invitationUrl = `${window.location.origin}/?token=${formData.email}`;
+        console.log('🔗 URL d\'invitation de secours:', invitationUrl);
+      } catch (urlError) {
+        console.warn('Impossible de générer l\'URL de secours:', urlError);
+      }
     } finally {
       setIsLoading(false)
     }

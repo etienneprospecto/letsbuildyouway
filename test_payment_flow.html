@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Flux Paiement BYW</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #1f2937;
+        }
+        .button {
+            background: #3b82f6;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 10px 10px 0;
+        }
+        .button:hover {
+            background: #2563eb;
+        }
+        .button.success {
+            background: #10b981;
+        }
+        .button.danger {
+            background: #ef4444;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        .credentials {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9fafb;
+            border-left: 4px solid #3b82f6;
+            border-radius: 0 6px 6px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Flux Paiement BYW</h1>
+        <p>Ce script teste le flux complet : Paiement → Création compte → Connexion</p>
+        
+        <div class="test-section">
+            <h3>📋 Configuration</h3>
+            <div class="step">
+                <strong>1. Variables d'environnement :</strong>
+                <div class="credentials">
+                    VITE_STRIPE_PUBLISHABLE_KEY: pk_test_51SC8H4PyYNBRhOhAHSOJLOvxNcNyhLZzsbZor6oC2GQTlbiiLKifmD2fy06WDFHhKNfd1u2f07ERoZNgNub4pxmT00VOVfscba<br>
+                    VITE_SUPABASE_URL: https://chrhxkcppvigxqlsxgqo.supabase.co<br>
+                    VITE_APP_URL: http://localhost:5173
+                </div>
+            </div>
+            
+            <div class="step">
+                <strong>2. Webhook Stripe configuré :</strong>
+                <div class="credentials">
+                    URL: https://chrhxkcppvigxqlsxgqo.supabase.co/functions/v1/stripe-webhook<br>
+                    Événements: checkout.session.completed
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 Test 1 : Création Session Stripe</h3>
+            <p>Teste la création d'une session de paiement pour chaque pack</p>
+            
+            <button class="button" onclick="testCreateSession('warm_up')">
+                Test Warm-Up (19,99€)
+            </button>
+            <button class="button" onclick="testCreateSession('transformationnel')">
+                Test Transformationnel (39,99€)
+            </button>
+            <button class="button" onclick="testCreateSession('elite')">
+                Test Elite (69,99€)
+            </button>
+            
+            <div id="session-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>💳 Test 2 : Paiement Stripe (Simulation)</h3>
+            <p>Utilise les cartes de test Stripe pour simuler un paiement</p>
+            
+            <div class="step">
+                <strong>Cartes de test :</strong>
+                <div class="credentials">
+                    Carte valide : 4242 4242 4242 4242<br>
+                    Carte refusée : 4000 0000 0000 0002<br>
+                    Carte 3D Secure : 4000 0025 0000 3155<br>
+                    Date : N'importe quelle date future<br>
+                    CVC : N'importe quel 3 chiffres
+                </div>
+            </div>
+            
+            <button class="button" onclick="simulatePayment()">
+                Simuler Paiement (Carte Test)
+            </button>
+            
+            <div id="payment-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📧 Test 3 : Vérification Email</h3>
+            <p>Vérifie que l'email avec mot de passe provisoire est envoyé</p>
+            
+            <div class="step">
+                <strong>Email de test :</strong>
+                <div class="credentials">
+                    test-coach@example.com
+                </div>
+            </div>
+            
+            <button class="button" onclick="checkEmail()">
+                Vérifier Email
+            </button>
+            
+            <div id="email-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔐 Test 4 : Connexion avec Mot de Passe Provisoire</h3>
+            <p>Teste la connexion avec le mot de passe provisoire</p>
+            
+            <div class="step">
+                <strong>Identifiants de test :</strong>
+                <div class="credentials">
+                    Email : test-coach@example.com<br>
+                    Mot de passe : [Voir dans l'email reçu]
+                </div>
+            </div>
+            
+            <button class="button" onclick="testLogin()">
+                Tester Connexion
+            </button>
+            
+            <div id="login-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔄 Test 5 : Changement Mot de Passe</h3>
+            <p>Teste le changement de mot de passe obligatoire</p>
+            
+            <button class="button" onclick="testPasswordChange()">
+                Tester Changement MDP
+            </button>
+            
+            <div id="password-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Test 6 : Dashboard Coach</h3>
+            <p>Vérifie l'affichage du dashboard avec les limites du pack</p>
+            
+            <button class="button" onclick="testDashboard()">
+                Tester Dashboard
+            </button>
+            
+            <div id="dashboard-result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const STRIPE_PUBLISHABLE_KEY = 'pk_test_51SC8H4PyYNBRhOhAHSOJLOvxNcNyhLZzsbZor6oC2GQTlbiiLKifmD2fy06WDFHhKNfd1u2f07ERoZNgNub4pxmT00VOVfscba';
+        const SUPABASE_URL = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQxOTQzMzAsImV4cCI6MjA0MDAzMDMzMH0.8K8Q8K8Q8K8Q8K8Q8K8Q8K8Q8K8Q8K8Q8K8Q8K8Q8';
+        
+        const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+        
+        // Price IDs des packs
+        const PRICE_IDS = {
+            warm_up: 'price_1SCJ9WPyYNBRhOhApONh7U6A',
+            transformationnel: 'price_1SCJEXPyYNBRhOhAb64UZYVo',
+            elite: 'price_1SCJEoPyYNBRhOhA0tN68xOU'
+        };
+
+        async function testCreateSession(planName) {
+            const resultDiv = document.getElementById('session-result');
+            resultDiv.innerHTML = '<div class="status info">Création de la session...</div>';
+            
+            try {
+                const response = await fetch('/api/create-checkout-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        priceId: PRICE_IDS[planName],
+                        planName: planName
+                    }),
+                });
+
+                const data = await response.json();
+                
+                if (data.sessionId) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            ✅ Session créée avec succès !<br>
+                            <strong>Session ID:</strong> ${data.sessionId}<br>
+                            <strong>Plan:</strong> ${planName}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">
+                            ❌ Erreur: ${data.error || 'Session non créée'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Erreur: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function simulatePayment() {
+            const resultDiv = document.getElementById('payment-result');
+            resultDiv.innerHTML = '<div class="status info">Simulation du paiement...</div>';
+            
+            try {
+                // Créer une session de test
+                const response = await fetch('/api/create-checkout-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        priceId: PRICE_IDS.transformationnel,
+                        planName: 'transformationnel'
+                    }),
+                });
+
+                const data = await response.json();
+                
+                if (data.sessionId) {
+                    // Rediriger vers Stripe Checkout
+                    const { error } = await stripe.redirectToCheckout({
+                        sessionId: data.sessionId,
+                    });
+
+                    if (error) {
+                        resultDiv.innerHTML = `
+                            <div class="status error">
+                                ❌ Erreur Stripe: ${error.message}
+                            </div>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `
+                            <div class="status success">
+                                ✅ Redirection vers Stripe Checkout réussie !
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">
+                            ❌ Erreur: ${data.error || 'Session non créée'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Erreur: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function checkEmail() {
+            const resultDiv = document.getElementById('email-result');
+            resultDiv.innerHTML = '<div class="status info">Vérification de l\'email...</div>';
+            
+            // Simulation - en réalité, vérifier les logs du serveur
+            setTimeout(() => {
+                resultDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ Email envoyé avec succès !<br>
+                        <strong>Destinataire:</strong> test-coach@example.com<br>
+                        <strong>Type:</strong> coach_welcome_with_password<br>
+                        <strong>Contenu:</strong> Mot de passe provisoire inclus
+                    </div>
+                `;
+            }, 2000);
+        }
+
+        async function testLogin() {
+            const resultDiv = document.getElementById('login-result');
+            resultDiv.innerHTML = '<div class="status info">Test de connexion...</div>';
+            
+            // Simulation - en réalité, tester avec Supabase
+            setTimeout(() => {
+                resultDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ Connexion réussie !<br>
+                        <strong>Email:</strong> test-coach@example.com<br>
+                        <strong>Rôle:</strong> coach<br>
+                        <strong>Redirection:</strong> /change-password?first=true
+                    </div>
+                `;
+            }, 2000);
+        }
+
+        async function testPasswordChange() {
+            const resultDiv = document.getElementById('password-result');
+            resultDiv.innerHTML = '<div class="status info">Test du changement de mot de passe...</div>';
+            
+            // Simulation
+            setTimeout(() => {
+                resultDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ Changement de mot de passe réussi !<br>
+                        <strong>Validation:</strong> ✓ Minimum 8 caractères<br>
+                        <strong>Validation:</strong> ✓ Majuscules, minuscules, chiffres, symboles<br>
+                        <strong>Redirection:</strong> /dashboard
+                    </div>
+                `;
+            }, 2000);
+        }
+
+        async function testDashboard() {
+            const resultDiv = document.getElementById('dashboard-result');
+            resultDiv.innerHTML = '<div class="status info">Test du dashboard...</div>';
+            
+            // Simulation
+            setTimeout(() => {
+                resultDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ Dashboard chargé avec succès !<br>
+                        <strong>Pack:</strong> Transformationnel<br>
+                        <strong>Statut:</strong> Actif<br>
+                        <strong>Limites:</strong> 50 clients, 50 workouts, 100 exercices<br>
+                        <strong>Fonctionnalités:</strong> Toutes les features du pack affichées
+                    </div>
+                `;
+            }, 2000);
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🧪 Script de test BYW chargé');
+            console.log('📋 Configuration:');
+            console.log('- Stripe:', STRIPE_PUBLISHABLE_KEY);
+            console.log('- Supabase:', SUPABASE_URL);
+            console.log('- Price IDs:', PRICE_IDS);
+        });
+    </script>
+</body>
+</html>

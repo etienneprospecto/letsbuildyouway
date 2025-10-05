@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer Henri avec Edge Function</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #1a1a2e; color: #e0e0e0; }
+        .container { max-width: 600px; margin: auto; background-color: #1f283e; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); }
+        h1 { color: #e94560; text-align: center; margin-bottom: 25px; }
+        button { background-color: #e94560; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
+        button:hover { background-color: #b83a50; }
+        button:disabled { background-color: #5a5a5a; cursor: not-allowed; }
+        .message { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background-color: #28a745; color: white; }
+        .error { background-color: #dc3545; color: white; }
+        .info { background-color: #007bff; color: white; }
+        .code { background-color: #2d3748; padding: 10px; border-radius: 4px; font-family: monospace; margin: 10px 0; white-space: pre-wrap; }
+        .link { color: #60a5fa; text-decoration: underline; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Créer Henri avec Edge Function</h1>
+        <p>Cet outil utilise une Edge Function Supabase pour créer le compte Henri avec l'API admin.</p>
+        
+        <button id="createHenriBtn">Créer le compte Henri</button>
+        <div id="message" class="message"></div>
+        <div id="result" class="code" style="display: none;"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+
+        const createHenriBtn = document.getElementById('createHenriBtn');
+        const messageDiv = document.getElementById('message');
+        const resultDiv = document.getElementById('result');
+
+        createHenriBtn.addEventListener('click', async () => {
+            createHenriBtn.disabled = true;
+            messageDiv.className = 'message info';
+            messageDiv.textContent = 'Création du compte Henri en cours...';
+            resultDiv.style.display = 'none';
+
+            try {
+                console.log('Calling create-henri Edge Function...');
+                
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/create-henri`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'apikey': SUPABASE_ANON_KEY
+                    }
+                });
+
+                const data = await response.json();
+                console.log('Response:', data);
+
+                if (!response.ok) {
+                    throw new Error(data.error || data.details || `HTTP ${response.status}`);
+                }
+
+                if (data.success) {
+                    messageDiv.className = 'message success';
+                    messageDiv.textContent = '✅ Compte Henri créé avec succès !';
+                    
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `
+Utilisateur créé:
+- ID: ${data.user.id}
+- Email: ${data.user.email}
+
+${data.loginLink ? `
+Lien de connexion généré:
+<a href="${data.loginLink}" target="_blank" class="link">Cliquer ici pour se connecter</a>
+` : 'Aucun lien de connexion généré'}
+
+Redirection automatique dans 3 secondes...
+                    `;
+
+                    // Rediriger automatiquement
+                    setTimeout(() => {
+                        if (data.loginLink) {
+                            window.location.href = data.loginLink;
+                        } else {
+                            window.location.href = 'http://localhost:5173/app/dashboard';
+                        }
+                    }, 3000);
+                } else {
+                    throw new Error(data.message || 'Erreur inconnue');
+                }
+
+            } catch (error) {
+                console.error('Erreur:', error);
+                messageDiv.className = 'message error';
+                messageDiv.textContent = `❌ Erreur: ${error.message}`;
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = `Erreur: ${error.message}`;
+            } finally {
+                createHenriBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

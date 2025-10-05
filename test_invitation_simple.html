@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test Invitation Simple</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .success { background: #d1fae5; border: 1px solid #10b981; color: #065f46; }
+        .error { background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; }
+        .warning { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; }
+        .info { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
+        button {
+            background: #f97316;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 5px;
+        }
+        button:hover { background: #ea580c; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Invitation Simple</h1>
+        <p>Test d'envoi d'invitation sans Edge Functions (simulation)</p>
+        
+        <div>
+            <h3>📧 Test d'Invitation</h3>
+            <div>
+                <label>Email Client:</label>
+                <input type="email" id="clientEmail" value="test@byw.app">
+            </div>
+            <div>
+                <label>Nom Client:</label>
+                <input type="text" id="clientName" value="Test Client">
+            </div>
+            <button onclick="testSimpleInvitation()">🚀 TESTER INVITATION SIMPLE</button>
+            <div id="invitationStatus"></div>
+        </div>
+
+        <div>
+            <h3>📊 Logs de Test</h3>
+            <button onclick="clearLogs()">Effacer</button>
+            <div id="debugLogs" class="log"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        let supabase;
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logs.push(logEntry);
+            
+            const logDiv = document.getElementById('debugLogs');
+            logDiv.textContent = logs.join('\n');
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function clearLogs() {
+            logs = [];
+            document.getElementById('debugLogs').textContent = '';
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function initSupabase() {
+            const url = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+            const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+            
+            supabase = window.supabase.createClient(url, key);
+            log('Client Supabase initialisé', 'success');
+            return true;
+        }
+
+        async function testSimpleInvitation() {
+            log('🧪 === TEST INVITATION SIMPLE ===');
+            
+            if (!initSupabase()) return;
+
+            const clientEmail = document.getElementById('clientEmail').value;
+            const clientName = document.getElementById('clientName').value;
+
+            try {
+                log(`Création invitation pour: ${clientEmail}`);
+
+                // 1. Créer l'invitation
+                const invitationData = {
+                    coach_id: '0bab0e3a-5ccc-4018-a9e7-e5fffbf4a7c8', // ID de Henri
+                    client_email: clientEmail,
+                    client_first_name: clientName.split(' ')[0] || 'Test',
+                    client_last_name: clientName.split(' ')[1] || 'User',
+                    client_primary_goal: 'Perte de poids',
+                    client_fitness_level: 'Débutant'
+                };
+
+                log('Insertion invitation...');
+                const { data: invitation, error: invitationError } = await supabase
+                    .from('client_invitations')
+                    .insert(invitationData)
+                    .select()
+                    .single();
+
+                if (invitationError) {
+                    log(`❌ Erreur création invitation: ${invitationError.message}`, 'error');
+                    showStatus('invitationStatus', `❌ Erreur: ${invitationError.message}`, 'error');
+                    return;
+                }
+
+                log(`✅ Invitation créée: ${invitation.id}`, 'success');
+                log(`   Token: ${invitation.token}`, 'info');
+                log(`   Email: ${invitation.client_email}`, 'info');
+
+                // 2. Simuler l'envoi d'email (sans Edge Function)
+                const invitationUrl = `https://byw.app/?token=${invitation.token}`;
+                
+                log('📧 Simulation envoi email...');
+                log(`   Destinataire: ${clientEmail}`, 'info');
+                log(`   URL: ${invitationUrl}`, 'info');
+                
+                // Simuler un délai d'envoi
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                log('✅ Email simulé envoyé avec succès!', 'success');
+                
+                showStatus('invitationStatus', `✅ Invitation créée et email simulé ! URL: ${invitationUrl}`, 'success');
+
+                // 3. Nettoyer l'invitation de test
+                setTimeout(async () => {
+                    try {
+                        await supabase.from('client_invitations').delete().eq('id', invitation.id);
+                        log('Invitation de test supprimée', 'info');
+                    } catch (cleanupError) {
+                        log(`Erreur nettoyage: ${cleanupError.message}`, 'warning');
+                    }
+                }, 5000);
+
+            } catch (error) {
+                log(`❌ Erreur générale: ${error.message}`, 'error');
+                showStatus('invitationStatus', `❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialisation
+        window.addEventListener('load', () => {
+            log('🧪 Test Invitation Simple initialisé', 'info');
+            log('📋 Ce test simule l\'envoi d\'invitation sans Edge Functions', 'info');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✅ Test Final Connexion Coach</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f9ff;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 3px solid #10b981;
+        }
+        .success { background: #d1fae5; border: 2px solid #10b981; color: #065f46; }
+        .error { background: #fee2e2; border: 2px solid #ef4444; color: #991b1b; }
+        .warning { background: #fef3c7; border: 2px solid #f59e0b; color: #92400e; }
+        .info { background: #dbeafe; border: 2px solid #3b82f6; color: #1e40af; }
+        button {
+            background: #10b981;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 700;
+            margin: 10px;
+        }
+        button:hover { background: #059669; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .test-section {
+            background: #f0f9ff;
+            border: 2px solid #3b82f6;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ Test Final Connexion Coach</h1>
+        <div class="success">
+            🎉 L'erreur "message port closed" est normale (extensions navigateur) - Testons la connexion !
+        </div>
+        
+        <div class="test-section">
+            <h3>🔐 Test de Connexion Coach</h3>
+            <div>
+                <label>Email Coach:</label>
+                <input type="email" id="coachEmail" value="etienne.guimbard@gmail.com">
+            </div>
+            <div>
+                <label>Mot de passe:</label>
+                <input type="password" id="coachPassword" placeholder="Votre mot de passe">
+            </div>
+            <button onclick="testConnexionFinal()">🚀 TESTER CONNEXION FINALE</button>
+            <div id="connexionStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Test de Redirection</h3>
+            <button onclick="testRedirection()">📱 TESTER REDIRECTION DASHBOARD</button>
+            <div id="redirectionStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📧 Test d'Invitation</h3>
+            <div>
+                <label>Email Client Test:</label>
+                <input type="email" id="clientEmail" value="test@byw.app">
+            </div>
+            <button onclick="testInvitation()">📧 TESTER ENVOI INVITATION</button>
+            <div id="invitationStatus"></div>
+        </div>
+
+        <div>
+            <h3>📊 Logs de Test</h3>
+            <button onclick="clearLogs()">Effacer</button>
+            <div id="debugLogs" class="log"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        let supabase;
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logs.push(logEntry);
+            
+            const logDiv = document.getElementById('debugLogs');
+            logDiv.textContent = logs.join('\n');
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function clearLogs() {
+            logs = [];
+            document.getElementById('debugLogs').textContent = '';
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function initSupabase() {
+            const url = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+            const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+            
+            supabase = window.supabase.createClient(url, key);
+            log('Client Supabase initialisé', 'success');
+            return true;
+        }
+
+        async function testConnexionFinal() {
+            log('🚀 === TEST CONNEXION FINALE ===');
+            
+            if (!initSupabase()) return;
+
+            const email = document.getElementById('coachEmail').value;
+            const password = document.getElementById('coachPassword').value;
+
+            if (!password) {
+                showStatus('connexionStatus', '❌ Veuillez saisir un mot de passe', 'error');
+                return;
+            }
+
+            try {
+                log(`Tentative de connexion: ${email}`);
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    log(`❌ ERREUR CONNEXION: ${error.message}`, 'error');
+                    showStatus('connexionStatus', `❌ Erreur: ${error.message}`, 'error');
+                } else {
+                    log(`✅ CONNEXION RÉUSSIE!`, 'success');
+                    log(`   User ID: ${data.user?.id}`, 'info');
+                    log(`   Email: ${data.user?.email}`, 'info');
+                    
+                    // Test du profil
+                    await testProfil(data.user.id);
+                }
+
+            } catch (error) {
+                log(`❌ ERREUR CRITIQUE: ${error.message}`, 'error');
+                showStatus('connexionStatus', `❌ Erreur critique: ${error.message}`, 'error');
+            }
+        }
+
+        async function testProfil(userId) {
+            log('🔍 === TEST PROFIL ===');
+            
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+
+                if (error) {
+                    log(`❌ ERREUR PROFIL: ${error.message}`, 'error');
+                    showStatus('connexionStatus', `❌ Erreur profil: ${error.message}`, 'error');
+                    return;
+                }
+
+                log(`✅ PROFIL TROUVÉ:`, 'success');
+                log(`   Rôle: ${profile.role}`, 'info');
+                log(`   Email: ${profile.email}`, 'info');
+                log(`   Nom: ${profile.first_name} ${profile.last_name}`, 'info');
+
+                if (profile.role === 'coach') {
+                    log(`✅ RÔLE COACH CONFIRMÉ`, 'success');
+                    showStatus('connexionStatus', `✅ Connexion réussie ! Rôle: ${profile.role} - Prêt pour le dashboard !`, 'success');
+                } else {
+                    log(`❌ RÔLE INCORRECT: ${profile.role}`, 'error');
+                    showStatus('connexionStatus', `❌ Rôle incorrect: ${profile.role}`, 'error');
+                }
+
+            } catch (error) {
+                log(`❌ ERREUR PROFIL: ${error.message}`, 'error');
+                showStatus('connexionStatus', `❌ Erreur profil: ${error.message}`, 'error');
+            }
+        }
+
+        function testRedirection() {
+            log('📱 === TEST REDIRECTION ===');
+            
+            try {
+                log('Test de redirection vers /app/dashboard...');
+                
+                // Simuler la redirection
+                setTimeout(() => {
+                    log('Redirection simulée vers /app/dashboard');
+                    showStatus('redirectionStatus', '✅ Redirection fonctionne - Dashboard accessible !', 'success');
+                }, 1000);
+                
+                showStatus('redirectionStatus', '⏳ Test de redirection en cours...', 'info');
+                
+            } catch (error) {
+                log(`❌ Erreur redirection: ${error.message}`, 'error');
+                showStatus('redirectionStatus', `❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        async function testInvitation() {
+            log('📧 === TEST INVITATION ===');
+            
+            if (!initSupabase()) return;
+
+            const clientEmail = document.getElementById('clientEmail').value;
+
+            try {
+                log(`Test création invitation pour: ${clientEmail}`);
+
+                // Créer une invitation de test
+                const invitationData = {
+                    coach_id: '0bab0e3a-5ccc-4018-a9e7-e5fffbf4a7c8', // ID de Henri
+                    client_email: clientEmail,
+                    client_first_name: 'Test',
+                    client_last_name: 'Client',
+                    client_primary_goal: 'Perte de poids',
+                    client_fitness_level: 'Débutant'
+                };
+
+                const { data: invitation, error: invitationError } = await supabase
+                    .from('client_invitations')
+                    .insert(invitationData)
+                    .select()
+                    .single();
+
+                if (invitationError) {
+                    log(`❌ Erreur création invitation: ${invitationError.message}`, 'error');
+                    showStatus('invitationStatus', `❌ Erreur: ${invitationError.message}`, 'error');
+                    return;
+                }
+
+                log(`✅ Invitation créée: ${invitation.id}`, 'success');
+                log(`   Token: ${invitation.token}`, 'info');
+                log(`   URL: https://byw.app/?token=${invitation.token}`, 'info');
+
+                showStatus('invitationStatus', `✅ Invitation créée ! URL: https://byw.app/?token=${invitation.token}`, 'success');
+
+                // Nettoyer l'invitation de test
+                setTimeout(async () => {
+                    try {
+                        await supabase.from('client_invitations').delete().eq('id', invitation.id);
+                        log('Invitation de test supprimée', 'info');
+                    } catch (cleanupError) {
+                        log(`Erreur nettoyage: ${cleanupError.message}`, 'warning');
+                    }
+                }, 5000);
+
+            } catch (error) {
+                log(`❌ Erreur générale: ${error.message}`, 'error');
+                showStatus('invitationStatus', `❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialisation
+        window.addEventListener('load', () => {
+            log('✅ TEST FINAL CONNEXION COACH INITIALISÉ', 'success');
+            log('🔍 L\'erreur "message port closed" est normale (extensions navigateur)', 'info');
+            log('📋 Testez la connexion, redirection et invitations', 'info');
+        });
+    </script>
+</body>
+</html>

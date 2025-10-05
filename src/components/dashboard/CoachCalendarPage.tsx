@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { appointmentService, AppointmentWithDetails } from '../../services/appointmentService';
 import { availabilityService, WeeklySchedule } from '../../services/availabilityService';
 import { calendarSyncService } from '../../services/calendarSyncService';
-import { useAuth } from '../../providers/AuthProvider';
+import { useAuth } from '@/providers/OptimizedAuthProvider';
 import { CalendarView } from './calendar/CalendarView';
 import { AvailabilityManager } from './calendar/AvailabilityManager';
 import { AppointmentModal } from './calendar/AppointmentModal';

@@ -18,7 +18,7 @@ import {
   Settings
 } from 'lucide-react'
 import { ReminderService, ReminderTemplate } from '../../services/reminderService'
-import { useAuth } from '../../providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 
 export const ReminderManagement: React.FC = () => {
   const { user } = useAuth()

@@ -8,6 +8,28 @@ export interface AccessValidationResult {
   error?: string;
 }
 
+export type CoachSubscriptionPlan = 'warm_up' | 'transformationnel' | 'elite';
+
+export function isActiveSubscriptionStatus(status: string | null | undefined): boolean {
+  return status === 'active' || status === 'trialing';
+}
+
+export function hasFeatureAccess(
+  plan: CoachSubscriptionPlan | null | undefined,
+  feature: string
+): boolean {
+  if (!plan) return false;
+  const byPlan: Record<CoachSubscriptionPlan, string[]> = {
+    warm_up: ['basic_dashboard', 'basic_messaging', 'simple_calendar', 'basic_client_dashboard', 'basic_settings_notifications'],
+    transformationnel: ['advanced_dashboard', 'voice_messaging', 'nutrition_tracking', 'advanced_feedbacks', 'progress_photos_history', 'trophies', 'shared_resources', 'payment_retries'],
+    elite: ['ai_nutrition', 'financial_dashboard', 'advanced_automation', 'full_calendar_integration', 'premium_resources_exports', 'priority_support', 'advanced_gamification', 'theme_customization'],
+  };
+  // Elite has all previous
+  if (plan === 'elite') return true;
+  if (plan === 'transformationnel') return byPlan.transformationnel.includes(feature) || byPlan.warm_up.includes(feature);
+  return byPlan.warm_up.includes(feature);
+}
+
 export class AccessValidationService {
   /**
    * Valide l'accès d'un utilisateur en vérifiant son email
@@ -19,7 +41,7 @@ export class AccessValidationService {
       const normalizedEmail = email.trim().toLowerCase();
 
       // OPTIMISATION: Vérifier d'abord la whitelist (plus rapide)
-      const allowedCoachEmails = ['etienne.guimbard@gmail.com'];
+      const allowedCoachEmails = ['etienne.guimbard@gmail.com', 'team@propulseo-site.com', 'henriprospecto123@gmail.com'];
       if (allowedCoachEmails.includes(normalizedEmail)) {
         console.log('Coach access granted (by whitelist) for:', email);
         return {

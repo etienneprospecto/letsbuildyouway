@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Target, MessageSquare } from 'lucide-react'
-import { useAuth } from '@/providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/hooks/use-toast'
 import { useClientSeances, Seance, ExerciceSeance } from '@/hooks/useClientSeances'

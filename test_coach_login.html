@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test Connexion Coach BYW</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        .success { background: #d1fae5; border: 1px solid #10b981; color: #065f46; }
+        .error { background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; }
+        .warning { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; }
+        .info { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
+        button {
+            background: #f97316;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 5px;
+        }
+        button:hover { background: #ea580c; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #f97316;
+            background: #fef7f0;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Connexion Coach BYW</h1>
+        <p>Test du système de connexion des coaches après correction de la boucle infinie</p>
+        
+        <div class="step">
+            <h3>1. Configuration Supabase</h3>
+            <div>
+                <label>URL Supabase:</label>
+                <input type="text" id="supabaseUrl" value="https://chrhxkcppvigxqlsxgqo.supabase.co">
+            </div>
+            <div>
+                <label>Clé Supabase:</label>
+                <input type="text" id="supabaseKey" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg">
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>2. Test de Connexion Coach</h3>
+            <div>
+                <label>Email Coach:</label>
+                <input type="email" id="coachEmail" value="etienne.guimbard@gmail.com">
+            </div>
+            <div>
+                <label>Mot de passe:</label>
+                <input type="password" id="coachPassword" placeholder="Mot de passe du coach">
+            </div>
+            <button onclick="testCoachLogin()">Tester la Connexion Coach</button>
+            <div id="loginStatus"></div>
+        </div>
+
+        <div class="step">
+            <h3>3. Test de Création de Profil</h3>
+            <button onclick="testProfileCreation()">Tester la Création de Profil</button>
+            <div id="profileStatus"></div>
+        </div>
+
+        <div class="step">
+            <h3>4. Test de Rôle Coach</h3>
+            <button onclick="testCoachRole()">Vérifier le Rôle Coach</button>
+            <div id="roleStatus"></div>
+        </div>
+
+        <div class="step">
+            <h3>5. Logs de Diagnostic</h3>
+            <button onclick="clearLogs()">Effacer les logs</button>
+            <div id="diagnosticLogs" class="log"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        let supabase;
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logs.push(logEntry);
+            
+            const logDiv = document.getElementById('diagnosticLogs');
+            logDiv.textContent = logs.join('\n');
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function clearLogs() {
+            logs = [];
+            document.getElementById('diagnosticLogs').textContent = '';
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function initSupabase() {
+            const url = document.getElementById('supabaseUrl').value;
+            const key = document.getElementById('supabaseKey').value;
+            
+            supabase = window.supabase.createClient(url, key);
+            log('Client Supabase initialisé', 'success');
+            return true;
+        }
+
+        async function testCoachLogin() {
+            log('=== TEST CONNEXION COACH ===');
+            
+            if (!initSupabase()) return;
+
+            const email = document.getElementById('coachEmail').value;
+            const password = document.getElementById('coachPassword').value;
+
+            if (!password) {
+                showStatus('loginStatus', '❌ Veuillez saisir un mot de passe', 'error');
+                return;
+            }
+
+            try {
+                log(`Tentative de connexion pour: ${email}`);
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    log(`Erreur de connexion: ${error.message}`, 'error');
+                    showStatus('loginStatus', `❌ Erreur: ${error.message}`, 'error');
+                } else {
+                    log(`Connexion réussie! User ID: ${data.user?.id}`, 'success');
+                    log(`Email: ${data.user?.email}`, 'info');
+                    log(`Role metadata: ${JSON.stringify(data.user?.user_metadata)}`, 'info');
+                    
+                    showStatus('loginStatus', `✅ Connexion réussie! User ID: ${data.user?.id}`, 'success');
+                    
+                    // Tester la récupération du profil
+                    await testProfileRetrieval(data.user.id);
+                }
+
+            } catch (error) {
+                log(`Erreur générale: ${error.message}`, 'error');
+                showStatus('loginStatus', `❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        async function testProfileRetrieval(userId) {
+            log('=== TEST RÉCUPÉRATION PROFIL ===');
+            
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+
+                if (error) {
+                    log(`Erreur récupération profil: ${error.message}`, 'error');
+                } else {
+                    log(`Profil trouvé:`, 'success');
+                    log(`  - ID: ${profile.id}`, 'info');
+                    log(`  - Email: ${profile.email}`, 'info');
+                    log(`  - Rôle: ${profile.role}`, 'info');
+                    log(`  - Nom: ${profile.first_name} ${profile.last_name}`, 'info');
+                }
+            } catch (error) {
+                log(`Erreur profil: ${error.message}`, 'error');
+            }
+        }
+
+        async function testProfileCreation() {
+            log('=== TEST CRÉATION PROFIL ===');
+            
+            if (!initSupabase()) return;
+
+            try {
+                // Simuler la création d'un profil coach
+                const testEmail = 'test-coach@byw.app';
+                const testUserId = 'test-user-' + Date.now();
+                
+                const profileData = {
+                    id: testUserId,
+                    email: testEmail,
+                    first_name: 'Test',
+                    last_name: 'Coach',
+                    role: 'coach'
+                };
+
+                log(`Création profil test: ${testEmail}`);
+                
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .upsert(profileData, { onConflict: 'id' })
+                    .select()
+                    .single();
+
+                if (error) {
+                    log(`Erreur création profil: ${error.message}`, 'error');
+                    showStatus('profileStatus', `❌ Erreur: ${error.message}`, 'error');
+                } else {
+                    log(`Profil créé avec succès:`, 'success');
+                    log(`  - ID: ${data.id}`, 'info');
+                    log(`  - Rôle: ${data.role}`, 'info');
+                    showStatus('profileStatus', `✅ Profil créé! Rôle: ${data.role}`, 'success');
+                }
+
+            } catch (error) {
+                log(`Erreur générale: ${error.message}`, 'error');
+                showStatus('profileStatus', `❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCoachRole() {
+            log('=== TEST RÔLE COACH ===');
+            
+            if (!initSupabase()) return;
+
+            try {
+                const allowedCoachEmails = ['etienne.guimbard@gmail.com', 'team@propulseo-site.com', 'henriprospecto123@gmail.com'];
+                const testEmail = document.getElementById('coachEmail').value.toLowerCase();
+                
+                log(`Test email: ${testEmail}`);
+                log(`Emails autorisés: ${allowedCoachEmails.join(', ')}`);
+                
+                const isCoach = allowedCoachEmails.includes(testEmail);
+                
+                if (isCoach) {
+                    log(`✅ Email reconnu comme coach`, 'success');
+                    showStatus('roleStatus', `✅ ${testEmail} est reconnu comme coach`, 'success');
+                } else {
+                    log(`❌ Email non reconnu comme coach`, 'warning');
+                    showStatus('roleStatus', `⚠️ ${testEmail} n'est pas dans la liste des coaches`, 'warning');
+                }
+
+            } catch (error) {
+                log(`Erreur test rôle: ${error.message}`, 'error');
+                showStatus('roleStatus', `❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialisation
+        window.addEventListener('load', () => {
+            log('🧪 Test Connexion Coach BYW initialisé', 'info');
+            log('📋 Étapes recommandées:', 'info');
+            log('1. Vérifiez la configuration Supabase', 'info');
+            log('2. Testez la connexion coach', 'info');
+            log('3. Vérifiez la création de profil', 'info');
+            log('4. Vérifiez le rôle coach', 'info');
+        });
+    </script>
+</body>
+</html>

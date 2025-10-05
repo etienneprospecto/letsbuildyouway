@@ -13,7 +13,7 @@ import {
   Euro
 } from 'lucide-react'
 import { BillingService } from '../../services/billingService'
-import { useAuth } from '../../providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 import { StripePaymentForm } from '../ui/StripePaymentForm'
 import { InvoiceDetailsModal } from '../ui/InvoiceDetailsModal'
 import { SimulatedPaymentForm } from '../ui/SimulatedPaymentForm'

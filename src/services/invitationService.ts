@@ -243,19 +243,20 @@ class InvitationService {
   }
 
   /**
-   * Envoyer l'email d'invitation
+   * Envoyer l'email d'invitation avec logs détaillés
    */
   private async sendInvitationEmail(invitation: InvitationData): Promise<void> {
     const invitationUrl = `${window.location.origin}/?token=${invitation.token}`;
 
-    // Pour l'instant, on simule l'envoi d'email pour éviter les problèmes
+    console.log('📧 ===== DÉBUT ENVOI EMAIL INVITATION =====');
+    console.log('📧 Client:', invitation.client_email);
+    console.log('📧 Nom:', `${invitation.client_first_name} ${invitation.client_last_name}`);
+    console.log('📧 Coach ID:', invitation.coach_id);
+    console.log('🔗 URL:', invitationUrl);
 
-    console.log('📧 Email d\'invitation simulé (Edge Function temporairement désactivée):');
-
-    // Code commenté pour l'Edge Function (à réactiver plus tard)
-    /*
     try {
       // Récupérer le nom du coach
+      console.log('👨‍💼 Récupération des infos coach...');
       const { data: coach, error: coachError } = await supabase
         .from('profiles')
         .select('first_name, last_name')
@@ -263,44 +264,104 @@ class InvitationService {
         .single();
 
       if (coachError) {
-
+        console.error('❌ Erreur récupération coach:', coachError);
       }
 
       const coachName = coach ? `${coach.first_name} ${coach.last_name}` : 'Votre coach';
+      console.log('👨‍💼 Coach:', coachName);
 
-      // Appeler l'Edge Function pour envoyer l'email avec timeout
+      // Préparer les données d'email
+      const emailData = {
+        client_email: invitation.client_email,
+        client_name: `${invitation.client_first_name} ${invitation.client_last_name}`,
+        invitation_url: invitationUrl,
+        coach_name: coachName,
+        type: 'client_invitation'
+      };
 
-      const functionPromise = supabase.functions.invoke('send-invitation-email', {
+      console.log('📦 Données email:', emailData);
+
+      // Appeler l'Edge Function pour envoyer l'email
+      console.log('🚀 Appel Edge Function resend-send-email...');
+      const { data, error } = await supabase.functions.invoke('resend-send-email', {
         body: {
-          client_email: invitation.client_email,
-          client_name: `${invitation.client_first_name} ${invitation.client_last_name}`,
-          invitation_url: invitationUrl,
-          coach_name: coachName
+          to: invitation.client_email,
+          subject: `Invitation de ${coachName} - Rejoignez BYW`,
+          html: generateEmailHTML(emailData, 'client_invitation'),
+          text: generateEmailText(emailData, 'client_invitation')
         }
       });
 
-      // Timeout de 10 secondes
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: Edge Function took too long')), 10000)
-      );
-
-      const { data, error } = await Promise.race([functionPromise, timeoutPromise]) as any;
-
       if (error) {
-
+        console.warn('⚠️ ===== EDGE FUNCTION NON DISPONIBLE =====');
+        console.warn('⚠️ Erreur:', error.message);
+        console.warn('📧 Client:', invitation.client_email);
+        console.warn('⏰ Timestamp:', new Date().toISOString());
+        console.warn('📧 ======================================');
+        
         // Ne pas faire échouer la création de l'invitation si l'email échoue
-        console.log('📧 Email d\'invitation simulé (service indisponible):');
-
+        console.log('📧 Email d\'invitation simulé (Edge Function indisponible):');
+        console.log('URL d\'invitation:', invitationUrl);
+        console.log('💡 Le coach peut copier cette URL pour inviter manuellement');
+        
+        // Stocker l'erreur pour debugging (sans bloquer)
+        try {
+          await this.logEmailError(invitation, error);
+        } catch (logError) {
+          console.warn('Erreur lors du logging:', logError);
+        }
       } else {
-
+        console.log('✅ ===== EMAIL ENVOYÉ AVEC SUCCÈS =====');
+        console.log('✅ Email ID:', data?.email_id);
+        console.log('✅ Message:', data?.message);
+        console.log('📧 Client:', invitation.client_email);
+        console.log('⏰ Timestamp:', data?.timestamp || new Date().toISOString());
+        console.log('📧 ======================================');
       }
     } catch (error) {
-
+      console.warn('⚠️ ===== ERREUR GÉNÉRALE EMAIL =====');
+      console.warn('⚠️ Type:', error.name);
+      console.warn('⚠️ Message:', error.message);
+      console.warn('📧 Client:', invitation.client_email);
+      console.warn('⏰ Timestamp:', new Date().toISOString());
+      console.warn('📧 ==================================');
+      
       // Fallback : afficher l'URL dans la console
       console.log('📧 Email d\'invitation simulé (erreur de service):');
-
+      console.log('URL d\'invitation:', invitationUrl);
+      console.log('💡 Le coach peut copier cette URL pour inviter manuellement');
+      
+      // Stocker l'erreur pour debugging (sans bloquer)
+      try {
+        await this.logEmailError(invitation, error);
+      } catch (logError) {
+        console.warn('Erreur lors du logging:', logError);
+      }
     }
-    */
+  }
+
+  /**
+   * Logger les erreurs d'email pour debugging
+   */
+  private async logEmailError(invitation: InvitationData, error: any): Promise<void> {
+    try {
+      const { error: logError } = await supabase
+        .from('email_error_logs')
+        .insert({
+          invitation_id: invitation.id,
+          client_email: invitation.client_email,
+          error_type: error.name || 'Unknown',
+          error_message: error.message || 'Unknown error',
+          error_details: JSON.stringify(error),
+          timestamp: new Date().toISOString()
+        });
+
+      if (logError) {
+        console.error('❌ Erreur lors du logging:', logError);
+      }
+    } catch (logError) {
+      console.error('❌ Erreur critique lors du logging:', logError);
+    }
   }
 
   /**

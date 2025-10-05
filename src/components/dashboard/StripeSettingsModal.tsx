@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '../ui/alert'
 import { CheckCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react'
 import { BillingService } from '../../services/billingService'
 import { StripeService } from '../../services/stripeService'
-import { useAuth } from '../../providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 
 interface StripeSettingsModalProps {
   onClose: () => void

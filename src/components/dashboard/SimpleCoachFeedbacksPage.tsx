@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '@/providers/AuthProvider'
+import { useAuth } from '@/providers/OptimizedAuthProvider'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/hooks/use-toast'
 import { WeeklyFeedbackService } from '@/services/weeklyFeedbackService'
