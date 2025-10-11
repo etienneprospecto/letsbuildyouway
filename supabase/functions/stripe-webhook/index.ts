@@ -403,8 +403,11 @@ async function handleCheckoutSessionCompleted(session: any, supabase: any) {
       
       console.log('📤 Sending email payload:', JSON.stringify(emailPayload, null, 2))
       
-      const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-email-reliable', {
-        body: emailPayload
+      const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-email-working', {
+        body: {
+          email: customerEmail,
+          name: customerName
+        }
       })
 
       if (emailError) {

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Direct Email - Diagnostic</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .message { padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #result { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; }
+        .diagnostic { background: #e9ecef; padding: 15px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Diagnostic Email - Pourquoi tu ne reçois rien</h1>
+    
+    <div class="diagnostic">
+        <h3>🚨 Problème identifié :</h3>
+        <p>Les logs Supabase montrent des erreurs 400 récentes. Le problème n'est PAS d'être en local.</p>
+        <p><strong>Cause :</strong> Les variables d'environnement ne sont pas configurées dans Supabase Dashboard.</p>
+    </div>
+    
+    <div id="message" class="message warning">
+        ⚠️ Variables d'environnement manquantes dans Supabase
+    </div>
+    
+    <div>
+        <button onclick="testDirectEmail()">📧 Test Direct Email</button>
+        <button onclick="checkSupabaseAuth()">🔐 Test Supabase Auth</button>
+        <button onclick="showInstructions()">📋 Instructions Configuration</button>
+    </div>
+    
+    <div id="result" style="display: none;"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        
+        const SUPABASE_URL = 'https://chrhxkcppvigxqlsxgqo.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg'
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        
+        function log(message, type = 'info') {
+            console.log(message)
+            const resultDiv = document.getElementById('result')
+            resultDiv.style.display = 'block'
+            resultDiv.innerHTML += `<div class="message ${type}">${message}</div>`
+        }
+        
+        async function testDirectEmail() {
+            const messageDiv = document.getElementById('message')
+            const resultDiv = document.getElementById('result')
+            
+            messageDiv.className = 'message info'
+            messageDiv.textContent = 'Test direct email...'
+            resultDiv.style.display = 'none'
+            resultDiv.innerHTML = ''
+
+            try {
+                log('🧪 Test direct email via send-email-reliable...')
+                
+                const { data: emailResult, error: emailError } = await supabaseClient.functions.invoke('send-email-reliable', {
+                    body: {
+                        client_email: 'etienne@propulsei-site.com',
+                        client_name: 'Etienne Test',
+                        invitation_url: 'https://byw.app/accept-invitation?token=test123',
+                        coach_name: 'Coach Test',
+                        type: 'client_invitation'
+                    }
+                })
+
+                if (emailError) {
+                    log(`❌ Erreur 400: ${emailError.message}`, 'error')
+                    log(`🔍 Cette erreur indique que les variables d'environnement ne sont pas configurées`, 'warning')
+                    log(`📋 Il faut aller dans Supabase Dashboard → Settings → Edge Functions → Secrets`, 'info')
+                    messageDiv.className = 'message error'
+                    messageDiv.textContent = '❌ Variables d\'environnement manquantes'
+                } else {
+                    log(`✅ Email envoyé avec succès !`, 'success')
+                    log(`   Résultat: ${JSON.stringify(emailResult, null, 2)}`, 'info')
+                    messageDiv.className = 'message success'
+                    messageDiv.textContent = '✅ Email envoyé avec succès !'
+                }
+
+            } catch (error) {
+                log(`❌ Erreur générale: ${error.message}`, 'error')
+                messageDiv.className = 'message error'
+                messageDiv.textContent = `❌ Erreur: ${error.message}`
+            }
+        }
+        
+        async function checkSupabaseAuth() {
+            const messageDiv = document.getElementById('message')
+            const resultDiv = document.getElementById('result')
+            
+            messageDiv.className = 'message info'
+            messageDiv.textContent = 'Test Supabase Auth...'
+            resultDiv.style.display = 'none'
+            resultDiv.innerHTML = ''
+
+            try {
+                log('🔐 Test Supabase Auth...')
+                
+                // Test simple de connexion
+                const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+                
+                if (authError) {
+                    log(`❌ Erreur Auth: ${authError.message}`, 'error')
+                } else {
+                    log(`✅ Auth OK: ${user ? 'Connecté' : 'Non connecté'}`, 'success')
+                }
+                
+                // Test de la base de données
+                const { data: profiles, error: dbError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, first_name')
+                    .limit(1)
+                
+                if (dbError) {
+                    log(`❌ Erreur DB: ${dbError.message}`, 'error')
+                } else {
+                    log(`✅ DB OK: ${profiles.length} profils trouvés`, 'success')
+                }
+                
+                messageDiv.className = 'message success'
+                messageDiv.textContent = '✅ Tests de base OK'
+
+            } catch (error) {
+                log(`❌ Erreur générale: ${error.message}`, 'error')
+                messageDiv.className = 'message error'
+                messageDiv.textContent = `❌ Erreur: ${error.message}`
+            }
+        }
+        
+        function showInstructions() {
+            const resultDiv = document.getElementById('result')
+            resultDiv.style.display = 'block'
+            resultDiv.innerHTML = `
+                <div class="message info">
+                    <h3>📋 Instructions pour configurer les variables :</h3>
+                    <ol>
+                        <li><strong>Aller dans Supabase Dashboard :</strong><br>
+                            <a href="https://supabase.com/dashboard/project/chrhxkcppvigxqlsxgqo" target="_blank">
+                                https://supabase.com/dashboard/project/chrhxkcppvigxqlsxgqo
+                            </a>
+                        </li>
+                        <li><strong>Aller dans Settings → Edge Functions → Secrets</strong></li>
+                        <li><strong>Cliquer sur "Add new secret"</strong></li>
+                        <li><strong>Ajouter ces 2 variables :</strong><br>
+                            <code>RESEND_API_KEY = re_hVSHXfUm_DMaGsSpQEpZ794wu4ELadX1j</code><br>
+                            <code>FROM_EMAIL = letsbuildyourway@gmail.com</code>
+                        </li>
+                        <li><strong>Redéployer la fonction (optionnel) :</strong><br>
+                            <code>supabase functions deploy send-auth-invitation --project-ref chrhxkcppvigxqlsxgqo</code>
+                        </li>
+                    </ol>
+                </div>
+                <div class="message warning">
+                    <h3>⚠️ Important :</h3>
+                    <p>Le problème n'est PAS d'être en local. Les Edge Functions Supabase fonctionnent même en local si les variables sont configurées.</p>
+                    <p>Une fois les variables configurées, les emails fonctionneront immédiatement.</p>
+                </div>
+            `
+        }
+        
+        // Initialisation
+        window.addEventListener('load', () => {
+            log('🔍 DIAGNOSTIC EMAIL INITIALISÉ', 'info')
+            log('📊 Les logs montrent des erreurs 400 = variables manquantes', 'warning')
+            log('🔧 Il faut configurer RESEND_API_KEY et FROM_EMAIL dans Supabase', 'info')
+        })
+    </script>
+</body>
+</html>

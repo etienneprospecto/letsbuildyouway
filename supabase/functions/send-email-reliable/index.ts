@@ -126,7 +126,7 @@ async function sendResendEmail({ to, subject, html, text }: any) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: Deno.env.get('FROM_EMAIL') || 'onboarding@resend.dev',
+        from: 'no-reply@buildyourway.ovh',
         to: [to],
         subject,
         html,
@@ -162,7 +162,7 @@ async function sendSendGridEmail({ to, subject, html, text }: any) {
       },
       body: JSON.stringify({
         personalizations: [{ to: [{ email: to }] }],
-        from: { email: Deno.env.get('FROM_EMAIL') || 'noreply@byw.app', name: 'BYW' },
+        from: { email: 'no-reply@buildyourway.ovh', name: 'BYW' },
         subject,
         content: [
           { type: 'text/plain', value: text },
@@ -193,7 +193,7 @@ async function sendMailgunEmail({ to, subject, html, text }: any) {
 
   try {
     const formData = new FormData();
-    formData.append('from', Deno.env.get('FROM_EMAIL') || `noreply@${mailgunDomain}`);
+    formData.append('from', 'no-reply@buildyourway.ovh');
     formData.append('to', to);
     formData.append('subject', subject);
     formData.append('text', text);
