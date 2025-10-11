@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Email Direct - Supabase</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Email Direct - Supabase</h1>
+        <p>Test de l'envoi d'email via la nouvelle Edge Function <code>send-email-direct</code></p>
+        
+        <div class="test-section">
+            <h3>📧 Test Email avec Invitation Réelle</h3>
+            <p>Email: <strong>etienne@epevents.net</strong></p>
+            <p>Nom: <strong>Etienne Guimbard</strong></p>
+            <p>Coach: <strong>Etiennne Oui</strong></p>
+            <p>Token: <code>inv_mge074xn_9b7fxdv9rnt</code></p>
+            
+            <button onclick="testEmailDirect()" id="testBtn">🚀 Envoyer Email Direct</button>
+            <button onclick="clearLogs()">🗑️ Effacer Logs</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Logs de Test</h3>
+            <div id="logs" class="log">Prêt pour le test...</div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQyNzQ4MzAsImV4cCI6MjA0MDA1MDgzMH0.8Q7Q8Q7Q8Q7Q8Q7Q8Q7Q8Q7Q8Q7Q8Q7Q8Q7Q8Q7Q8Q';
+        
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logs.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = 'Logs effacés...';
+        }
+        
+        async function testEmailDirect() {
+            const btn = document.getElementById('testBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Envoi en cours...';
+            
+            log('🚀 ===== DÉBUT TEST EMAIL DIRECT =====');
+            
+            try {
+                // Données de test basées sur l'invitation réelle
+                const emailData = {
+                    client_email: 'etienne@epevents.net',
+                    client_name: 'Etienne Guimbard',
+                    invitation_url: `${window.location.origin}/accept-invitation?token=inv_mge074xn_9b7fxdv9rnt`,
+                    coach_name: 'Etiennne Oui'
+                };
+                
+                log(`📧 Destinataire: ${emailData.client_email}`);
+                log(`👤 Nom: ${emailData.client_name}`);
+                log(`👨‍💼 Coach: ${emailData.coach_name}`);
+                log(`🔗 URL: ${emailData.invitation_url}`);
+                
+                log('📤 Appel Edge Function send-email-direct...');
+                
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email-direct`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify(emailData)
+                });
+                
+                log(`📊 Status: ${response.status} ${response.statusText}`);
+                
+                const result = await response.json();
+                log(`📦 Réponse: ${JSON.stringify(result, null, 2)}`);
+                
+                if (result.success) {
+                    log('✅ EMAIL ENVOYÉ AVEC SUCCÈS !', 'success');
+                    log(`📧 Email ID: ${result.email_id}`);
+                    log(`⏰ Timestamp: ${result.timestamp}`);
+                } else {
+                    log(`❌ ERREUR: ${result.error}`, 'error');
+                    if (result.details) {
+                        log(`📋 Détails: ${JSON.stringify(result.details, null, 2)}`);
+                    }
+                }
+                
+            } catch (error) {
+                log(`❌ ERREUR RÉSEAU: ${error.message}`, 'error');
+                console.error('Erreur:', error);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 Envoyer Email Direct';
+                log('🏁 ===== FIN TEST =====');
+            }
+        }
+        
+        // Auto-test au chargement
+        window.addEventListener('load', () => {
+            log('🌐 Page chargée - Prêt pour le test');
+            log('💡 Cliquez sur "Envoyer Email Direct" pour tester');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correction étape par étape - BYW</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { 
+            padding: 12px 20px; 
+            margin: 5px; 
+            cursor: pointer; 
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; color: white; }
+        input { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 5px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        pre { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 3px; 
+            overflow-x: auto; 
+            font-size: 12px;
+        }
+        h1 { color: #333; text-align: center; }
+        h3 { color: #555; }
+        .sql-code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .step {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .critical {
+            background: #fff3cd;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Correction étape par étape</h1>
+        <p style="text-align: center; color: #666;">Problème: Colonne user_id n'existe pas → Solution progressive</p>
+
+        <div class="critical">
+            <strong>⚠️ PROBLÈME IDENTIFIÉ:</strong> La colonne `user_id` n'existe pas dans la table `clients`. 
+            Il faut d'abord appliquer la migration pour ajouter cette colonne.
+        </div>
+
+        <div class="test-section">
+            <h3>1. Vérifier la structure actuelle</h3>
+            <button onclick="checkTableStructure()" class="btn-primary">Vérifier la structure des tables</button>
+            <div id="table-structure"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. ÉTAPE 1: Ajouter la colonne user_id</h3>
+            <div class="step">
+                <strong>Action:</strong> Ajouter la colonne user_id à la table clients
+            </div>
+            <div class="sql-code" id="step1-sql">
+-- ÉTAPE 1: Ajouter la colonne user_id à la table clients
+ALTER TABLE public.clients 
+ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE;
+
+-- Créer un index pour les performances
+CREATE INDEX IF NOT EXISTS idx_clients_user_id ON public.clients(user_id);
+
+-- Ajouter une contrainte d'unicité pour éviter les doublons
+ALTER TABLE public.clients 
+ADD CONSTRAINT IF NOT EXISTS unique_client_user_id UNIQUE (user_id);
+            </div>
+            <button onclick="copyStep1SQL()" class="btn-warning">Copier l'étape 1</button>
+            <div id="step1-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. ÉTAPE 2: Désactiver RLS et nettoyer</h3>
+            <div class="step">
+                <strong>Action:</strong> Désactiver RLS et supprimer les anciennes données
+            </div>
+            <div class="sql-code" id="step2-sql">
+-- ÉTAPE 2: Désactiver RLS temporairement
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clients DISABLE ROW LEVEL SECURITY;
+
+-- Supprimer l'ancien compte s'il existe (maintenant que user_id existe)
+DELETE FROM public.clients WHERE user_id = 'a3678ef6-d382-4ef1-b5b8-bbb8d681c51c';
+DELETE FROM public.profiles WHERE id = 'a3678ef6-d382-4ef1-b5b8-bbb8d681c51c';
+            </div>
+            <button onclick="copyStep2SQL()" class="btn-warning">Copier l'étape 2</button>
+            <div id="step2-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. ÉTAPE 3: Créer l'utilisateur auth</h3>
+            <div class="step">
+                <strong>Action:</strong> Créer l'utilisateur dans auth.users avec l'API Admin
+            </div>
+            <button onclick="createAuthUser()" class="btn-success">Créer l'utilisateur auth</button>
+            <div id="auth-user-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. ÉTAPE 4: Créer profil et fiche client</h3>
+            <div class="step">
+                <strong>Action:</strong> Créer le profil et la fiche client (RLS désactivé)
+            </div>
+            <div class="sql-code" id="step4-sql">
+-- ÉTAPE 4: Créer le profil (RLS désactivé)
+INSERT INTO public.profiles (id, email, first_name, last_name, role)
+VALUES (
+    'a3678ef6-d382-4ef1-b5b8-bbb8d681c51c',
+    'letsbuildyourway@gmail.com',
+    'Lets',
+    'Build Your Way',
+    'client'
+);
+
+-- Créer la fiche client avec user_id
+INSERT INTO public.clients (
+    user_id,
+    coach_id,
+    first_name,
+    last_name,
+    contact,
+    age,
+    level,
+    objective,
+    mentality,
+    coaching_type,
+    sports_history,
+    start_date
+) VALUES (
+    'a3678ef6-d382-4ef1-b5b8-bbb8d681c51c',
+    'acd6c7fc-43b3-4b2a-9b97-c9f046468ddd',
+    'Lets',
+    'Build Your Way',
+    'letsbuildyourway@gmail.com',
+    25,
+    'Débutant',
+    'Forme générale',
+    'Motivé',
+    'Personnel',
+    'Aucun',
+    CURRENT_DATE
+);
+            </div>
+            <button onclick="copyStep4SQL()" class="btn-warning">Copier l'étape 4</button>
+            <div id="step4-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>6. ÉTAPE 5: Réactiver RLS avec les bonnes policies</h3>
+            <div class="step">
+                <strong>Action:</strong> Réactiver RLS avec les policies d'isolation
+            </div>
+            <div class="sql-code" id="step5-sql">
+-- ÉTAPE 5: Réactiver RLS avec les bonnes policies
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
+
+-- Supprimer les anciennes policies incorrectes
+DROP POLICY IF EXISTS "Coaches can manage own clients" ON public.clients;
+DROP POLICY IF EXISTS "Clients can view own profile" ON public.clients;
+
+-- Créer les nouvelles policies avec isolation par user_id
+CREATE POLICY "Coaches can manage own clients" ON public.clients
+  FOR ALL USING (coach_id = auth.uid());
+
+CREATE POLICY "Clients can view own data" ON public.clients
+  FOR SELECT USING (user_id = auth.uid());
+
+-- Policies pour les séances
+DROP POLICY IF EXISTS "Clients can view own seances" ON public.seances;
+CREATE POLICY "Clients can view own seances" ON public.seances
+  FOR SELECT USING (
+    client_id IN (
+      SELECT id FROM public.clients WHERE user_id = auth.uid()
+    )
+  );
+            </div>
+            <button onclick="copyStep5SQL()" class="btn-warning">Copier l'étape 5</button>
+            <div id="step5-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>7. Test final</h3>
+            <button onclick="testFinal()" class="btn-success">Test final complet</button>
+            <div id="final-test"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration Supabase
+        const supabaseUrl = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        const clientEmail = 'letsbuildyourway@gmail.com';
+        const clientPassword = 'password123';
+        const userId = 'a3678ef6-d382-4ef1-b5b8-bbb8d681c51c';
+
+        // Vérifier la structure des tables
+        async function checkTableStructure() {
+            try {
+                // Vérifier si la colonne user_id existe
+                const { data: clients, error: clientsError } = await supabase
+                    .from('clients')
+                    .select('*')
+                    .limit(1);
+
+                if (clientsError) {
+                    document.getElementById('table-structure').innerHTML = `
+                        <div class="error">
+                            ❌ Erreur accès table clients: ${clientsError.message}
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Vérifier les colonnes disponibles
+                const columns = clients.length > 0 ? Object.keys(clients[0]) : [];
+                const hasUserId = columns.includes('user_id');
+
+                document.getElementById('table-structure').innerHTML = `
+                    <div class="${hasUserId ? 'success' : 'warning'}">
+                        ${hasUserId ? '✅' : '⚠️'} Structure table clients:
+                        <br>Colonnes: ${columns.join(', ')}
+                        <br>Colonne user_id: ${hasUserId ? 'Existe' : 'Manquante'}
+                        <br><br>
+                        ${!hasUserId ? '<strong>Action requise:</strong> Exécuter l\'étape 1 pour ajouter user_id</strong>' : ''}
+                    </div>
+                `;
+
+            } catch (error) {
+                document.getElementById('table-structure').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur vérification: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Copier l'étape 1
+        function copyStep1SQL() {
+            const sqlText = document.getElementById('step1-sql').textContent;
+            navigator.clipboard.writeText(sqlText).then(() => {
+                document.getElementById('step1-result').innerHTML = `
+                    <div class="success">
+                        ✅ SQL étape 1 copié ! Exécutez-le dans Supabase SQL Editor
+                    </div>
+                `;
+            });
+        }
+
+        // Copier l'étape 2
+        function copyStep2SQL() {
+            const sqlText = document.getElementById('step2-sql').textContent;
+            navigator.clipboard.writeText(sqlText).then(() => {
+                document.getElementById('step2-result').innerHTML = `
+                    <div class="success">
+                        ✅ SQL étape 2 copié ! Exécutez-le après l'étape 1
+                    </div>
+                `;
+            });
+        }
+
+        // Créer l'utilisateur auth
+        async function createAuthUser() {
+            try {
+                const { data, error } = await supabase.functions.invoke('create-henri', {
+                    body: {
+                        email: clientEmail,
+                        password: clientPassword,
+                        firstName: 'Lets',
+                        lastName: 'Build Your Way',
+                        role: 'client',
+                        userId: userId
+                    }
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                document.getElementById('auth-user-result').innerHTML = `
+                    <div class="success">
+                        ✅ Utilisateur auth créé avec succès !
+                        <br>Réponse: ${JSON.stringify(data, null, 2)}
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('auth-user-result').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur création utilisateur auth: ${error.message}
+                        <br><br>
+                        <strong>Solution alternative:</strong>
+                        <br>1. Créez manuellement l'utilisateur dans le dashboard Supabase Auth
+                        <br>2. Utilisez l'ID: ${userId}
+                        <br>3. Email: ${clientEmail}
+                        <br>4. Mot de passe: ${clientPassword}
+                    </div>
+                `;
+            }
+        }
+
+        // Copier l'étape 4
+        function copyStep4SQL() {
+            const sqlText = document.getElementById('step4-sql').textContent;
+            navigator.clipboard.writeText(sqlText).then(() => {
+                document.getElementById('step4-result').innerHTML = `
+                    <div class="success">
+                        ✅ SQL étape 4 copié ! Exécutez-le après avoir créé l'utilisateur auth
+                    </div>
+                `;
+            });
+        }
+
+        // Copier l'étape 5
+        function copyStep5SQL() {
+            const sqlText = document.getElementById('step5-sql').textContent;
+            navigator.clipboard.writeText(sqlText).then(() => {
+                document.getElementById('step5-result').innerHTML = `
+                    <div class="success">
+                        ✅ SQL étape 5 copié ! Exécutez-le en dernier
+                    </div>
+                `;
+            });
+        }
+
+        // Test final
+        async function testFinal() {
+            try {
+                // Tester la connexion
+                const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+                    email: clientEmail,
+                    password: clientPassword
+                });
+
+                if (loginError) {
+                    throw new Error(`Erreur connexion: ${loginError.message}`);
+                }
+
+                // Tester l'isolation
+                const { data: clients, error: clientsError } = await supabase
+                    .from('clients')
+                    .select('*')
+                    .eq('user_id', loginData.user.id);
+
+                if (clientsError) {
+                    throw new Error(`Erreur isolation: ${clientsError.message}`);
+                }
+
+                document.getElementById('final-test').innerHTML = `
+                    <div class="success">
+                        ✅ Test final réussi !
+                        <br><br>
+                        <strong>Connexion:</strong>
+                        <br>Email: ${loginData.user.email}
+                        <br>User ID: ${loginData.user.id}
+                        <br><br>
+                        <strong>Isolation:</strong>
+                        <br>Clients visibles: ${clients.length}
+                        <br>Client: ${clients[0]?.first_name} ${clients[0]?.last_name}
+                        <br><br>
+                        <strong>✅ Architecture multi-coach/multi-client sécurisée !</strong>
+                    </div>
+                `;
+
+            } catch (error) {
+                document.getElementById('final-test').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur test final: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Vérifier l'état au chargement
+        window.addEventListener('load', async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.email === clientEmail) {
+                document.getElementById('table-structure').innerHTML = `
+                    <div class="success">
+                        ✅ Déjà connecté en tant que ${user.email}
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

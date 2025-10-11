@@ -17,12 +17,44 @@ const AcceptInvitation = () => {
 
   const accessToken = searchParams.get('access_token');
   const refreshToken = searchParams.get('refresh_token');
+  const token = searchParams.get('token');
+  const type = searchParams.get('type');
 
   useEffect(() => {
     if (accessToken && refreshToken) {
       handleAuthWithTokens();
+    } else if (token && type === 'invite') {
+      handleSupabaseAuthInvite();
     }
-  }, [accessToken, refreshToken]);
+  }, [accessToken, refreshToken, token, type]);
+
+  const handleSupabaseAuthInvite = async () => {
+    try {
+      console.log('Handling Supabase Auth invite with token:', token);
+      
+      // Vérifier le token d'invitation Supabase Auth
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: token!,
+        type: 'invite'
+      });
+
+      if (error) {
+        console.error('Error verifying invite token:', error);
+        setError('Lien d\'invitation invalide ou expiré. Veuillez demander un nouveau lien.');
+        return;
+      }
+
+      if (data.user) {
+        console.log('Invitation verified successfully:', data.user.email);
+        setMessage('Invitation acceptée ! Vous pouvez maintenant définir votre mot de passe.');
+      } else {
+        setError('Aucun utilisateur trouvé dans l\'invitation.');
+      }
+    } catch (error: any) {
+      console.error('Error handling invite:', error);
+      setError('Erreur lors de l\'acceptation de l\'invitation. Veuillez réessayer.');
+    }
+  };
 
   const handleAuthWithTokens = async () => {
     try {
@@ -102,8 +134,23 @@ const AcceptInvitation = () => {
 
       setMessage('Mot de passe configuré avec succès ! Redirection vers votre dashboard...');
       
-      setTimeout(() => {
-        navigate('/app/dashboard');
+      // Attendre que la session soit bien établie
+      setTimeout(async () => {
+        try {
+          // Vérifier que l'utilisateur est bien connecté
+          const { data: { user }, error } = await supabase.auth.getUser();
+          if (error || !user) {
+            console.error('Erreur session après config mot de passe:', error);
+            setError('Erreur de session. Veuillez vous reconnecter.');
+            return;
+          }
+          
+          console.log('✅ Client connecté, redirection vers dashboard:', user.email);
+          navigate('/app/dashboard');
+        } catch (error) {
+          console.error('Erreur lors de la vérification de session:', error);
+          setError('Erreur de session. Veuillez vous reconnecter.');
+        }
       }, 2000);
 
     } catch (error: any) {

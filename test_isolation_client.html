@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Isolation Client - BYW</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔒 Test d'Isolation des Données Client</h1>
+    <p>Ce test vérifie que chaque client ne voit QUE ses propres données.</p>
+
+    <div class="test-section">
+        <h3>1. Connexion Client</h3>
+        <button onclick="loginAsClient1()">Se connecter en tant que CLIENT 1 (paulfst.business@gmail.com)</button>
+        <button onclick="loginAsClient2()">Se connecter en tant que CLIENT 2 (letsbuildyourway@gmail.com)</button>
+        <button onclick="logout()">Déconnexion</button>
+        <div id="auth-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Test Isolation Table Clients</h3>
+        <button onclick="testClientsIsolation()">Vérifier isolation table clients</button>
+        <div id="clients-test"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Test Isolation Table Séances</h3>
+        <button onclick="testSeancesIsolation()">Vérifier isolation table séances</button>
+        <div id="seances-test"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. Test Isolation Table Workouts</h3>
+        <button onclick="testWorkoutsIsolation()">Vérifier isolation table workouts</button>
+        <div id="workouts-test"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>5. Test Dashboard Client</h3>
+        <button onclick="testClientDashboard()">Tester dashboard client</button>
+        <div id="dashboard-test"></div>
+    </div>
+
+    <script>
+        // Configuration Supabase
+        const supabaseUrl = 'https://your-project.supabase.co';
+        const supabaseKey = 'your-anon-key';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let currentUser = null;
+
+        // Fonction de connexion Client 1
+        async function loginAsClient1() {
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: 'paulfst.business@gmail.com',
+                    password: 'password123'
+                });
+
+                if (error) throw error;
+
+                currentUser = data.user;
+                document.getElementById('auth-status').innerHTML = `
+                    <div class="success">
+                        ✅ Connecté en tant que CLIENT 1: ${data.user.email}<br>
+                        User ID: ${data.user.id}
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('auth-status').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur connexion CLIENT 1: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Fonction de connexion Client 2
+        async function loginAsClient2() {
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: 'letsbuildyourway@gmail.com',
+                    password: 'password123'
+                });
+
+                if (error) throw error;
+
+                currentUser = data.user;
+                document.getElementById('auth-status').innerHTML = `
+                    <div class="success">
+                        ✅ Connecté en tant que CLIENT 2: ${data.user.email}<br>
+                        User ID: ${data.user.id}
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('auth-status').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur connexion CLIENT 2: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Fonction de déconnexion
+        async function logout() {
+            await supabase.auth.signOut();
+            currentUser = null;
+            document.getElementById('auth-status').innerHTML = `
+                <div class="warning">
+                    ⚠️ Déconnecté
+                </div>
+            `;
+        }
+
+        // Test isolation table clients
+        async function testClientsIsolation() {
+            if (!currentUser) {
+                document.getElementById('clients-test').innerHTML = `
+                    <div class="error">❌ Veuillez vous connecter d'abord</div>
+                `;
+                return;
+            }
+
+            try {
+                const { data: clients, error } = await supabase
+                    .from('clients')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
+
+                if (error) throw error;
+
+                const result = `
+                    <div class="success">
+                        ✅ Isolation table clients OK<br>
+                        Nombre de clients visibles: ${clients.length}<br>
+                        <pre>${JSON.stringify(clients, null, 2)}</pre>
+                    </div>
+                `;
+
+                if (clients.length === 1) {
+                    document.getElementById('clients-test').innerHTML = result;
+                } else {
+                    document.getElementById('clients-test').innerHTML = `
+                        <div class="error">
+                            ❌ PROBLÈME: ${clients.length} clients visibles au lieu de 1<br>
+                            <pre>${JSON.stringify(clients, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('clients-test').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur test clients: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test isolation table séances
+        async function testSeancesIsolation() {
+            if (!currentUser) {
+                document.getElementById('seances-test').innerHTML = `
+                    <div class="error">❌ Veuillez vous connecter d'abord</div>
+                `;
+                return;
+            }
+
+            try {
+                const { data: seances, error } = await supabase
+                    .from('seances')
+                    .select('*');
+
+                if (error) throw error;
+
+                document.getElementById('seances-test').innerHTML = `
+                    <div class="success">
+                        ✅ Isolation table séances OK<br>
+                        Nombre de séances visibles: ${seances.length}<br>
+                        <pre>${JSON.stringify(seances, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('seances-test').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur test séances: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test isolation table workouts
+        async function testWorkoutsIsolation() {
+            if (!currentUser) {
+                document.getElementById('workouts-test').innerHTML = `
+                    <div class="error">❌ Veuillez vous connecter d'abord</div>
+                `;
+                return;
+            }
+
+            try {
+                const { data: workouts, error } = await supabase
+                    .from('workouts')
+                    .select('*');
+
+                if (error) throw error;
+
+                document.getElementById('workouts-test').innerHTML = `
+                    <div class="success">
+                        ✅ Isolation table workouts OK<br>
+                        Nombre de workouts visibles: ${workouts.length}<br>
+                        <pre>${JSON.stringify(workouts, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('workouts-test').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur test workouts: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test dashboard client
+        async function testClientDashboard() {
+            if (!currentUser) {
+                document.getElementById('dashboard-test').innerHTML = `
+                    <div class="error">❌ Veuillez vous connecter d'abord</div>
+                `;
+                return;
+            }
+
+            try {
+                // Simuler le chargement du dashboard
+                const { data: clientData, error } = await supabase
+                    .from('clients')
+                    .select(`
+                        *,
+                        coach:profiles!coach_id(
+                            id,
+                            first_name,
+                            last_name,
+                            email
+                        )
+                    `)
+                    .eq('user_id', currentUser.id)
+                    .single();
+
+                if (error) throw error;
+
+                document.getElementById('dashboard-test').innerHTML = `
+                    <div class="success">
+                        ✅ Dashboard client OK<br>
+                        Client: ${clientData.first_name} ${clientData.last_name}<br>
+                        Coach: ${clientData.coach?.first_name} ${clientData.coach?.last_name}<br>
+                        <pre>${JSON.stringify(clientData, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('dashboard-test').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur dashboard: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Vérifier l'état de connexion au chargement
+        window.addEventListener('load', async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                currentUser = user;
+                document.getElementById('auth-status').innerHTML = `
+                    <div class="success">
+                        ✅ Déjà connecté: ${user.email}<br>
+                        User ID: ${user.id}
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

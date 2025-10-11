@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corriger compte letsbuildyourway@gmail.com - BYW</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { 
+            padding: 12px 20px; 
+            margin: 5px; 
+            cursor: pointer; 
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; color: white; }
+        input { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 5px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        pre { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 3px; 
+            overflow-x: auto; 
+            font-size: 12px;
+        }
+        h1 { color: #333; text-align: center; }
+        h3 { color: #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Corriger compte letsbuildyourway@gmail.com</h1>
+        <p style="text-align: center; color: #666;">Problème: Email non confirmé → Connexion impossible</p>
+
+        <div class="test-section">
+            <h3>1. Vérifier l'état du compte</h3>
+            <button onclick="checkAccountStatus()" class="btn-primary">Vérifier l'état actuel</button>
+            <div id="status-check"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Confirmer l'email avec l'API Admin</h3>
+            <button onclick="confirmEmailWithAdmin()" class="btn-success">Confirmer l'email (API Admin)</button>
+            <div id="confirm-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Créer le profil client</h3>
+            <button onclick="createClientProfile()" class="btn-warning">Créer le profil client</button>
+            <div id="profile-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Tester la connexion</h3>
+            <input type="password" id="password" placeholder="Mot de passe" value="password123">
+            <button onclick="testLogin()" class="btn-primary">Tester la connexion</button>
+            <div id="login-test"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Vérifier l'isolation des données</h3>
+            <button onclick="testDataIsolation()" class="btn-success">Tester l'isolation</button>
+            <div id="isolation-test"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration Supabase
+        const supabaseUrl = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        const clientEmail = 'letsbuildyourway@gmail.com';
+        const clientPassword = 'password123';
+        const userId = 'a3678ef6-d382-4ef1-b5b8-bbb8d681c51c';
+
+        // Vérifier l'état du compte
+        async function checkAccountStatus() {
+            try {
+                // Vérifier via l'API admin
+                const response = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    document.getElementById('status-check').innerHTML = `
+                        <div class="success">
+                            ✅ Compte trouvé
+                            <br>Email: ${userData.email}
+                            <br>Email confirmé: ${userData.email_confirmed_at ? 'Oui' : 'Non'}
+                            <br>Créé le: ${new Date(userData.created_at).toLocaleString()}
+                            <pre>${JSON.stringify(userData, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error('Compte non trouvé');
+                }
+            } catch (error) {
+                document.getElementById('status-check').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Confirmer l'email avec l'API Admin
+        async function confirmEmailWithAdmin() {
+            try {
+                const response = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email_confirm: true,
+                        email_confirmed_at: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    document.getElementById('confirm-result').innerHTML = `
+                        <div class="success">
+                            ✅ Email confirmé avec succès !
+                            <br>Email confirmé: ${userData.email_confirmed_at ? 'Oui' : 'Non'}
+                            <br>Date confirmation: ${userData.email_confirmed_at}
+                        </div>
+                    `;
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || 'Erreur confirmation email');
+                }
+            } catch (error) {
+                document.getElementById('confirm-result').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur confirmation: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Créer le profil client
+        async function createClientProfile() {
+            try {
+                // Créer le profil
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: userId,
+                        email: clientEmail,
+                        first_name: 'Lets',
+                        last_name: 'Build Your Way',
+                        role: 'client'
+                    });
+
+                if (profileError) {
+                    if (profileError.message.includes('duplicate key')) {
+                        document.getElementById('profile-result').innerHTML = `
+                            <div class="warning">
+                                ⚠️ Le profil existe déjà
+                            </div>
+                        `;
+                    } else {
+                        throw profileError;
+                    }
+                } else {
+                    document.getElementById('profile-result').innerHTML = `
+                        <div class="success">
+                            ✅ Profil client créé avec succès !
+                        </div>
+                    `;
+                }
+
+                // Créer la fiche client
+                const { error: clientError } = await supabase
+                    .from('clients')
+                    .insert({
+                        user_id: userId,
+                        coach_id: 'acd6c7fc-43b3-4b2a-9b97-c9f046468ddd', // ID du coach Etienne
+                        first_name: 'Lets',
+                        last_name: 'Build Your Way',
+                        contact: clientEmail,
+                        age: 25,
+                        level: 'Débutant',
+                        objective: 'Forme générale',
+                        mentality: 'Motivé',
+                        coaching_type: 'Personnel',
+                        sports_history: 'Aucun',
+                        start_date: new Date().toISOString().split('T')[0]
+                    });
+
+                if (clientError) {
+                    if (clientError.message.includes('duplicate key')) {
+                        document.getElementById('profile-result').innerHTML += `
+                            <div class="warning">
+                                ⚠️ La fiche client existe déjà
+                            </div>
+                        `;
+                    } else {
+                        throw clientError;
+                    }
+                } else {
+                    document.getElementById('profile-result').innerHTML += `
+                        <div class="success">
+                            ✅ Fiche client créée avec succès !
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                document.getElementById('profile-result').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur création profil: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Tester la connexion
+        async function testLogin() {
+            const password = document.getElementById('password').value;
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: clientEmail,
+                    password: password
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                document.getElementById('login-test').innerHTML = `
+                    <div class="success">
+                        ✅ Connexion réussie !
+                        <br>Email: ${data.user.email}
+                        <br>User ID: ${data.user.id}
+                        <br>Email confirmé: ${data.user.email_confirmed_at ? 'Oui' : 'Non'}
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('login-test').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur de connexion: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Tester l'isolation des données
+        async function testDataIsolation() {
+            try {
+                // Vérifier que l'utilisateur est connecté
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                    document.getElementById('isolation-test').innerHTML = `
+                        <div class="error">
+                            ❌ Veuillez vous connecter d'abord
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Tester l'accès aux données clients
+                const { data: clients, error: clientsError } = await supabase
+                    .from('clients')
+                    .select('*')
+                    .eq('user_id', user.id);
+
+                if (clientsError) {
+                    throw clientsError;
+                }
+
+                document.getElementById('isolation-test').innerHTML = `
+                    <div class="success">
+                        ✅ Test d'isolation réussi !
+                        <br>Nombre de clients visibles: ${clients.length}
+                        <br>User ID connecté: ${user.id}
+                        <pre>${JSON.stringify(clients, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('isolation-test').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur test isolation: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Vérifier l'état au chargement
+        window.addEventListener('load', async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.email === clientEmail) {
+                document.getElementById('status-check').innerHTML = `
+                    <div class="success">
+                        ✅ Déjà connecté en tant que ${user.email}
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

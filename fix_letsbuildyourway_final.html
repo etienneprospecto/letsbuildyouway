@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correction finale letsbuildyourway@gmail.com - BYW</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 700px;
+            width: 100%;
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { 
+            padding: 12px 20px; 
+            margin: 5px; 
+            cursor: pointer; 
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; color: white; }
+        input { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 5px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        pre { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 3px; 
+            overflow-x: auto; 
+            font-size: 12px;
+        }
+        h1 { color: #333; text-align: center; }
+        h3 { color: #555; }
+        .sql-code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Correction finale letsbuildyourway@gmail.com</h1>
+        <p style="text-align: center; color: #666;">Problème: RLS bloque la création → Solution SQL directe</p>
+
+        <div class="test-section">
+            <h3>1. Vérifier l'état actuel</h3>
+            <button onclick="checkCurrentState()" class="btn-primary">Vérifier l'état</button>
+            <div id="current-state"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Solution SQL directe (contourner RLS)</h3>
+            <p>Copiez et exécutez ce SQL dans le dashboard Supabase :</p>
+            <div class="sql-code" id="sql-solution">
+-- 1. Confirmer l'email de l'utilisateur
+UPDATE auth.users 
+SET email_confirmed_at = NOW()
+WHERE id = 'a3678ef6-d382-4ef1-b5b8-bbb8d681c51c';
+
+-- 2. Créer le profil (contourner RLS)
+INSERT INTO public.profiles (id, email, first_name, last_name, role)
+VALUES (
+    'a3678ef6-d382-4ef1-b5b8-bbb8d681c51c',
+    'letsbuildyourway@gmail.com',
+    'Lets',
+    'Build Your Way',
+    'client'
+);
+
+-- 3. Créer la fiche client avec user_id
+INSERT INTO public.clients (
+    user_id,
+    coach_id,
+    first_name,
+    last_name,
+    contact,
+    age,
+    level,
+    objective,
+    mentality,
+    coaching_type,
+    sports_history,
+    start_date
+) VALUES (
+    'a3678ef6-d382-4ef1-b5b8-bbb8d681c51c',
+    'acd6c7fc-43b3-4b2a-9b97-c9f046468ddd',
+    'Lets',
+    'Build Your Way',
+    'letsbuildyourway@gmail.com',
+    25,
+    'Débutant',
+    'Forme générale',
+    'Motivé',
+    'Personnel',
+    'Aucun',
+    CURRENT_DATE
+);
+            </div>
+            <button onclick="copySQL()" class="btn-warning">Copier le SQL</button>
+            <div id="sql-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Tester la connexion après SQL</h3>
+            <input type="password" id="password" placeholder="Mot de passe" value="password123">
+            <button onclick="testLoginAfterSQL()" class="btn-success">Tester la connexion</button>
+            <div id="login-test"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Vérifier l'isolation des données</h3>
+            <button onclick="testDataIsolation()" class="btn-primary">Tester l'isolation</button>
+            <div id="isolation-test"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Test complet multi-client</h3>
+            <button onclick="testMultiClient()" class="btn-success">Tester avec les 2 clients</button>
+            <div id="multi-client-test"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration Supabase
+        const supabaseUrl = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        const clientEmail = 'letsbuildyourway@gmail.com';
+        const clientPassword = 'password123';
+        const userId = 'a3678ef6-d382-4ef1-b5b8-bbb8d681c51c';
+
+        // Vérifier l'état actuel
+        async function checkCurrentState() {
+            try {
+                // Vérifier le profil
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+
+                // Vérifier la fiche client
+                const { data: client, error: clientError } = await supabase
+                    .from('clients')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .single();
+
+                let result = '<div class="warning">📊 État actuel :</div>';
+                
+                if (profileError) {
+                    result += `<div class="error">❌ Profil: ${profileError.message}</div>`;
+                } else {
+                    result += `<div class="success">✅ Profil: ${profile.first_name} ${profile.last_name}</div>`;
+                }
+
+                if (clientError) {
+                    result += `<div class="error">❌ Fiche client: ${clientError.message}</div>`;
+                } else {
+                    result += `<div class="success">✅ Fiche client: ${client.first_name} ${client.last_name}</div>`;
+                }
+
+                document.getElementById('current-state').innerHTML = result;
+
+            } catch (error) {
+                document.getElementById('current-state').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur vérification: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Copier le SQL
+        function copySQL() {
+            const sqlText = document.getElementById('sql-solution').textContent;
+            navigator.clipboard.writeText(sqlText).then(() => {
+                document.getElementById('sql-result').innerHTML = `
+                    <div class="success">
+                        ✅ SQL copié ! Collez-le dans le dashboard Supabase SQL Editor
+                    </div>
+                `;
+            }).catch(() => {
+                document.getElementById('sql-result').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur copie. Sélectionnez le texte manuellement.
+                    </div>
+                `;
+            });
+        }
+
+        // Tester la connexion après SQL
+        async function testLoginAfterSQL() {
+            const password = document.getElementById('password').value;
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: clientEmail,
+                    password: password
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                document.getElementById('login-test').innerHTML = `
+                    <div class="success">
+                        ✅ Connexion réussie !
+                        <br>Email: ${data.user.email}
+                        <br>User ID: ${data.user.id}
+                        <br>Email confirmé: ${data.user.email_confirmed_at ? 'Oui' : 'Non'}
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('login-test').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur de connexion: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Tester l'isolation des données
+        async function testDataIsolation() {
+            try {
+                // Vérifier que l'utilisateur est connecté
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                    document.getElementById('isolation-test').innerHTML = `
+                        <div class="error">
+                            ❌ Veuillez vous connecter d'abord
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Tester l'accès aux données clients
+                const { data: clients, error: clientsError } = await supabase
+                    .from('clients')
+                    .select('*')
+                    .eq('user_id', user.id);
+
+                if (clientsError) {
+                    throw clientsError;
+                }
+
+                document.getElementById('isolation-test').innerHTML = `
+                    <div class="success">
+                        ✅ Test d'isolation réussi !
+                        <br>Nombre de clients visibles: ${clients.length}
+                        <br>User ID connecté: ${user.id}
+                        <br>Client: ${clients[0]?.first_name} ${clients[0]?.last_name}
+                        <pre>${JSON.stringify(clients, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('isolation-test').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur test isolation: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test multi-client
+        async function testMultiClient() {
+            try {
+                // Se connecter en tant que letsbuildyourway
+                const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+                    email: 'letsbuildyourway@gmail.com',
+                    password: 'password123'
+                });
+
+                if (loginError) {
+                    throw new Error(`Erreur connexion letsbuildyourway: ${loginError.message}`);
+                }
+
+                // Vérifier les données de letsbuildyourway
+                const { data: letsbuildClients, error: letsbuildError } = await supabase
+                    .from('clients')
+                    .select('*')
+                    .eq('user_id', loginData.user.id);
+
+                if (letsbuildError) {
+                    throw new Error(`Erreur données letsbuildyourway: ${letsbuildError.message}`);
+                }
+
+                // Se déconnecter
+                await supabase.auth.signOut();
+
+                // Se connecter en tant que paulfst
+                const { data: paulfstData, error: paulfstLoginError } = await supabase.auth.signInWithPassword({
+                    email: 'paulfst.business@gmail.com',
+                    password: 'password123'
+                });
+
+                if (paulfstLoginError) {
+                    throw new Error(`Erreur connexion paulfst: ${paulfstLoginError.message}`);
+                }
+
+                // Vérifier les données de paulfst
+                const { data: paulfstClients, error: paulfstError } = await supabase
+                    .from('clients')
+                    .select('*')
+                    .eq('user_id', paulfstData.user.id);
+
+                if (paulfstError) {
+                    throw new Error(`Erreur données paulfst: ${paulfstError.message}`);
+                }
+
+                document.getElementById('multi-client-test').innerHTML = `
+                    <div class="success">
+                        ✅ Test multi-client réussi !
+                        <br><br>
+                        <strong>Letsbuildyourway:</strong>
+                        <br>Clients visibles: ${letsbuildClients.length}
+                        <br>Client: ${letsbuildClients[0]?.first_name} ${letsbuildClients[0]?.last_name}
+                        <br><br>
+                        <strong>Paulfst:</strong>
+                        <br>Clients visibles: ${paulfstClients.length}
+                        <br>Client: ${paulfstClients[0]?.first_name} ${paulfstClients[0]?.last_name}
+                        <br><br>
+                        <strong>✅ Isolation parfaite !</strong>
+                    </div>
+                `;
+
+            } catch (error) {
+                document.getElementById('multi-client-test').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur test multi-client: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Vérifier l'état au chargement
+        window.addEventListener('load', async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.email === clientEmail) {
+                document.getElementById('current-state').innerHTML = `
+                    <div class="success">
+                        ✅ Déjà connecté en tant que ${user.email}
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

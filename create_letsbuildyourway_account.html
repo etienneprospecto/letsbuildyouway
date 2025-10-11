@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer compte letsbuildyourway@gmail.com - BYW</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { 
+            padding: 12px 20px; 
+            margin: 5px; 
+            cursor: pointer; 
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; color: white; }
+        input { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 5px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        pre { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 3px; 
+            overflow-x: auto; 
+            font-size: 12px;
+        }
+        h1 { color: #333; text-align: center; }
+        h3 { color: #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Créer compte letsbuildyourway@gmail.com</h1>
+        <p style="text-align: center; color: #666;">Configuration du compte client pour les tests d'isolation</p>
+
+        <div class="test-section">
+            <h3>1. Vérifier l'état actuel</h3>
+            <button onclick="checkAccountStatus()" class="btn-primary">Vérifier si le compte existe</button>
+            <div id="status-check"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Créer le compte client</h3>
+            <input type="password" id="password" placeholder="Mot de passe (min 6 caractères)" value="password123">
+            <button onclick="createClientAccount()" class="btn-success">Créer le compte client</button>
+            <div id="create-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Tester la connexion</h3>
+            <button onclick="testLogin()" class="btn-warning">Tester la connexion</button>
+            <div id="login-test"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Vérifier l'isolation des données</h3>
+            <button onclick="testDataIsolation()" class="btn-primary">Tester l'isolation</button>
+            <div id="isolation-test"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Actions de nettoyage</h3>
+            <button onclick="deleteAccount()" class="btn-danger">Supprimer le compte (si nécessaire)</button>
+            <div id="cleanup-result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration Supabase
+        const supabaseUrl = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDU1MTgsImV4cCI6MjA3MTMyMTUxOH0.bg0S85RYScZsfa0MGoyLyOtOdydu_YFDmDgMloWy3mg';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        const clientEmail = 'letsbuildyourway@gmail.com';
+        const clientPassword = 'password123';
+
+        // Vérifier l'état du compte
+        async function checkAccountStatus() {
+            try {
+                // Essayer de se connecter pour vérifier si le compte existe
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: clientEmail,
+                    password: clientPassword
+                });
+
+                if (error) {
+                    if (error.message.includes('Invalid login credentials')) {
+                        document.getElementById('status-check').innerHTML = `
+                            <div class="warning">
+                                ⚠️ Le compte existe mais le mot de passe est incorrect ou non configuré
+                            </div>
+                        `;
+                    } else if (error.message.includes('User not found')) {
+                        document.getElementById('status-check').innerHTML = `
+                            <div class="error">
+                                ❌ Le compte n'existe pas encore
+                            </div>
+                        `;
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    document.getElementById('status-check').innerHTML = `
+                        <div class="success">
+                            ✅ Le compte existe et la connexion fonctionne
+                            <br>User ID: ${data.user.id}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('status-check').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur lors de la vérification: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Créer le compte client
+        async function createClientAccount() {
+            const password = document.getElementById('password').value;
+            
+            if (!password || password.length < 6) {
+                document.getElementById('create-result').innerHTML = `
+                    <div class="error">
+                        ❌ Le mot de passe doit contenir au moins 6 caractères
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                // Créer le compte utilisateur
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: clientEmail,
+                    password: password,
+                    options: {
+                        data: {
+                            first_name: 'Lets',
+                            last_name: 'Build Your Way',
+                            role: 'client'
+                        }
+                    }
+                });
+
+                if (authError) {
+                    if (authError.message.includes('User already registered')) {
+                        document.getElementById('create-result').innerHTML = `
+                            <div class="warning">
+                                ⚠️ Le compte existe déjà. Essayez de vous connecter.
+                            </div>
+                        `;
+                    } else {
+                        throw authError;
+                    }
+                } else {
+                    document.getElementById('create-result').innerHTML = `
+                        <div class="success">
+                            ✅ Compte créé avec succès !
+                            <br>User ID: ${authData.user?.id}
+                            <br>Email confirmé: ${authData.user?.email_confirmed_at ? 'Oui' : 'Non'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('create-result').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur lors de la création: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Tester la connexion
+        async function testLogin() {
+            const password = document.getElementById('password').value;
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: clientEmail,
+                    password: password
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                document.getElementById('login-test').innerHTML = `
+                    <div class="success">
+                        ✅ Connexion réussie !
+                        <br>Email: ${data.user.email}
+                        <br>User ID: ${data.user.id}
+                        <br>Rôle: ${data.user.user_metadata?.role || 'Non défini'}
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('login-test').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur de connexion: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Tester l'isolation des données
+        async function testDataIsolation() {
+            try {
+                // Vérifier que l'utilisateur est connecté
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                    document.getElementById('isolation-test').innerHTML = `
+                        <div class="error">
+                            ❌ Veuillez vous connecter d'abord
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Tester l'accès aux données clients
+                const { data: clients, error: clientsError } = await supabase
+                    .from('clients')
+                    .select('*')
+                    .eq('user_id', user.id);
+
+                if (clientsError) {
+                    throw clientsError;
+                }
+
+                document.getElementById('isolation-test').innerHTML = `
+                    <div class="success">
+                        ✅ Test d'isolation réussi !
+                        <br>Nombre de clients visibles: ${clients.length}
+                        <br>User ID connecté: ${user.id}
+                        <pre>${JSON.stringify(clients, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('isolation-test').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur test isolation: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Supprimer le compte (si nécessaire)
+        async function deleteAccount() {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer le compte letsbuildyourway@gmail.com ?')) {
+                return;
+            }
+
+            try {
+                // Se connecter d'abord
+                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                    email: clientEmail,
+                    password: document.getElementById('password').value
+                });
+
+                if (authError) {
+                    throw authError;
+                }
+
+                // Supprimer le profil
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .delete()
+                    .eq('id', authData.user.id);
+
+                if (profileError) {
+                    console.warn('Erreur suppression profil:', profileError);
+                }
+
+                // Supprimer les données client
+                const { error: clientError } = await supabase
+                    .from('clients')
+                    .delete()
+                    .eq('user_id', authData.user.id);
+
+                if (clientError) {
+                    console.warn('Erreur suppression client:', clientError);
+                }
+
+                document.getElementById('cleanup-result').innerHTML = `
+                    <div class="success">
+                        ✅ Compte supprimé avec succès
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('cleanup-result').innerHTML = `
+                    <div class="error">
+                        ❌ Erreur suppression: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Vérifier l'état au chargement
+        window.addEventListener('load', async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.email === clientEmail) {
+                document.getElementById('status-check').innerHTML = `
+                    <div class="success">
+                        ✅ Déjà connecté en tant que ${user.email}
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

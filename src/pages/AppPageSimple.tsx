@@ -40,6 +40,7 @@ function AppContentSimple() {
 
   // Vérifier si on est sur la page d'acceptation d'invitation
   const isAcceptInvitationPage = window.location.pathname === '/accept-invitation' || 
+                                 window.location.search.includes('access_token=') ||
                                  window.location.search.includes('token=')
 
   if (isAcceptInvitationPage) {

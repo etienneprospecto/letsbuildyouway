@@ -25,7 +25,7 @@ serve(async (req) => {
     console.log('📧 Envoi email à:', email)
 
     const { data, error } = await resend.emails.send({
-      from: 'onboarding@resend.dev', // Email par défaut Resend
+      from: 'onboarding@resend.dev',
       to: email,
       subject: `${firstName}, rejoins ton coach sur notre plateforme !`,
       html: `

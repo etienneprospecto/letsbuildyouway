@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase Auth Invitation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Supabase Auth Invitation</h1>
+        <p>Test de l'invitation directe via <strong>Supabase Auth</strong> (plus simple que Resend !)</p>
+        
+        <div class="test-section">
+            <h3>📧 Test Invitation Supabase Auth</h3>
+            <p><strong>Avantage :</strong> Supabase gère automatiquement l'envoi d'email</p>
+            <p><strong>Email test :</strong> <code>etienne@epevents.net</strong></p>
+            
+            <button onclick="testSupabaseAuthInvitation()" id="testBtn">🚀 Tester Supabase Auth</button>
+            <button onclick="clearLogs()">🗑️ Effacer Logs</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Logs de Test</h3>
+            <div id="logs" class="log">Prêt pour le test...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+        
+        const SUPABASE_URL = 'https://chrhxkcppvigxqlsxgqo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNocmh4a2NwcHZpZ3hxbHN4Z3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQyNzQ4MzAsImV4cCI6MjA0MDA1MDgzMH0.8Q7Q8Q7Q8Q7Q8Q7Q8Q7Q8Q7Q8Q7Q8Q7Q8Q7Q8Q7Q8Q';
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logs.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = 'Logs effacés...';
+        }
+        
+        async function testSupabaseAuthInvitation() {
+            const btn = document.getElementById('testBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Test en cours...';
+            
+            log('🚀 ===== TEST SUPABASE AUTH INVITATION =====');
+            
+            try {
+                log('📧 Test avec Supabase Auth inviteUserByEmail...');
+                
+                // Test direct avec Supabase Auth
+                const { data, error } = await supabase.auth.admin.inviteUserByEmail(
+                    'etienne@epevents.net',
+                    {
+                        data: {
+                            first_name: 'Etienne',
+                            last_name: 'Guimbard',
+                            role: 'client',
+                            coach_id: 'acd6c7fc-43b3-4b2a-9b97-c9f046468ddd'
+                        },
+                        redirectTo: `${window.location.origin}/accept-invitation`
+                    }
+                );
+                
+                if (error) {
+                    log(`❌ ERREUR: ${error.message}`, 'error');
+                    log(`📋 Code: ${error.status}`, 'error');
+                } else {
+                    log('✅ SUCCÈS ! Invitation envoyée via Supabase Auth', 'success');
+                    log(`📧 Email: etienne@epevents.net`, 'success');
+                    log(`🔗 Redirection: ${window.location.origin}/accept-invitation`, 'success');
+                    log(`📦 Données: ${JSON.stringify(data, null, 2)}`, 'info');
+                }
+                
+            } catch (error) {
+                log(`❌ ERREUR RÉSEAU: ${error.message}`, 'error');
+                console.error('Erreur:', error);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 Tester Supabase Auth';
+                log('🏁 ===== FIN TEST =====');
+            }
+        }
+        
+        // Exposer la fonction globalement
+        window.testSupabaseAuthInvitation = testSupabaseAuthInvitation;
+        window.clearLogs = clearLogs;
+        
+        // Auto-test au chargement
+        window.addEventListener('load', () => {
+            log('🌐 Page chargée - Prêt pour le test');
+            log('💡 Cliquez sur "Tester Supabase Auth" pour envoyer une invitation');
+        });
+    </script>
+</body>
+</html>

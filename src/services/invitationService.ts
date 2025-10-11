@@ -32,53 +32,61 @@ export interface CreateInvitationData {
 
 class InvitationService {
   /**
-   * Créer une invitation pour un nouveau client
+   * Créer une invitation pour un nouveau client (version simplifiée)
    */
   async createInvitation(data: CreateInvitationData): Promise<InvitationData> {
-    // Générer un token unique
-    const token = this.generateInvitationToken();
+    console.log('🚀 Création invitation simplifiée...');
     
-    // Date d'expiration (7 jours)
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-    
-    const invitationData = {
-      coach_id: data.coach_id,
-      client_email: data.client_email,
-      client_first_name: data.client_first_name,
-      client_last_name: data.client_last_name,
-      token,
-      status: 'pending' as const,
-      expires_at: expiresAt.toISOString(),
-      // Stocker les données client pour la création du profil
-      client_data: {
-        phone: data.client_phone,
-        date_of_birth: data.client_date_of_birth,
-        gender: data.client_gender,
-        height_cm: data.client_height_cm,
-        weight_kg: data.client_weight_kg,
-        primary_goal: data.client_primary_goal,
-        fitness_level: data.client_fitness_level,
-        notes: data.client_notes,
-        medical_conditions: data.client_medical_conditions,
-        dietary_restrictions: data.client_dietary_restrictions,
+    try {
+      // Générer un token unique
+      const token = this.generateInvitationToken();
+      
+      // Date d'expiration (7 jours)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+      
+      const invitationData = {
+        coach_id: data.coach_id,
+        client_email: data.client_email,
+        client_first_name: data.client_first_name,
+        client_last_name: data.client_last_name,
+        token,
+        status: 'pending' as const,
+        expires_at: expiresAt.toISOString(),
+        client_data: {
+          phone: data.client_phone,
+          date_of_birth: data.client_date_of_birth,
+          gender: data.client_gender,
+          height_cm: data.client_height_cm,
+          weight_kg: data.client_weight_kg,
+          primary_goal: data.client_primary_goal,
+          fitness_level: data.client_fitness_level,
+          medical_conditions: data.client_medical_conditions,
+          dietary_restrictions: data.client_dietary_restrictions,
+        }
+      };
+
+      const { data: invitation, error } = await supabase
+        .from('client_invitations')
+        .insert(invitationData)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Erreur lors de la création de l'invitation: ${error.message}`);
       }
-    };
 
-    const { data: invitation, error } = await supabase
-      .from('client_invitations')
-      .insert(invitationData)
-      .select()
-      .single();
+      console.log('✅ Invitation créée:', invitation);
 
-    if (error) {
-      throw new Error(`Erreur lors de la création de l'invitation: ${error.message}`);
+      // Envoyer l'email via Resend (approche directe)
+      await this.sendEmailDirect(invitation);
+
+      return invitation;
+
+    } catch (error) {
+      console.error('❌ Erreur création invitation:', error);
+      throw error;
     }
-
-    // Envoyer l'email d'invitation
-    await this.sendInvitationEmail(invitation);
-
-    return invitation;
   }
 
   /**
@@ -186,11 +194,11 @@ class InvitationService {
 
       }
 
-      // Créer la fiche client avec des valeurs par défaut pour les champs obligatoires
+      // Créer la fiche client avec user_id pour l'isolation (CORRECTION CRITIQUE)
       const { error: clientError } = await supabase
         .from('clients')
         .insert({
-          id: authData.user.id,
+          user_id: authData.user.id, // ✅ Lier au compte auth.users pour l'isolation
           coach_id: invitation.coach_id,
           first_name: invitation.client_first_name,
           last_name: invitation.client_last_name,
@@ -243,100 +251,47 @@ class InvitationService {
   }
 
   /**
-   * Envoyer l'email d'invitation avec logs détaillés
+   * Envoyer l'email via Edge Function Resend
    */
-  private async sendInvitationEmail(invitation: InvitationData): Promise<void> {
-    const invitationUrl = `${window.location.origin}/?token=${invitation.token}`;
-
-    console.log('📧 ===== DÉBUT ENVOI EMAIL INVITATION =====');
+  private async sendEmailDirect(invitation: InvitationData): Promise<void> {
+    const invitationUrl = `${window.location.origin}/accept-invitation?token=${invitation.token}`;
+    
+    console.log('📧 Envoi email via Edge Function...');
     console.log('📧 Client:', invitation.client_email);
-    console.log('📧 Nom:', `${invitation.client_first_name} ${invitation.client_last_name}`);
-    console.log('📧 Coach ID:', invitation.coach_id);
     console.log('🔗 URL:', invitationUrl);
 
     try {
       // Récupérer le nom du coach
-      console.log('👨‍💼 Récupération des infos coach...');
-      const { data: coach, error: coachError } = await supabase
+      const { data: coach } = await supabase
         .from('profiles')
         .select('first_name, last_name')
         .eq('id', invitation.coach_id)
         .single();
 
-      if (coachError) {
-        console.error('❌ Erreur récupération coach:', coachError);
-      }
-
       const coachName = coach ? `${coach.first_name} ${coach.last_name}` : 'Votre coach';
-      console.log('👨‍💼 Coach:', coachName);
 
-      // Préparer les données d'email
-      const emailData = {
-        client_email: invitation.client_email,
-        client_name: `${invitation.client_first_name} ${invitation.client_last_name}`,
-        invitation_url: invitationUrl,
-        coach_name: coachName,
-        type: 'client_invitation'
-      };
-
-      console.log('📦 Données email:', emailData);
-
-      // Appeler l'Edge Function pour envoyer l'email
-      console.log('🚀 Appel Edge Function resend-send-email...');
-      const { data, error } = await supabase.functions.invoke('resend-send-email', {
+      // Appel Edge Function Supabase Auth
+      const { data, error } = await supabase.functions.invoke('send-auth-invitation', {
         body: {
-          to: invitation.client_email,
-          subject: `Invitation de ${coachName} - Rejoignez BYW`,
-          html: generateEmailHTML(emailData, 'client_invitation'),
-          text: generateEmailText(emailData, 'client_invitation')
+          email: invitation.client_email,
+          firstName: invitation.client_first_name,
+          lastName: invitation.client_last_name,
+          coachId: invitation.coach_id,
+          clientData: invitation.client_data
         }
       });
 
       if (error) {
-        console.warn('⚠️ ===== EDGE FUNCTION NON DISPONIBLE =====');
-        console.warn('⚠️ Erreur:', error.message);
-        console.warn('📧 Client:', invitation.client_email);
-        console.warn('⏰ Timestamp:', new Date().toISOString());
-        console.warn('📧 ======================================');
-        
-        // Ne pas faire échouer la création de l'invitation si l'email échoue
-        console.log('📧 Email d\'invitation simulé (Edge Function indisponible):');
-        console.log('URL d\'invitation:', invitationUrl);
-        console.log('💡 Le coach peut copier cette URL pour inviter manuellement');
-        
-        // Stocker l'erreur pour debugging (sans bloquer)
-        try {
-          await this.logEmailError(invitation, error);
-        } catch (logError) {
-          console.warn('Erreur lors du logging:', logError);
-        }
-      } else {
-        console.log('✅ ===== EMAIL ENVOYÉ AVEC SUCCÈS =====');
-        console.log('✅ Email ID:', data?.email_id);
-        console.log('✅ Message:', data?.message);
-        console.log('📧 Client:', invitation.client_email);
-        console.log('⏰ Timestamp:', data?.timestamp || new Date().toISOString());
-        console.log('📧 ======================================');
+        console.error('❌ Erreur Edge Function:', error);
+        throw new Error(`Erreur envoi email: ${error.message}`);
       }
+
+      console.log('✅ Email envoyé via Edge Function:', data);
+      
     } catch (error) {
-      console.warn('⚠️ ===== ERREUR GÉNÉRALE EMAIL =====');
-      console.warn('⚠️ Type:', error.name);
-      console.warn('⚠️ Message:', error.message);
-      console.warn('📧 Client:', invitation.client_email);
-      console.warn('⏰ Timestamp:', new Date().toISOString());
-      console.warn('📧 ==================================');
-      
-      // Fallback : afficher l'URL dans la console
-      console.log('📧 Email d\'invitation simulé (erreur de service):');
-      console.log('URL d\'invitation:', invitationUrl);
-      console.log('💡 Le coach peut copier cette URL pour inviter manuellement');
-      
-      // Stocker l'erreur pour debugging (sans bloquer)
-      try {
-        await this.logEmailError(invitation, error);
-      } catch (logError) {
-        console.warn('Erreur lors du logging:', logError);
-      }
+      console.error('❌ Erreur envoi email:', error);
+      // Ne pas faire échouer l'invitation si l'email échoue
+      console.log('💡 URL d\'invitation manuelle:', invitationUrl);
     }
   }
 

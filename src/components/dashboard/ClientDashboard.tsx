@@ -12,6 +12,8 @@ import { SeanceService, SeanceWithExercices } from '@/services/seanceService'
 import { progressService } from '@/services/progressService'
 import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import ClientPasswordSetup from '@/components/auth/ClientPasswordSetup'
+import { supabase } from '@/lib/supabase'
 
 interface DashboardStats {
   currentWeight: number | null
@@ -40,11 +42,40 @@ const ClientDashboard: React.FC = memo(() => {
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false)
+
+  // Vérifier si le mot de passe doit être configuré
+  useEffect(() => {
+    const checkPasswordSetup = async () => {
+      if (!user) return;
+      
+      try {
+        // Vérifier si l'utilisateur a un mot de passe configuré
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        // Vérifier si l'utilisateur a été invité et n'a pas encore confirmé son email
+        // OU si l'utilisateur n'a pas de mot de passe configuré
+        if (currentUser && (!currentUser.email_confirmed_at || !currentUser.user_metadata?.password_set)) {
+          console.log('🔐 Client doit configurer son mot de passe');
+          setNeedsPasswordSetup(true);
+        } else {
+          console.log('✅ Client authentifié, affichage du dashboard');
+          setNeedsPasswordSetup(false);
+        }
+      } catch (error) {
+        console.error('Erreur vérification mot de passe:', error);
+        // En cas d'erreur, afficher le dashboard par défaut
+        setNeedsPasswordSetup(false);
+      }
+    };
+
+    checkPasswordSetup();
+  }, [user]);
 
   // Charger les données du dashboard
   useEffect(() => {
     const loadDashboardData = async () => {
-      if (!user?.email || !profile?.client_id) {
+      if (!user?.id) {
         setIsLoading(false)
         return
       }
@@ -53,40 +84,66 @@ const ClientDashboard: React.FC = memo(() => {
         setIsLoading(true)
         setError(null)
 
-        console.log('🔄 Chargement dashboard pour client:', profile.client_id)
+        console.log('🔄 Chargement dashboard pour client user_id:', user.id)
 
-        // Récupérer les données du client
+        // Récupérer les données du client par user_id (ISOLATION CRITIQUE)
         let client = null
         try {
-          client = await ClientService.getClientById(profile.client_id)
-          console.log('👤 Client récupéré:', client)
+          const { data: clientData, error: clientError } = await supabase
+            .from('clients')
+            .select(`
+              *,
+              coach:profiles!coach_id(
+                id,
+                first_name,
+                last_name,
+                email,
+                avatar_url
+              )
+            `)
+            .eq('user_id', user.id) // ✅ Filtre par user_id du client connecté
+            .single();
+
+          if (clientError) {
+            console.error('❌ Erreur récupération client:', clientError);
+            throw clientError;
+          }
+
+          client = clientData;
+          console.log('👤 Client récupéré avec isolation:', client);
         } catch (err) {
           console.warn('⚠️ Erreur récupération client:', err)
         }
         
-        // Récupérer les données de progression
+        // Récupérer les données de progression par client_id
         let progressData = []
         try {
-          progressData = await progressService.getClientProgress(profile.client_id)
-          console.log('📊 Données progression:', progressData)
+          if (client?.id) {
+            progressData = await progressService.getClientProgress(client.id)
+            console.log('📊 Données progression:', progressData)
+          }
         } catch (err) {
           console.warn('⚠️ Erreur récupération progression:', err)
         }
         
-        // Récupérer les séances
+        // Récupérer les séances par client_id
         let seances = []
         try {
-          seances = await SeanceService.getSeancesByClient(profile.client_id)
-          console.log('🏋️ Séances récupérées:', seances)
+          if (client?.id) {
+            seances = await SeanceService.getSeancesByClient(client.id)
+            console.log('🏋️ Séances récupérées:', seances)
+          }
         } catch (err) {
           console.warn('⚠️ Erreur récupération séances:', err)
         }
         
-        // Récupérer les stats nutrition
+        // Récupérer les stats nutrition par client_id
         let nutritionStats = null
         try {
-          nutritionStats = await NutritionService.getNutritionStats(profile.client_id)
-          console.log('🥗 Stats nutrition:', nutritionStats)
+          if (client?.id) {
+            nutritionStats = await NutritionService.getNutritionStats(client.id)
+            console.log('🥗 Stats nutrition:', nutritionStats)
+          }
         } catch (err) {
           console.warn('⚠️ Erreur récupération nutrition:', err)
         }
@@ -157,7 +214,16 @@ const ClientDashboard: React.FC = memo(() => {
     }
 
     loadDashboardData()
-  }, [user?.email, profile?.client_id])
+  }, [user?.id])
+
+  // Afficher le composant de configuration de mot de passe si nécessaire
+  if (needsPasswordSetup) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+        <ClientPasswordSetup onPasswordSet={() => setNeedsPasswordSetup(false)} />
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
